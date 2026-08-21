@@ -23,6 +23,16 @@ class MigrationReviewStaticTests(unittest.TestCase):
         self.assertIn("保存失败，编辑窗口未关闭", js)
         self.assertIn("session!==editorSession", js)
 
+    def test_low_frequency_tools_are_under_settings(self):
+        html = INDEX.read_text(encoding="utf-8")
+        js = (ROOT / "careervault" / "static" / "app.js").read_text(encoding="utf-8")
+        self.assertIn('data-view="settings"', html)
+        self.assertNotIn('data-view="files"', html)
+        self.assertNotIn('data-view="inbox"', html)
+        self.assertNotIn('data-view="integration"', html)
+        self.assertIn("function renderSettings()", js)
+        self.assertIn("#profile .notice", js)
+
 
 if __name__ == "__main__":
     unittest.main()
