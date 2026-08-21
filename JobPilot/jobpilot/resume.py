@@ -417,13 +417,13 @@ def generate_docx_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byt
         header = doc.add_table(rows=1, cols=3)
         header.alignment = WD_TABLE_ALIGNMENT.CENTER
         header.autofit = False
-        header.columns[0].width = Inches(1.0)
-        header.columns[1].width = Inches(4.8)
-        header.columns[2].width = Inches(1.0)
+        header.columns[0].width = Inches(1.2)
+        header.columns[1].width = Inches(4.4)
+        header.columns[2].width = Inches(1.2)
         blank, middle, right = header.rows[0].cells
-        blank.width = Inches(1.0)
-        middle.width = Inches(4.8)
-        right.width = Inches(1.0)
+        blank.width = Inches(1.2)
+        middle.width = Inches(4.4)
+        right.width = Inches(1.2)
         p = middle.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         run = p.add_run(profile.get("name") or "个人简历")
@@ -436,8 +436,8 @@ def generate_docx_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byt
             cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
             cp.paragraph_format.space_after = Pt(6)
         rp = right.paragraphs[0]
-        rp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        rp.add_run().add_picture(str(photo), width=Inches(1.0), height=Inches(1.33))
+        rp.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        rp.add_run().add_picture(str(photo), width=Inches(1.1), height=Inches(1.47))
         for cell in (blank, middle, right):
             tc_pr = cell._tc.get_or_add_tcPr()
             borders = tc_pr.first_child_found_in("w:tcBorders")
@@ -551,9 +551,9 @@ def generate_pdf_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byte
     photo = _private_photo_bytes(profile.get("photo_path"))
     middle = [Paragraph(str(profile.get("name") or "个人简历"), name_style), Paragraph(contact, contact_style) if contact else Spacer(1, 1)]
     if photo:
-        picture = Image(str(photo), width=25 * mm, height=33 * mm)
-        header = Table([[Spacer(1, 1), middle, picture]], colWidths=[25 * mm, doc.width - 50 * mm, 25 * mm])
-        header.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("ALIGN", (0, 0), (0, 0), "CENTER"), ("ALIGN", (1, 0), (1, 0), "RIGHT"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+        picture = Image(str(photo), width=28 * mm, height=37 * mm)
+        header = Table([[Spacer(1, 1), middle, picture]], colWidths=[32.5 * mm, doc.width - 65 * mm, 32.5 * mm])
+        header.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("ALIGN", (0, 0), (0, 0), "CENTER"), ("ALIGN", (1, 0), (1, 0), "CENTER"), ("ALIGN", (2, 0), (2, 0), "LEFT"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
         story.append(header)
     else:
         story.extend(left)
