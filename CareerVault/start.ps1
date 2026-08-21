@@ -1,6 +1,6 @@
 Set-Location $PSScriptRoot
 
-$ExpectedVersion = "0.1.0"
+$ExpectedVersion = "0.2.0"
 $Port = 8766
 $PythonExe = ".venv\Scripts\python.exe"
 $BaseUrl = "http://127.0.0.1:$Port"

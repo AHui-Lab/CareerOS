@@ -98,8 +98,20 @@ def render_experience(meta: dict[str, Any], fields: dict[str, Any]) -> str:
 def experience_to_dict(path: Path) -> dict[str, Any]:
     text = path.read_text(encoding="utf-8")
     meta, body = split_frontmatter(text)
+    related = meta.get("related_experience_ids", [])
+    if isinstance(related, str):
+        related = [related] if related else []
+    related_items = []
+    for related_id in related:
+        related_path = EXPERIENCES / str(related_id) / "index.md"
+        if related_path.exists() and related_path != path:
+            related_meta, _ = split_frontmatter(related_path.read_text(encoding="utf-8"))
+            related_items.append({"id": related_meta.get("id", related_id), "title": related_meta.get("title", str(related_id)), "type": related_meta.get("type", "other")})
     return {
         **meta,
+        "related_experience_ids": related,
+        "related_experiences": related_items,
+        "details": meta.get("details") if isinstance(meta.get("details"), dict) else {},
         "summary": section(body, "项目概述"),
         "facts": section(body, "事实记录"),
         "results": section(body, "量化成果"),
@@ -147,6 +159,8 @@ def create_experience(payload: dict[str, Any]) -> dict[str, Any]:
         "status": payload.get("status", "active"),
         "domains": payload.get("domains", []),
         "skills": payload.get("skills", []),
+        "related_experience_ids": payload.get("related_experience_ids", []),
+        "details": payload.get("details", {}),
         "resume_ready": bool(payload.get("resume_ready", False)),
         "created_at": ts,
         "updated_at": ts,
@@ -160,7 +174,7 @@ def create_experience(payload: dict[str, Any]) -> dict[str, Any]:
 def update_experience(experience_id: str, changes: dict[str, Any]) -> dict[str, Any]:
     current = get_experience(experience_id)
     path = EXPERIENCES / experience_id / "index.md"
-    meta_keys = {"type", "title", "organization", "role", "start", "end", "status", "domains", "skills", "resume_ready"}
+    meta_keys = {"type", "title", "organization", "role", "start", "end", "status", "domains", "skills", "resume_ready", "related_experience_ids", "details"}
     body_keys = {"summary", "facts", "results", "notes"}
     meta = {k: current.get(k) for k in current.keys() if k not in body_keys and k not in {"path", "attachments", "error"}}
     for key, value in changes.items():

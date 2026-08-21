@@ -3,6 +3,9 @@ const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 let experiences = [];
 let currentExperience = null;
 let saveTimer = null;
+let editorSession = 0;
+const TYPE_LABELS = {project:'项目', internship:'实习', research:'科研', competition:'竞赛', award:'获奖', patent:'专利', paper:'论文', certificate:'证书', education:'教育', work:'工作', volunteer:'志愿/社会实践', campus:'校园经历', other:'其他'};
+const TYPE_OPTIONS = Object.entries(TYPE_LABELS).map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
 
 async function api(url, options={}) {
   const res = await fetch(url, {headers:{'Content-Type':'application/json', ...(options.headers||{})}, ...options});
@@ -41,23 +44,27 @@ async function renderDashboard(){
   $$('.experience-card').forEach(x=>x.onclick=()=>openExperience(x.dataset.id));
 }
 
-function expCard(x){return `<div class="card experience-card" data-id="${esc(x.id)}"><div class="row"><strong>${esc(x.title)}</strong><span class="status">${esc(x.status||'')}</span>${x.resume_ready?'<span class="tag">Resume Ready</span>':''}</div><div class="muted">${esc(x.organization||'')}${x.role?' · '+esc(x.role):''} ${x.start?' · '+esc(x.start):''}${x.end?' ~ '+esc(x.end):''}</div><div class="tags">${(x.skills||[]).slice(0,6).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div></div>`}
+function expCard(x){return `<div class="card experience-card" data-id="${esc(x.id)}"><div class="row"><strong>${esc(x.title)}</strong><span class="status">${esc(TYPE_LABELS[x.type]||x.type||'其他')}</span><span class="status">${esc(x.status||'')}</span>${x.resume_ready?'<span class="tag">Resume Ready</span>':''}</div><div class="muted">${esc(x.organization||'')}${x.role?' · '+esc(x.role):''} ${x.start?' · '+esc(x.start):''}${x.end?' ~ '+esc(x.end):''}</div><div class="tags">${(x.skills||[]).slice(0,6).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div></div>`}
 
 async function renderExperiences(){
   experiences=await api('/api/experiences');
-  $('#experiences').innerHTML=`<div class="topbar"><div><h1>经历库</h1><div class="muted">每条经历只有一个事实来源。</div></div><button class="btn" id="newExp">+ 新增经历</button></div><div class="list">${experiences.map(expCard).join('')||'<div class="card muted">暂无经历。</div>'}</div>`;
+  const options=Object.entries(TYPE_LABELS).map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
+  $('#experiences').innerHTML=`<div class="topbar"><div><h1>经历库</h1><div class="muted">按网申常见材料分类；项目、获奖、专利和论文可互相建立关联。</div></div><button class="btn" id="newExp">+ 新增记录</button></div><div class="card filterbar"><label>分类筛选<select id="typeFilter"><option value="">全部分类</option>${options}</select></label><label>关键词<input id="experienceSearch" placeholder="名称、单位、技能…"></label></div><br><div id="experienceList" class="list"></div>`;
+  const draw=()=>{const type=$('#typeFilter').value;const q=$('#experienceSearch').value.trim().toLowerCase();const items=experiences.filter(x=>(!type||x.type===type)&&(!q||[x.title,x.organization,x.role,...(x.skills||[]),...(x.domains||[])].join(' ').toLowerCase().includes(q)));$('#experienceList').innerHTML=items.map(expCard).join('')||'<div class="card muted">没有符合条件的记录。</div>';$$('.experience-card').forEach(x=>x.onclick=()=>openExperience(x.dataset.id))};
+  $('#typeFilter').onchange=draw; $('#experienceSearch').oninput=draw; draw();
   $('#newExp').onclick=()=>openExperience();
-  $$('.experience-card').forEach(x=>x.onclick=()=>openExperience(x.dataset.id));
 }
 
 function experienceForm(x={}){
   return `<div class="topbar"><h2>${x.id?'编辑经历':'新增经历'}</h2><button class="btn ghost" id="closeModal">关闭</button></div><div class="form form-grid">
-  <label>类型<select id="f-type"><option value="project">项目</option><option value="internship">实习</option><option value="research">科研</option><option value="competition">竞赛</option><option value="award">奖项</option><option value="certificate">证书</option><option value="education">教育</option><option value="other">其他</option></select></label>
+  <label>类型<select id="f-type">${TYPE_OPTIONS}</select></label>
   <label>状态<select id="f-status"><option value="idea">想法</option><option value="draft">草稿</option><option value="active">进行中</option><option value="verified">已验证</option><option value="archived">归档</option></select></label>
   <label class="full">名称<input id="f-title" value="${esc(x.title||'')}"></label>
   <label>组织/单位<input id="f-org" value="${esc(x.organization||'')}"></label><label>角色<input id="f-role" value="${esc(x.role||'')}"></label>
   <label>开始<input id="f-start" value="${esc(x.start||'')}"></label><label>结束<input id="f-end" value="${esc(x.end||'')}"></label>
   <label>方向标签（逗号）<input id="f-domains" value="${esc(csv(x.domains))}"></label><label>技能（逗号）<input id="f-skills" value="${esc(csv(x.skills))}"></label>
+  <label class="full">关联记录（可多选）<select id="f-related" multiple size="4">${experiences.filter(item=>item.id!==x.id).map(item=>`<option value="${esc(item.id)}" ${(x.related_experience_ids||[]).includes(item.id)?'selected':''}>${esc(TYPE_LABELS[item.type]||'其他')} · ${esc(item.title)}</option>`).join('')}</select><small class="muted">例如：把获奖、专利、论文关联到对应项目；按住 Ctrl/⌘ 可多选。${(x.related_experiences||[]).length?' 当前已关联：'+x.related_experiences.map(item=>esc(item.title)).join('、'):''}</small></label>
+  <div class="full card type-details" id="typeDetails"></div>
   <label class="full"><input type="checkbox" id="f-ready" ${x.resume_ready?'checked':''}> 可用于简历生成</label>
   <label class="full">项目概述<textarea id="f-summary">${esc(x.summary||'')}</textarea></label>
   <label class="full">事实记录<textarea id="f-facts">${esc(x.facts||'')}</textarea></label>
@@ -69,21 +76,26 @@ function experienceForm(x={}){
 }
 
 async function openExperience(id){
+  const session=++editorSession;
   const x=id?await api('/api/experiences/'+id):{}; currentExperience=x.id||null;
   $('#modalCard').innerHTML=experienceForm(x); $('#modal').classList.remove('hidden');
-  $('#f-type').value=x.type||'project'; $('#f-status').value=x.status||'active';
+  $('#f-type').value=x.type||'project'; $('#f-status').value=x.status||'active'; renderTypeDetails(x);
   $('#closeModal').onclick=closeModal; $('#saveExp').onclick=()=>saveExperience(!x.id);
   if(x.id){
-    ['f-type','f-status','f-title','f-org','f-role','f-start','f-end','f-domains','f-skills','f-ready','f-summary','f-facts','f-results','f-notes'].forEach(id=>$('#'+id).addEventListener('input',scheduleAutosave));
+    ['f-type','f-status','f-title','f-org','f-role','f-start','f-end','f-domains','f-skills','f-related','f-ready','f-summary','f-facts','f-results','f-notes'].forEach(id=>$('#'+id).addEventListener('input',scheduleAutosave));
     $('#deleteExp').onclick=async()=>{if(confirm('确定删除这条经历及其附件？')){await api('/api/experiences/'+x.id,{method:'DELETE'});closeModal();await renderExperiences();}};
     $('#uploadBtn').onclick=()=>$('#fileInput').click();
-    $('#fileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;const fd=new FormData();fd.append('file',f);state('上传中…');const res=await fetch(`/api/experiences/${x.id}/attachments`,{method:'POST',body:fd});if(!res.ok)alert(await res.text());state('已上传');openExperience(x.id)};
+    $('#fileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;const fd=new FormData();fd.append('file',f);state('上传中…');try{const res=await fetch(`/api/experiences/${x.id}/attachments`,{method:'POST',body:fd});if(!res.ok)throw new Error(await res.text());state('已上传');await openExperience(x.id)}catch(error){state('上传失败');alert(`上传失败：${error.message}`)}};
   }
+  $('#f-type').addEventListener('change',()=>{renderTypeDetails({type:$('#f-type').value,details:{}});if(currentExperience)scheduleAutosave()});
 }
-function closeModal(){$('#modal').classList.add('hidden');currentExperience=null;clearTimeout(saveTimer)}
-function payload(){return {type:$('#f-type').value,status:$('#f-status').value,title:$('#f-title').value.trim(),organization:$('#f-org').value.trim(),role:$('#f-role').value.trim(),start:$('#f-start').value.trim(),end:$('#f-end').value.trim(),domains:parseCsv($('#f-domains').value),skills:parseCsv($('#f-skills').value),resume_ready:$('#f-ready').checked,summary:$('#f-summary').value,facts:$('#f-facts').value,results:$('#f-results').value,notes:$('#f-notes').value}}
-async function saveExperience(create=false){const p=payload();if(!p.title)return alert('请填写经历名称');state('保存中…');const x=await api(create?'/api/experiences':'/api/experiences/'+currentExperience,{method:create?'POST':'PATCH',body:JSON.stringify(p)});currentExperience=x.id;state('✓ 已保存 '+new Date().toLocaleTimeString());if(create)openExperience(x.id);}
-function scheduleAutosave(){if(!currentExperience)return;state('未保存…');clearTimeout(saveTimer);saveTimer=setTimeout(()=>saveExperience(false),700)}
+function closeModal(){editorSession++;$('#modal').classList.add('hidden');currentExperience=null;clearTimeout(saveTimer)}
+function selectedRelated(){return [...($('#f-related')?.selectedOptions||[])].map(option=>option.value)}
+function readExperienceDetails(){const details={};$$('[data-detail]', $('#typeDetails')||document).forEach(el=>{details[el.dataset.detail]=el.value.trim()});return details}
+function renderTypeDetails(x={}){const type=typeof x==='string'?x:(x.type||$('#f-type')?.value||'project');const details=typeof x==='string'?{}:(x.details||{});const labels={award:[['award_level','奖项级别/等级'],['rank','名次/排名'],['issuer','颁发单位']],patent:[['patent_type','专利类型'],['patent_status','申请/授权状态'],['patent_number','申请号/公开号']],paper:[['publication','期刊/会议'],['paper_status','投稿/发表状态'],['authorship','作者顺序/贡献']],project:[['project_role','项目中负责模块']],internship:[['department','部门/业务线'],['internship_type','实习类型']],research:[['research_role','研究方向/承担工作']]}[type]||[];const root=$('#typeDetails');if(!root)return;root.innerHTML=labels.length?`<strong>${TYPE_LABELS[type]||'记录'}专属字段</strong><div class="form-grid" style="margin-top:10px">${labels.map(([key,label])=>`<label>${label}<input data-detail="${key}" value="${esc(details[key]||'')}"></label>`).join('')}</div>`:'<span class="muted">该分类使用通用字段；如需补充，可写入事实记录和量化成果。</span>';$$('[data-detail]',root).forEach(el=>el.addEventListener('input',scheduleAutosave))}
+function payload(){return {type:$('#f-type').value,status:$('#f-status').value,title:$('#f-title').value.trim(),organization:$('#f-org').value.trim(),role:$('#f-role').value.trim(),start:$('#f-start').value.trim(),end:$('#f-end').value.trim(),domains:parseCsv($('#f-domains').value),skills:parseCsv($('#f-skills').value),related_experience_ids:selectedRelated(),details:readExperienceDetails(),resume_ready:$('#f-ready').checked,summary:$('#f-summary').value,facts:$('#f-facts').value,results:$('#f-results').value,notes:$('#f-notes').value}}
+async function saveExperience(create=false){const p=payload();if(!p.title)return alert('请填写经历名称');const session=editorSession;const id=currentExperience;state('保存中…');try{const x=await api(create?'/api/experiences':'/api/experiences/'+id,{method:create?'POST':'PATCH',body:JSON.stringify(p)});if(session!==editorSession)return x;currentExperience=x.id;state('✓ 已保存 '+new Date().toLocaleTimeString());if(create)await openExperience(x.id);return x}catch(error){if(session===editorSession){state('保存失败');alert(`保存失败，编辑窗口未关闭：${error.message}`)}throw error}}
+function scheduleAutosave(){if(!currentExperience)return;state('未保存…');clearTimeout(saveTimer);saveTimer=setTimeout(()=>saveExperience(false).catch(()=>{}),700)}
 
 function educationRows(items=[]){const rows=(items.length?items:[{}]);return rows.map((e,i)=>`<div class="card edu-row" data-index="${i}"><div class="row"><strong>教育经历 ${i+1}</strong><button type="button" class="btn ghost remove-edu">删除</button></div><div class="form-grid"><label>学校<input data-k="school" value="${esc(e.school||e.institution||'')}"></label><label>学院<input data-k="college" value="${esc(e.college||'')}"></label><label>专业<input data-k="major" value="${esc(e.major||'')}"></label><label>学历/学位<input data-k="degree" value="${esc(e.degree||'')}"></label><label>开始<input data-k="start" value="${esc(e.start||'')}"></label><label>毕业/结束<input data-k="end" value="${esc(e.end||e.graduation_date||'')}"></label><label>GPA<input data-k="gpa" value="${esc(e.gpa||'')}"></label><label>排名<input data-k="rank" value="${esc(e.rank||'')}"></label></div></div>`).join('')}
 function collectEducation(){return $$('.edu-row').map(row=>{const out={};$$('[data-k]',row).forEach(el=>out[el.dataset.k]=el.value.trim());return out}).filter(x=>Object.values(x).some(Boolean))}

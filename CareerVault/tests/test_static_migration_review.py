@@ -17,6 +17,12 @@ class MigrationReviewStaticTests(unittest.TestCase):
         html = INDEX.read_text(encoding="utf-8")
         self.assertIn("migration-review.js?v=", html)
 
+    def test_editor_autosave_has_session_guard_and_error_recovery(self):
+        js = (ROOT / "careervault" / "static" / "app.js").read_text(encoding="utf-8")
+        self.assertIn("let editorSession = 0", js)
+        self.assertIn("保存失败，编辑窗口未关闭", js)
+        self.assertIn("session!==editorSession", js)
+
 
 if __name__ == "__main__":
     unittest.main()

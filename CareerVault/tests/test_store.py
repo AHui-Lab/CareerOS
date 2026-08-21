@@ -1,4 +1,7 @@
 import unittest
+from tempfile import TemporaryDirectory
+from pathlib import Path
+from unittest.mock import patch
 
 from careervault import store
 
@@ -25,6 +28,21 @@ class StoreTests(unittest.TestCase):
         tokens = store.tokenize("Python FastAPI 多传感器融合")
         self.assertIn("python", tokens)
         self.assertTrue(any("传感" in x or "感器" in x for x in tokens))
+
+    def test_typed_record_and_links_roundtrip(self):
+        with TemporaryDirectory() as tmp:
+            experiences = Path(tmp) / "experiences"
+            with patch.object(store, "EXPERIENCES", experiences), patch.object(store, "ROOT", Path(tmp)):
+                project = store.create_experience({"title": "智能车项目", "type": "project"})
+                patent = store.create_experience({
+                    "title": "检测装置专利", "type": "patent",
+                    "related_experience_ids": [project["id"]],
+                    "details": {"patent_status": "已公开", "patent_number": "CN123"},
+                })
+                loaded = store.get_experience(patent["id"])
+                self.assertEqual(loaded["type"], "patent")
+                self.assertEqual(loaded["related_experience_ids"], [project["id"]])
+                self.assertEqual(loaded["details"]["patent_number"], "CN123")
 
 
 if __name__ == "__main__":

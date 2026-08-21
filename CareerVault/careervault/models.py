@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any, Literal
 from pydantic import BaseModel, Field
 
-ExperienceType = Literal["project", "internship", "research", "competition", "award", "certificate", "education", "other"]
+ExperienceType = Literal[
+    "project", "internship", "research", "competition", "award", "patent", "paper",
+    "certificate", "education", "work", "volunteer", "campus", "other",
+]
 ExperienceStatus = Literal["idea", "draft", "active", "verified", "archived"]
 
 
@@ -15,8 +18,10 @@ class ExperienceCreate(BaseModel):
     start: str = ""
     end: str = ""
     status: ExperienceStatus = "active"
-    domains: list[str] = []
-    skills: list[str] = []
+    domains: list[str] = Field(default_factory=list)
+    skills: list[str] = Field(default_factory=list)
+    related_experience_ids: list[str] = Field(default_factory=list)
+    details: dict[str, Any] = Field(default_factory=dict)
     resume_ready: bool = False
     summary: str = ""
     facts: str = ""
@@ -34,6 +39,8 @@ class ExperienceUpdate(BaseModel):
     status: ExperienceStatus | None = None
     domains: list[str] | None = None
     skills: list[str] | None = None
+    related_experience_ids: list[str] | None = None
+    details: dict[str, Any] | None = None
     resume_ready: bool | None = None
     summary: str | None = None
     facts: str | None = None
@@ -60,5 +67,5 @@ class ProfileUpdate(BaseModel):
     phone: str = ""
     github: str = ""
     portfolio: str = ""
-    education: list[dict] = []
-    skills: list[str] = []
+    education: list[dict] = Field(default_factory=list)
+    skills: list[str] = Field(default_factory=list)
