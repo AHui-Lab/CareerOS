@@ -19,7 +19,7 @@
       <button class="nav" data-view="resume">简历中心</button>
       <div class="nav-group-label">个人资料</div>
       <button class="nav" data-view="vault">经历和项目</button>
-      <button class="nav" data-view="settings">设置</button>
+      <button class="nav" data-view="settings">设置和帮助</button>
     </nav>
     <div class="sidebar-note">V0.3.1 · 求职工作台<br><span id="aiBadge">连接检测中…</span></div>
   </aside>
@@ -32,7 +32,7 @@
     <div id="globalNotice" class="notice hidden" aria-live="polite"></div>
 
     <section id="view-dashboard" class="view active-view">
-      <div class="dashboard-hero panel"><div><p class="eyebrow">CAREEROS OVERVIEW</p><h2>把每一次投递，推进到下一步</h2><p class="helper">CareerOS 将岗位进展、经历和项目、简历准备集中在一个工作台中。</p></div><button class="primary-btn" type="button" data-go-view="memo">导入招聘链接</button></div>
+      <div class="dashboard-hero panel"><div><p class="eyebrow">CAREEROS OVERVIEW</p><h2>把每一次投递，推进到下一步</h2><p class="helper">CareerOS 将岗位进展、经历和项目、简历准备集中在一个工作台中。</p></div><div class="dashboard-hero-actions"><button class="primary-btn" type="button" data-go-view="memo">导入招聘链接</button><button class="ghost-btn" type="button" data-go-view="settings">新手教程</button></div></div>
       <section class="dashboard-stats" aria-label="求职概览">
         <article class="dashboard-stat"><span>岗位数量</span><strong id="dashboardTotal">0</strong><small>已保存的全部岗位</small></article>
         <article class="dashboard-stat"><span>准备投递</span><strong id="dashboardPreparing">0</strong><small>下一步可推进</small></article>
@@ -49,35 +49,13 @@
     </section>
 
     <section id="view-memo" class="view">
-      <div class="two-col">
-        <section class="panel">
-          <div class="section-title"><div><p class="eyebrow">ADD JOB</p><h2>导入招聘链接</h2></div><span class="pill">自动解析岗位信息</span></div>
-          <div class="mode-tabs">
-            <button class="mode active" data-mode="url">招聘链接</button>
-            <button class="mode" data-mode="text">招聘文字</button>
-          </div>
-          <form id="urlForm" class="stack-form">
-            <label>招聘页面链接</label>
-            <input id="urlInput" type="url" placeholder="https://careers.example.com/..." required />
-            <button class="primary-btn" type="submit">解析并添加岗位</button>
-            <p class="helper">粘贴招聘页面链接，系统会自动解析公司、岗位和 JD 信息。</p>
-          </form>
-          <form id="textForm" class="stack-form hidden">
-            <label>招聘文字</label>
-            <textarea id="textInput" rows="7" placeholder="公司、岗位、链接、要求……"></textarea>
-            <button class="primary-btn" type="submit">导入职位信息</button>
-          </form>
-        </section>
-        <section class="panel soft-panel">
-          <p class="eyebrow">WORKFLOW</p><h2>CareerOS 工作流</h2>
-          <div class="flow-list">
-            <div><b>1</b><span>维护你的真实经历、技能、成果与证据</span></div>
-            <div><b>2</b><span>求职管理导入职位并保存真实 JD</span></div>
-            <div><b>3</b><span>分析 JD → 显示匹配经历和理由 → 人工选择</span></div>
-            <div><b>4</b><span>生成岗位简历 → 浏览器辅助填表 → 人工检查提交</span></div>
-          </div>
-        </section>
-      </div>
+      <div class="compact-page-toolbar"><div><p class="eyebrow">POSITIONS</p><p class="helper">岗位、JD、内推码和投递进展集中管理。</p></div><button id="openJobImportBtn" class="primary-btn" type="button">+ 导入职位</button></div>
+      <dialog id="jobImportDialog" class="dialog">
+        <div class="dialog-head"><div><p class="eyebrow">ADD JOB</p><h2>导入职位</h2></div><button id="jobImportClose" class="icon-btn" type="button">×</button></div>
+        <div class="mode-tabs"><button class="mode active" data-mode="url" type="button">招聘链接</button><button class="mode" data-mode="text" type="button">招聘文字</button></div>
+        <form id="urlForm" class="stack-form"><label>招聘页面链接<input id="urlInput" type="url" placeholder="https://careers.example.com/..." required /></label><button class="primary-btn" type="submit">解析并添加岗位</button><p class="helper">自动解析结果建议在岗位详情中人工核对 JD。</p></form>
+        <form id="textForm" class="stack-form hidden"><label>招聘文字<textarea id="textInput" rows="9" placeholder="公司、岗位、链接、要求……"></textarea></label><button class="primary-btn" type="submit">导入职位信息</button></form>
+      </dialog>
 
       <section class="list-section">
         <div class="list-toolbar">
@@ -117,15 +95,19 @@
 
     <section id="view-email" class="view">
       <section class="panel email-connect-panel">
-        <div class="section-title"><div><p class="eyebrow">EMAIL TRACKING</p><h2>求职邮件跟踪</h2><p class="helper">只检查上次同步之后的新邮件，先由你确认，再关联到岗位。</p></div><button id="syncEmailBtn" class="primary-btn" type="button">检查新邮件</button></div>
+        <div class="section-title"><div><p class="eyebrow">EMAIL TRACKING</p><h2>求职邮件跟踪</h2><p class="helper">只检查上次同步之后的新邮件，先由你确认，再关联到岗位。</p><span id="emailConfiguredState" class="helper"></span></div><div class="toolbar-actions"><button id="syncEmailBtn" class="primary-btn" type="button">检查新邮件</button><button id="openEmailConfigBtn" class="ghost-btn" type="button">邮箱配置</button><button id="openEmailHelpBtn" class="ghost-btn" type="button">配置说明</button></div></div>
+        <dialog id="emailConfigDialog" class="dialog">
         <form id="emailSettingsForm" class="form-grid-2 email-settings-form">
+          <div class="dialog-head full-span"><div><p class="eyebrow">EMAIL SETTINGS</p><h2>邮箱配置</h2></div><button id="emailConfigClose" class="icon-btn" type="button">×</button></div>
           <label>IMAP 服务器<input id="emailHost" placeholder="imap.gmail.com" required /></label><label>端口<input id="emailPort" type="number" value="993" min="1" max="65535" required /></label>
           <label>邮箱账号<input id="emailUsername" type="email" required /></label><label>应用专用密码<input id="emailPassword" type="password" placeholder="留空表示保持原密码" /></label>
           <label>文件夹<input id="emailFolder" value="INBOX" /></label><div class="email-setting-actions"><button class="ghost-btn" type="submit">保存邮箱配置</button><span id="emailSyncState" class="helper"></span></div>
+          <p class="helper email-security-note full-span">建议使用邮箱的应用专用密码。密码只保存在本机 CareerOS 数据库中，不会上传 GitHub。</p>
         </form>
-        <p class="helper email-security-note">建议使用邮箱的应用专用密码。密码只保存在本机 CareerOS 数据库中，不会上传 GitHub。</p>
+        </dialog>
       </section>
-      <section class="panel email-guide-panel">
+      <dialog id="emailHelpDialog" class="dialog email-help-dialog">
+        <div class="dialog-head"><div><p class="eyebrow">SETUP GUIDE</p><h2>主流邮箱配置说明</h2></div><button id="emailHelpClose" class="icon-btn" type="button">×</button></div>
         <div class="section-title"><div><p class="eyebrow">SETUP GUIDE</p><h2>主流邮箱配置说明</h2><p class="helper">CareerOS 通过 IMAP 读取邮件。配置前先在邮箱网页端开启 IMAP，并按邮箱类型填写登录密码、客户端授权码或应用专用密码。</p></div></div>
         <div class="email-provider-grid">
           <article class="email-provider-card"><div class="email-provider-head"><h3>QQ 邮箱</h3><span>@qq.com / Foxmail</span></div><dl><dt>IMAP</dt><dd><code>imap.qq.com:993</code> · SSL/TLS</dd><dt>SMTP</dt><dd><code>smtp.qq.com:465</code> · SSL/TLS（发信时使用）</dd><dt>登录密码</dt><dd>填写 QQ 邮箱生成的“授权码”，不要填写 QQ 登录密码。</dd></dl><ol><li>进入 QQ 邮箱网页版 → 设置 → 账户。</li><li>在“POP3/IMAP/SMTP/Exchange/CardDAV/CalDAV”区域开启 IMAP/SMTP 服务。</li><li>按提示完成安全验证，复制生成的授权码到上方“应用专用密码”。</li></ol><a href="https://service.mail.qq.com/" target="_blank" rel="noopener">打开 QQ 邮箱帮助 ↗</a></article>
@@ -136,7 +118,7 @@
         </div>
         <div class="email-guide-notes"><strong>连接失败时先检查：</strong><span>服务器和端口是否匹配</span><span>IMAP 是否已开启</span><span>密码框是否填写授权码/应用专用密码</span><span>邮箱是否拦截了新的登录活动</span></div>
         <p class="technical-detail">资料核对日期：2026-08-22。邮箱服务商可能调整入口或安全策略，实际页面以对应官方说明为准。</p>
-      </section>
+      </dialog>
       <section class="list-section email-list-section">
         <div class="list-toolbar"><div><p class="eyebrow">EMAIL MANAGEMENT</p><h2 id="emailListTitle">待确认邮件 <span id="emailCount" class="helper"></span></h2></div><div class="toolbar-actions"><button id="ignorePendingEmailBtn" class="ghost-btn danger-button" type="button">忽略剩余邮件</button><button id="importEmailBtn" class="ghost-btn" type="button">导入选中邮件</button></div></div>
         <div class="email-filter-bar"><button class="email-filter active" data-email-filter="pending" type="button">待确认</button><button class="email-filter" data-email-filter="imported" type="button">已导入</button><button class="email-filter" data-email-filter="ignored" type="button">已忽略</button><button class="email-filter" data-email-filter="all" type="button">全部</button></div>
@@ -218,6 +200,8 @@
 
     <section id="view-settings" class="view">
       <div class="settings-grid">
+        <section class="panel help-panel"><p class="eyebrow">GET STARTED</p><h2>新手教程</h2><p>CareerOS 的基本使用流程：</p><div class="flow-list"><div><b>1</b><span>在“经历和项目”中维护真实经历、技能、成果与证据。</span></div><div><b>2</b><span>在“校招岗位”中导入岗位，并人工确认 JD。</span></div><div><b>3</b><span>在“简历中心”选择岗位，分析 JD 与经历的匹配情况。</span></div><div><b>4</b><span>选择合适经历生成简历，再使用浏览器助手辅助填表。</span></div></div></section>
+        <section class="panel help-panel"><p class="eyebrow">ABOUT CAREEROS</p><h2>软件说明</h2><p>CareerOS 是本地优先的个人求职工作台，包含岗位管理、邮件跟踪、经历和项目管理、JD 分析、简历生成和浏览器辅助填表。</p><p class="helper">岗位和邮件数据保存在本机；生成简历前请始终人工检查内容，不会自动提交网申。</p></section>
         <section class="panel"><p class="eyebrow">SYSTEM STATUS</p><h2>系统状态</h2><div class="system-status-list"><div><span class="status-dot" id="jobpilotStatusDot"></span><span>CareerOS 求职管理运行正常</span></div><div><span class="status-dot" id="careerStatusDot"></span><span>经历和项目已连接</span></div><div><span class="status-dot" id="extensionStatusDot"></span><span>浏览器插件接口可用</span></div></div><p class="helper">浏览器插件会帮助你把招聘页面的岗位信息导入求职管理，并辅助填写招聘表单。</p></section>
         <section class="panel"><p class="eyebrow">BROWSER ASSISTANT</p><h2>浏览器插件</h2><p>支持北森、Moka、牛客等常见招聘系统的辅助填表。插件不会自动提交申请，请始终由你确认后提交。</p><div class="ats-grid"><div class="ats-card"><b>北森 / iTalent</b><span class="helper">教育、实习、项目信息</span></div><div class="ats-card"><b>Moka</b><span class="helper">动态表单辅助</span></div><div class="ats-card"><b>牛客</b><span class="helper">校园招聘表单</span></div></div></section>
         <section class="panel"><p class="eyebrow">STARTUP</p><h2>启动工作台</h2><div class="career-os-box"><p>在项目根目录运行：</p><div class="career-os-command">career-os.bat</div><p class="helper">它会检查并启动求职工作台及经历服务。</p></div></section>
