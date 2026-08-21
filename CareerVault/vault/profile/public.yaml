@@ -1,0 +1,37 @@
+name: 曹宇辉
+city: 天津
+headline: AI 应用开发 / LLM 应用与 RAG / Agent 工程 / 嵌入式与智能感知
+education:
+  - school: 天津大学
+    college: 精密仪器与光电子工程学院
+    major: 电子信息
+    degree: 硕士
+    start: 2024-09
+    end: 2027-05
+    gpa: ''
+    rank: ''
+  - school: 南京航空航天大学
+    college: 自动化学院
+    major: 测控技术与仪器
+    degree: 学士
+    start: 2020-09
+    end: 2024-05
+    gpa: '3.70'
+    rank: 专业前 10%
+skills:
+  - Python
+  - FastAPI
+  - LangChain
+  - RAG
+  - TypeScript
+  - STM32
+  - C
+  - MATLAB
+  - Unity3D
+  - 多传感器融合
+  - SEM
+  - XRD
+  - 微纳加工
+updated_at: 2026-08-21
+migration_source: AHui-Lab/Resume/Resume.md
+migration_review: required

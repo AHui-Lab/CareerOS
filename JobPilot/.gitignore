@@ -1,0 +1,22 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+.DS_Store
+Thumbs.db
+
+# User/runtime data must never be committed.
+data/jobpilot.db
+data/profile.json
+data/backups/
+*.db
+*.sqlite
+*.sqlite3
+
+# Local logs / temp
+*.log
+.tmp/
+tmp/

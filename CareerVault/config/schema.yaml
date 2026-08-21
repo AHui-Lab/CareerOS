@@ -1,0 +1,15 @@
+schema_version: 1
+experience:
+  required: [id, type, title, status, resume_ready]
+  types: [project, internship, research, competition, award, certificate, education, other]
+  statuses: [idea, draft, active, verified, archived]
+  body_sections:
+    - 项目概述
+    - 事实记录
+    - 量化成果
+    - Notes
+principles:
+  - one_experience_one_source_of_truth
+  - generated_resumes_are_outputs
+  - ideas_are_not_resume_facts
+  - sensitive_fields_are_local_only

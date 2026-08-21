@@ -1,0 +1,11 @@
+schema_version: 1
+service:
+  name: CareerVault
+  base_url: http://127.0.0.1:8766
+jobpilot:
+  profile_endpoint: /api/jobpilot/profile
+  experiences_endpoint: /api/jobpilot/experiences
+  context_endpoint: /api/jobpilot/context
+rules:
+  only_resume_ready_by_default: true
+  private_profile_is_local_only: true

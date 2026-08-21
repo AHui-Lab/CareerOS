@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "CareerOS 浏览器助手",
+  "version": "0.3.1",
+  "description": "导入校招职位，使用经历资产生成岗位简历并辅助网申填表（不自动提交）。",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:8765/*"
+  ],
+  "action": {
+    "default_title": "CareerOS",
+    "default_popup": "popup.html"
+  }
+}

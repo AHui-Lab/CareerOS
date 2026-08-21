@@ -1,0 +1,5 @@
+schema_version: 1
+
+# This repository was created as PUBLIC. Keep data commits disabled until you
+# explicitly make the GitHub repository private and decide to version career data.
+git_data_snapshots_enabled: false

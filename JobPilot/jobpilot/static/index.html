@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CareerOS · 个人求职工作台</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/v031.css" />
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="logo">C</div><div><strong>CareerOS</strong><span>个人求职工作台</span></div></div>
+    <nav>
+      <button class="nav active" data-view="dashboard">首页</button>
+      <div class="nav-group-label">求职管理</div>
+      <button class="nav" data-view="memo">校招岗位</button>
+      <button class="nav" data-view="resume">简历中心</button>
+      <div class="nav-group-label">经历资产</div>
+      <button class="nav" data-view="profile">经历与项目</button>
+      <button class="nav" data-view="settings">设置</button>
+    </nav>
+    <div class="sidebar-note">V0.3.1 · 求职工作台<br><span id="aiBadge">连接检测中…</span></div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div><p class="eyebrow">JOB SEARCH WORKSPACE</p><h1 id="viewTitle">求职概览</h1><p id="viewSubtitle" class="page-subtitle">集中查看岗位进展、待办事项和简历准备情况。</p></div>
+      <button id="refreshBtn" class="ghost-btn">刷新</button>
+    </header>
+    <div id="globalNotice" class="notice hidden" aria-live="polite"></div>
+
+    <section id="view-dashboard" class="view active-view">
+      <div class="dashboard-hero panel"><div><p class="eyebrow">CAREEROS OVERVIEW</p><h2>把每一次投递，推进到下一步</h2><p class="helper">CareerOS 将岗位进展、经历资产和简历准备集中在一个工作台中。</p></div><button class="primary-btn" type="button" data-go-view="memo">导入招聘链接</button></div>
+      <section class="dashboard-stats" aria-label="求职概览">
+        <article class="dashboard-stat"><span>岗位数量</span><strong id="dashboardTotal">0</strong><small>已保存的全部岗位</small></article>
+        <article class="dashboard-stat"><span>准备投递</span><strong id="dashboardPreparing">0</strong><small>下一步可推进</small></article>
+        <article class="dashboard-stat"><span>已投递</span><strong id="dashboardApplied">0</strong><small>等待后续进展</small></article>
+        <article class="dashboard-stat"><span>面试中</span><strong id="dashboardInterview">0</strong><small>需要持续跟进</small></article>
+        <article class="dashboard-stat"><span>Offer</span><strong id="dashboardOffer">0</strong><small>已获得的岗位结果</small></article>
+      </section>
+      <div class="dashboard-grid"><section class="panel"><div class="section-title"><div><p class="eyebrow">RECENT JOBS</p><h2>最近关注岗位</h2></div><button class="link-button" type="button" data-go-view="memo">查看全部</button></div><div id="dashboardRecentJobs" class="dashboard-list"></div></section><section class="panel"><p class="eyebrow">NEXT ACTIONS</p><h2>待处理事项</h2><div id="dashboardTasks" class="task-list"></div></section></div>
+    </section>
+
+    <section id="view-memo" class="view">
+      <div class="two-col">
+        <section class="panel">
+          <div class="section-title"><div><p class="eyebrow">ADD JOB</p><h2>导入招聘链接</h2></div><span class="pill">自动解析岗位信息</span></div>
+          <div class="mode-tabs">
+            <button class="mode active" data-mode="url">招聘链接</button>
+            <button class="mode" data-mode="text">招聘文字</button>
+          </div>
+          <form id="urlForm" class="stack-form">
+            <label>招聘页面链接</label>
+            <input id="urlInput" type="url" placeholder="https://careers.example.com/..." required />
+            <button class="primary-btn" type="submit">解析并添加岗位</button>
+            <p class="helper">粘贴招聘页面链接，系统会自动解析公司、岗位和 JD 信息。</p>
+          </form>
+          <form id="textForm" class="stack-form hidden">
+            <label>招聘文字</label>
+            <textarea id="textInput" rows="7" placeholder="公司、岗位、链接、要求……"></textarea>
+            <button class="primary-btn" type="submit">导入职位信息</button>
+          </form>
+        </section>
+        <section class="panel soft-panel">
+          <p class="eyebrow">WORKFLOW</p><h2>CareerOS 工作流</h2>
+          <div class="flow-list">
+            <div><b>1</b><span>维护你的真实经历、技能、成果与证据</span></div>
+            <div><b>2</b><span>求职管理导入职位并保存真实 JD</span></div>
+            <div><b>3</b><span>分析 JD → 显示匹配经历和理由 → 人工选择</span></div>
+            <div><b>4</b><span>生成岗位简历 → 浏览器辅助填表 → 人工检查提交</span></div>
+          </div>
+        </section>
+      </div>
+
+      <section class="list-section">
+        <div class="list-toolbar">
+          <div><p class="eyebrow">POSITIONS</p><h2>职位列表 <span id="memoCount" class="helper"></span></h2></div>
+          <input id="memoSearch" type="search" placeholder="搜索公司 / 岗位 / 备注" />
+        </div>
+        <div class="summary-grid" aria-label="职位概览">
+          <div class="summary-card"><span>全部职位</span><strong id="summaryTotal">0</strong></div>
+          <div class="summary-card"><span>待处理</span><strong id="summaryPending">0</strong></div>
+          <div class="summary-card"><span>准备投递</span><strong id="summaryPreparing">0</strong></div>
+          <div class="summary-card"><span>已投递</span><strong id="summarySubmitted">0</strong></div>
+        </div>
+        <div class="mode-tabs" id="memoScopeTabs">
+          <button class="mode memo-tab active" data-memo-scope="all">全部</button>
+          <button class="mode memo-tab" data-memo-scope="unsubmitted">未投递</button>
+          <button class="mode memo-tab" data-memo-scope="submitted">已投递</button>
+        </div>
+        <div class="toolbar-actions" style="margin:12px 0 18px;flex-wrap:wrap">
+          <select id="memoCategoryFilter">
+            <option value="">全部岗位类别</option>
+            <option value="unclassified">未分类</option>
+            <option value="ai">AI</option><option value="algorithm">算法</option><option value="software">软件开发</option>
+            <option value="test">测试 / 测开</option><option value="embedded">嵌入式</option><option value="semiconductor">半导体</option>
+            <option value="hardware">硬件</option><option value="product">产品</option><option value="other">其他</option>
+          </select>
+          <select id="memoStatusFilter">
+            <option value="">全部状态</option><option value="inbox">待处理</option>
+            <option value="preparing">准备投递</option><option value="applied">已投递</option><option value="interview">面试中</option>
+            <option value="offer">Offer</option><option value="rejected">已结束</option>
+          </select>
+          <button id="clearMemoFilters" class="ghost-btn" type="button">清除筛选</button>
+        </div>
+        <div id="memoList" class="memo-list"></div>
+        <div id="memoEmpty" class="empty-state hidden"><h3>没有符合条件的岗位</h3><p>可以调整筛选条件，或导入一个新的招聘链接。</p></div>
+      </section>
+    </section>
+
+    <section id="view-profile" class="view">
+      <div class="profile-grid">
+        <section class="panel import-panel">
+          <p class="eyebrow">YOUR EXPERIENCE</p><h2>经历与项目</h2>
+          <p>管理你的真实经历、项目成果和能力证明。这些内容将用于岗位匹配和简历生成。</p>
+          <div id="careerVaultProfileState" class="mini-status">正在检查经历数据…</div>
+          <div class="toolbar-actions"><a class="primary-btn" href="http://127.0.0.1:8766" target="_blank" rel="noopener">打开经历资产 ↗</a><button id="refreshCareerVault" class="ghost-btn" type="button">刷新状态</button></div>
+        </section>
+
+        <section class="panel import-panel">
+          <p class="eyebrow">IMPORT</p><h2>导入已有经历</h2>
+          <p>可从简历文件中提取经历，用于整理和补充你的经历与项目。</p>
+          <form id="resumeImportForm" class="stack-form"><input id="resumeFile" type="file" accept=".pdf,.docx,.txt,.md" required /><button class="ghost-btn" type="submit">导入到旧版本地经历库</button></form>
+        </section>
+
+        <section class="panel profile-panel">
+          <div class="section-title"><div><p class="eyebrow">BASIC PROFILE</p><h2>基本资料</h2></div><button id="saveProfileBtn" class="ghost-btn" type="button">保存资料</button></div>
+          <form id="profileForm" class="profile-form">
+            <label>姓名<input name="name" /></label><label>手机号<input name="phone" /></label><label>邮箱<input name="email" type="email" /></label>
+            <label>当前城市<input name="current_city" /></label><label>学校<input name="school" /></label><label>学院<input name="college" /></label>
+            <label>专业<input name="major" /></label><label>学历<input name="degree" /></label><label>毕业时间<input name="graduation_date" /></label>
+            <label>GPA<input name="gpa" /></label><label>排名<input name="rank" /></label><label>出生日期<input name="birth_date" /></label>
+            <label>作品集<input name="portfolio_url" /></label><label>个人网站<input name="website" /></label><label>GitHub<input name="github_url" /></label>
+            <label class="span-3">个人概述<textarea name="summary" rows="3"></textarea></label>
+          </form>
+        </section>
+      </div>
+
+      <section class="list-section">
+          <div class="list-toolbar"><div><p class="eyebrow">EXPERIENCE LIBRARY</p><h2>经历列表</h2></div><div class="toolbar-actions"><select id="experienceFilter"><option value="">全部</option><option value="education">教育背景</option><option value="internship">实习经历</option><option value="project">项目经历</option><option value="campus">校园经历</option><option value="research">科研经历</option><option value="award">竞赛奖项</option><option value="skill">技能证书</option><option value="other">其他</option></select><button id="addExperienceBtn" class="ghost-btn">+ 添加经历</button></div></div>
+        <div id="experienceList" class="experience-list"></div>
+        <div id="experienceEmpty" class="empty-state hidden"><h3>还没有经历记录</h3><p>可以添加教育、实习、项目或竞赛经历。</p></div>
+      </section>
+    </section>
+
+    <section id="view-resume" class="view">
+      <div class="resume-workspace">
+        <section class="panel resume-builder">
+          <p class="eyebrow">RESUME WORKFLOW</p><h2>根据岗位生成简历</h2>
+          <form id="resumeGenerateForm" class="stack-form">
+            <label>选择目标职位<select id="targetOpportunity"><option value="">不绑定职位，手动填写</option></select></label>
+            <div class="form-grid-2"><label>目标公司<input id="targetCompany" /></label><label>目标岗位<input id="targetRole" /></label></div>
+            <label>真实岗位 JD<textarea id="targetJd" rows="9" placeholder="选择职位后会自动带入已保存 JD；也可以直接粘贴岗位职责和任职要求。"></textarea></label>
+              <div class="notice"><b>已连接你的经历与项目。</b><br><span id="careerVaultState">正在检查经历数据…</span></div>
+
+            <div id="careerRecommendationPanel" class="recommendation-panel">
+              <div class="recommendation-head">
+                <div><p class="eyebrow">MATCHING</p><h3>匹配经历推荐</h3><div id="recommendationState" class="inline-status">选择岗位后，系统会推荐相关经历。</div></div>
+                <button id="analyzeCareerVaultBtn" class="ghost-btn" type="button">分析岗位匹配</button>
+              </div>
+              <div id="recommendationToolbar" class="selection-toolbar hidden"><div id="recommendationSummary" class="selection-summary"></div><div class="toolbar-actions"><button id="selectRecommendedBtn" class="link-button" type="button">恢复推荐选择</button><button id="clearRecommendedBtn" class="link-button" type="button">全部取消</button></div></div>
+              <div id="careerRecommendations" class="recommendation-list"><div class="recommendation-empty">还没有分析当前 JD。</div></div>
+            </div>
+
+            <div id="legacyChooserWrap"><div class="mini-head"><b>离线时选择已有经历</b><button id="toggleAllExperiences" class="link-button" type="button">全选/全不选</button></div><div id="resumeExperienceChooser" class="chooser"></div></div>
+            <button class="primary-btn large" type="submit">生成岗位简历</button>
+          </form>
+        </section>
+
+        <section class="panel preview-panel">
+          <div class="section-title"><div><p class="eyebrow">PREVIEW</p><h2>简历预览</h2></div><div id="previewActions"></div></div>
+          <div id="resumePreview" class="resume-paper empty-preview"><p>生成后这里会显示岗位简历，并列出本次使用的经历。</p></div>
+        </section>
+      </div>
+      <section class="list-section"><div class="list-toolbar"><div><p class="eyebrow">VERSIONS</p><h2>已生成版本</h2></div></div><div id="versionList" class="version-list"></div></section>
+    </section>
+
+    <section id="view-settings" class="view">
+      <div class="settings-grid">
+        <section class="panel"><p class="eyebrow">SYSTEM STATUS</p><h2>系统状态</h2><div class="system-status-list"><div><span class="status-dot" id="jobpilotStatusDot"></span><span>CareerOS 求职管理运行正常</span></div><div><span class="status-dot" id="careerStatusDot"></span><span>经历资产已连接</span></div><div><span class="status-dot" id="extensionStatusDot"></span><span>浏览器插件接口可用</span></div></div><p class="helper">浏览器插件会帮助你把招聘页面的岗位信息导入求职管理，并辅助填写招聘表单。</p></section>
+        <section class="panel"><p class="eyebrow">BROWSER ASSISTANT</p><h2>浏览器插件</h2><p>支持北森、Moka、牛客等常见招聘系统的辅助填表。插件不会自动提交申请，请始终由你确认后提交。</p><div class="ats-grid"><div class="ats-card"><b>北森 / iTalent</b><span class="helper">教育、实习、项目信息</span></div><div class="ats-card"><b>Moka</b><span class="helper">动态表单辅助</span></div><div class="ats-card"><b>牛客</b><span class="helper">校园招聘表单</span></div></div></section>
+        <section class="panel"><p class="eyebrow">STARTUP</p><h2>启动工作台</h2><div class="career-os-box"><p>在项目根目录运行：</p><div class="career-os-command">career-os.bat</div><p class="helper">它会检查并启动求职工作台及经历服务。</p></div></section>
+        <section class="panel"><p class="eyebrow">DATA SAFETY</p><h2>数据安全</h2><div class="data-box"><div><b>本地数据</b><span id="dataDbPath">读取中…</span></div><div id="dataCounts">读取中…</div></div><div class="toolbar-actions"><button id="backupDbBtn" class="primary-btn" type="button">立即备份</button></div><details class="advanced-settings"><summary>高级设置</summary><p class="helper">仅用于数据迁移和故障排查，不建议日常修改。</p><hr><form id="mergeDbForm" class="stack-form"><label>导入旧版数据<input id="oldDbFile" type="file" accept=".db,.sqlite,.sqlite3" /></label><button class="ghost-btn" type="submit">合并旧数据</button></form><p class="technical-detail">API 状态与数据库路径仅在此处显示。</p></details></section>
+        <section class="panel"><p class="eyebrow">PRIVACY</p><h2>你的数据留在本地</h2><p>岗位、经历和简历数据默认保存在本机。系统只使用你确认的经历来进行岗位匹配和简历生成。</p></section>
+      </div>
+    </section>
+  </main>
+</div>
+
+<dialog id="memoDialog" class="dialog">
+  <form id="memoEditForm" method="dialog">
+    <input id="memoEditId" type="hidden" />
+    <div class="dialog-head"><div><p class="eyebrow">POSITION</p><h2>编辑职位信息</h2></div><button id="memoEditClose" class="icon-btn" type="button">×</button></div>
+    <div class="form-grid-2">
+      <label>公司<input id="memoEditCompany" /></label><label>岗位<input id="memoEditRole" /></label>
+      <label>岗位类别<select id="memoEditCategory"><option value="unclassified">未分类</option><option value="ai">AI / 大模型</option><option value="algorithm">算法</option><option value="software">软件开发</option><option value="test">测试 / 测开</option><option value="embedded">嵌入式</option><option value="semiconductor">半导体 / 工艺</option><option value="hardware">硬件 / 电子</option><option value="product">产品 / 运营</option><option value="other">其他</option></select></label>
+      <label>地点<input id="memoEditLocation" /></label><label>截止时间<input id="memoEditDeadline" /></label>
+    </div>
+    <label>备注<textarea id="memoEditNote" rows="5"></textarea></label>
+    <div class="dialog-actions"><button id="memoEditCancel" class="ghost-btn" type="button">取消</button><button class="primary-btn" type="submit">保存修改</button></div>
+  </form>
+</dialog>
+
+<dialog id="experienceDialog" class="dialog">
+  <form id="experienceForm" method="dialog">
+    <input id="experienceId" type="hidden" />
+    <div class="dialog-head"><div><p class="eyebrow">EXPERIENCE</p><h2 id="experienceDialogTitle">添加经历</h2></div><button id="experienceClose" class="icon-btn" type="button">×</button></div>
+    <div class="form-grid-2">
+      <label>类型<select id="expCategory"><option value="education">教育</option><option value="internship">实习</option><option value="work">工作</option><option value="project">项目</option><option value="campus">校园</option><option value="research">科研</option><option value="award">奖项</option><option value="certificate">证书</option><option value="skill">技能</option><option value="other">其他</option></select></label>
+      <label>标题<input id="expTitle" /></label><label>组织 / 公司<input id="expOrganization" /></label><label>地点<input id="expLocation" /></label>
+      <label>开始时间<input id="expStart" /></label><label>结束时间<input id="expEnd" placeholder="至今" /></label>
+    </div>
+    <label>经历说明<textarea id="expDescription" rows="5"></textarea></label><label>简历要点（每行一条）<textarea id="expHighlights" rows="6"></textarea></label><label>标签（逗号分隔）<input id="expTags" /></label>
+    <div class="dialog-actions"><button id="experienceCancel" class="ghost-btn" type="button">取消</button><button class="primary-btn" type="submit">保存</button></div>
+  </form>
+</dialog>
+
+  <script src="/static/ui-text.js?v=040"></script>
+  <script src="/static/app.js?v=040"></script>
+</body>
+</html>

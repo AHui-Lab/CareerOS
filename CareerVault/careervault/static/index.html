@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CareerVault</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="brand">CareerVault <span>v0.1.1</span></div>
+    <button data-view="dashboard" class="nav active">首页</button>
+    <button data-view="experiences" class="nav">经历库</button>
+    <button data-view="profile" class="nav">个人资料</button>
+    <button data-view="files" class="nav">文件</button>
+    <button data-view="inbox" class="nav">Inbox</button>
+    <button data-view="integration" class="nav">JobPilot</button>
+    <div class="sidebar-spacer"></div>
+    <button id="gitSnapshot" class="secondary">创建 Git 快照</button>
+    <div id="saveState" class="save-state">就绪</div>
+  </aside>
+  <main>
+    <section id="dashboard" class="view active"></section>
+    <section id="experiences" class="view"></section>
+    <section id="profile" class="view"></section>
+    <section id="files" class="view"></section>
+    <section id="inbox" class="view"></section>
+    <section id="integration" class="view"></section>
+  </main>
+  <div id="modal" class="modal hidden"><div class="modal-card" id="modalCard"></div></div>
+  <script src="/static/app.js"></script>
+  <script src="/static/migration-review.js?v=20260821-2"></script>
+</body>
+</html>

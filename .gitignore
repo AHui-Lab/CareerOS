@@ -1,0 +1,14 @@
+# Python environments and generated caches
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+**/.pytest_cache/
+
+# Local runtime secrets and generated data
+**/.env
+**/private/runtime/
+
+# Preserve nested module Git metadata locally; CareerOS is managed as one repo.
+**/.git-local-history/

@@ -1,0 +1,234 @@
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+const STATUS = UI_TEXT.status;
+const CATEGORY = UI_TEXT.category;
+const JOB_CATEGORY = UI_TEXT.jobCategory;
+const UNSUBMITTED_STATUSES = new Set(['inbox','interested','preparing']);
+const SUBMITTED_STATUSES = new Set(['applied','interview','offer','rejected']);
+
+let state = {
+  opportunities:[], profile:{}, experiences:[], versions:[], dataStatus:{}, health:{}, latestVersion:null,
+  memoEditing:null, memoScope:'all', recommendations:[], recommendationDefaultIds:[], recommendationSignature:'',
+  recommendationsLoading:false
+};
+let recommendationTimer = null;
+
+function esc(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));}
+function notice(text,error=false){const el=$('#globalNotice');if(!el)return;el.textContent=text;el.classList.toggle('error',error);el.classList.remove('hidden');setTimeout(()=>el.classList.add('hidden'),7000);}
+async function api(path,options={}){
+  const headers={...(options.headers||{})};
+  if(options.body && !(options.body instanceof FormData) && !headers['Content-Type']) headers['Content-Type']='application/json';
+  const res=await fetch(path,{...options,headers});
+  const raw=await res.text(); let data={};
+  try{data=raw?JSON.parse(raw):{};}catch{data={detail:raw||`请求失败 ${res.status}`};}
+  if(!res.ok) throw new Error(data.detail||`请求失败 ${res.status}`);
+  return data;
+}
+
+async function loadAll(){
+  try{
+    const [ops,profile,exps,versions,dataStatus,health]=await Promise.all([
+      api('/api/opportunities'), api('/api/profile'), api('/api/experiences'), api('/api/resume-versions'), api('/api/data/status'), api('/api/health')
+    ]);
+    state.opportunities=ops.items||[];
+    state.profile=profile.profile||{};
+    state.experiences=exps.items||[];
+    state.versions=versions.items||[];
+    state.dataStatus=dataStatus||{};
+    state.health=health||{};
+    state.latestVersion=state.latestVersion || state.versions[0] || null;
+    const cvOk=!!health.careervault?.available;
+    $('#aiBadge').textContent=`${cvOk?'经历已连接':'等待连接'} · ${health.ai_enabled?'智能增强已开启':'本地生成可用'}`;
+    const cvText=cvOk
+      ? '经历与项目已连接，生成简历前会根据岗位要求进行匹配。'
+      : '经历资产未连接；请先启动经历资产服务。';
+    if($('#careerVaultState')) $('#careerVaultState').textContent=cvText;
+    if($('#careerVaultProfileState')) $('#careerVaultProfileState').textContent=cvText;
+    if($('#legacyChooserWrap')) $('#legacyChooserWrap').classList.toggle('hidden',cvOk);
+    renderAll();
+  }catch(e){notice(e.message,true);}
+}
+
+function renderAll(){renderDashboard();renderMemo();renderProfile();renderExperiences();renderTargetOptions();renderExperienceChooser();renderVersions();renderDataStatus();renderRecommendations();if(state.latestVersion)renderResumePreview(state.latestVersion);}
+
+function renderDashboard(){
+  const jobs=state.opportunities;
+  const count=status=>jobs.filter(x=>x.status===status).length;
+  const pending=jobs.filter(x=>UNSUBMITTED_STATUSES.has(x.status)).length;
+  [['#dashboardTotal',jobs.length],['#dashboardPreparing',count('preparing')],['#dashboardApplied',count('applied')],['#dashboardInterview',count('interview')],['#dashboardOffer',count('offer')]].forEach(([selector,value])=>{if($(selector))$(selector).textContent=value;});
+  const recent=[...jobs].sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,5);
+  const recentBox=$('#dashboardRecentJobs');
+  if(recentBox)recentBox.innerHTML=recent.length?recent.map(x=>`<button class="dashboard-job" type="button" data-dashboard-job="${x.id}"><span><b>${esc(x.company||'待补充公司')}</b><small>${esc(x.role||x.title||'待补充岗位')}${x.location?` · ${esc(x.location)}`:''}</small></span><em class="status-chip status-${esc(x.status||'inbox')}">${esc(STATUS[x.status]||STATUS.inbox)}</em></button>`).join(''):'<div class="empty-state compact">还没有岗位，先导入一个招聘链接。</div>';
+  const taskBox=$('#dashboardTasks');
+  if(taskBox){const tasks=[];if(pending)tasks.push(`<button class="task-item" type="button" data-go-view="memo"><strong>${pending} 个岗位待处理</strong><span>补充信息或推进投递状态 →</span></button>`);if(!state.health.careervault?.available)tasks.push('<button class="task-item" type="button" data-go-view="profile"><strong>经历资产尚未连接</strong><span>连接后才能进行经历匹配和简历生成 →</span></button>');if(!tasks.length)tasks.push('<div class="empty-state compact">目前没有待处理事项，继续保持进度。</div>');taskBox.innerHTML=tasks.join('');}
+}
+
+// ---------- opportunities ----------
+function memoRows(){
+  const q=($('#memoSearch')?.value||'').trim().toLowerCase();
+  const category=$('#memoCategoryFilter')?.value||'';
+  const status=$('#memoStatusFilter')?.value||'';
+  return state.opportunities.filter(x=>{
+    if(state.memoScope==='unsubmitted'&&!UNSUBMITTED_STATUSES.has(x.status))return false;
+    if(state.memoScope==='submitted'&&!SUBMITTED_STATUSES.has(x.status))return false;
+    if(category&&x.job_category!==category)return false;
+    if(status&&x.status!==status)return false;
+    if(q&&!`${x.company||''} ${x.role||''} ${x.note||''} ${x.location||''} ${x.title||''}`.toLowerCase().includes(q))return false;
+    return true;
+  });
+}
+function statusOptions(current){return Object.entries(STATUS).map(([k,v])=>`<option value="${k}" ${current===k?'selected':''}>${v}</option>`).join('');}
+function jobCategoryOptions(current){return Object.entries(JOB_CATEGORY).map(([k,v])=>`<option value="${k}" ${current===k?'selected':''}>${v}</option>`).join('');}
+function renderMemo(){
+  const rows=memoRows();
+  if($('#memoCount')) $('#memoCount').textContent=`${rows.length} / ${state.opportunities.length}`;
+  const counts={pending:0,preparing:0,submitted:0};
+  state.opportunities.forEach(x=>{
+    if(UNSUBMITTED_STATUSES.has(x.status)) counts.pending++;
+    if(x.status==='preparing') counts.preparing++;
+    if(SUBMITTED_STATUSES.has(x.status)) counts.submitted++;
+  });
+  if($('#summaryTotal')) $('#summaryTotal').textContent=state.opportunities.length;
+  if($('#summaryPending')) $('#summaryPending').textContent=counts.pending;
+  if($('#summaryPreparing')) $('#summaryPreparing').textContent=counts.preparing;
+  if($('#summarySubmitted')) $('#summarySubmitted').textContent=counts.submitted;
+  $('#memoList').innerHTML=rows.map(x=>`<article class="memo-card" data-id="${x.id}">
+    <div><h3>${esc(x.company||'待补充公司')} · ${esc(x.role||x.title||'待补充岗位')}</h3>
+      <div class="meta">${x.location?`<span>${esc(x.location)}</span>`:''}${x.deadline?`<span>截止 ${esc(x.deadline)}</span>`:'<span>无明确截止时间</span>'}<span>${esc(STATUS[x.status]||'待判断')}</span><span>${esc(JOB_CATEGORY[x.job_category]||'未分类')}</span></div>
+      ${x.note?`<div class="memo-note">${esc(x.note)}</div>`:''}
+    </div>
+    <div class="memo-actions"><select data-action="job-category">${jobCategoryOptions(x.job_category)}</select><select data-action="status">${statusOptions(x.status)}</select>${x.source_url?`<a class="small-btn" href="${esc(x.source_url)}" target="_blank" rel="noopener">打开 ↗</a>`:'<span class="helper">无原链接</span>'}<button class="small-btn" data-action="edit">编辑</button><button class="small-btn danger" data-action="delete">删除</button></div>
+  </article>`).join('');
+  $('#memoEmpty').classList.toggle('hidden',rows.length>0);
+}
+function openMemoEditor(item){state.memoEditing=item;$('#memoEditId').value=item.id;$('#memoEditCompany').value=item.company||'';$('#memoEditRole').value=item.role||'';$('#memoEditCategory').value=item.job_category||'unclassified';$('#memoEditLocation').value=item.location||'';$('#memoEditDeadline').value=item.deadline||'';$('#memoEditNote').value=item.note||'';$('#memoDialog').showModal();}
+function closeMemoEditor(){if($('#memoDialog').open)$('#memoDialog').close();state.memoEditing=null;}
+
+// ---------- legacy profile / experiences ----------
+function renderProfile(){if(!$('#profileForm'))return;for(const el of [...$('#profileForm').elements])if(el.name)el.value=state.profile[el.name]||'';}
+function renderExperiences(){
+  const filter=$('#experienceFilter')?.value||'';
+  const rows=state.experiences.filter(x=>!filter||x.category===filter);
+  $('#experienceList').innerHTML=rows.map(x=>`<article class="experience-card" data-id="${x.id}"><div><div class="meta"><span class="tag">${esc(CATEGORY[x.category]||x.category)}</span>${x.start_date||x.end_date?`<span>${esc(x.start_date||'')} ${x.end_date?'→ '+esc(x.end_date):''}</span>`:''}</div><h3>${esc(x.organization?`${x.organization} · `:'')}${esc(x.title||'未命名经历')}</h3>${x.description?`<p>${esc(x.description)}</p>`:''}</div><div class="memo-actions"><button class="small-btn" data-action="edit-exp">编辑</button><button class="small-btn danger" data-action="delete-exp">删除</button></div></article>`).join('');
+  $('#experienceEmpty').classList.toggle('hidden',rows.length>0);
+}
+function openExperience(item=null){$('#experienceId').value=item?.id||'';$('#experienceDialogTitle').textContent=item?'编辑经历':'添加经历';$('#expCategory').value=item?.category||'project';$('#expTitle').value=item?.title||'';$('#expOrganization').value=item?.organization||'';$('#expLocation').value=item?.location||'';$('#expStart').value=item?.start_date||'';$('#expEnd').value=item?.end_date||'';$('#expDescription').value=item?.description||'';$('#expHighlights').value=(item?.highlights||[]).join('\n');$('#expTags').value=(item?.tags||[]).join(', ');$('#experienceDialog').showModal();}
+function closeExperience(){if($('#experienceDialog').open)$('#experienceDialog').close();}
+function renderExperienceChooser(){
+  const box=$('#resumeExperienceChooser');
+  if(!state.experiences.length){box.innerHTML='<div class="helper" style="padding:10px">暂时没有可选经历。连接经历资产后会自动提供匹配推荐。</div>';return;}
+  box.innerHTML=state.experiences.map(x=>`<label><input type="checkbox" data-exp-choice value="${x.id}" /><span><b>${esc(CATEGORY[x.category]||x.category)} · ${esc(x.title||'未命名')}</b>${x.organization?`<br><span class="helper">${esc(x.organization)}</span>`:''}</span></label>`).join('');
+}
+
+// ---------- resume / CareerVault selection ----------
+function renderTargetOptions(){
+  const select=$('#targetOpportunity'),current=select.value;
+  select.innerHTML='<option value="">不绑定职位，手动填写</option>'+state.opportunities.map(x=>`<option value="${x.id}">${esc(x.company||'待补充')} · ${esc(x.role||x.title||'岗位')}</option>`).join('');
+  if([...select.options].some(o=>o.value===current))select.value=current;
+}
+function targetPayload(){return {opportunity_id:Number($('#targetOpportunity').value)||null,target_company:$('#targetCompany').value.trim(),target_role:$('#targetRole').value.trim(),jd:$('#targetJd').value.trim()};}
+function targetSignature(){const p=targetPayload();return JSON.stringify([p.opportunity_id,p.target_company,p.target_role,p.jd]);}
+function invalidateRecommendations(){if(state.recommendationSignature!==targetSignature()){state.recommendations=[];state.recommendationDefaultIds=[];state.recommendationSignature='';renderRecommendations();}}
+function selectedRecommendationIds(){return $$('[data-cv-choice]').filter(x=>x.checked).map(x=>x.value);}
+function scoreClass(score){return score<=0?'zero':score<35?'low':'';}
+function renderRecommendations(){
+  const box=$('#careerRecommendations');if(!box)return;
+  const toolbar=$('#recommendationToolbar');
+  if(state.recommendationsLoading){box.innerHTML='<div class="recommendation-empty">正在读取经历并分析 JD…</div>';toolbar.classList.add('hidden');return;}
+  if(!state.recommendations.length){box.innerHTML='<div class="recommendation-empty">还没有分析当前 JD。</div>';toolbar.classList.add('hidden');$('#recommendationState').textContent='选择岗位或填写 JD 后点击“分析匹配”。';return;}
+  toolbar.classList.remove('hidden');
+  const selectedCount=state.recommendations.filter(x=>x.selected).length;
+  $('#recommendationSummary').textContent=`共 ${state.recommendations.length} 条 Resume Ready 经历 · 当前选择 ${selectedCount} 条`;
+  $('#recommendationState').textContent='排名只是建议；最终进入简历的经历由你勾选决定。';
+  box.innerHTML=state.recommendations.map(x=>{
+    const score=Number(x.match_percent||0);const checked=x.selected?'checked':'';const reasons=(x.match_reasons||[]).map(r=>`<span class="reason-chip">${esc(r)}</span>`).join('');
+    const meta=[CATEGORY[x.category]||x.category,x.organization,x.start_date&&x.end_date?`${x.start_date} → ${x.end_date}`:x.start_date||x.end_date].filter(Boolean).join(' · ');
+    return `<label class="recommendation-card ${x.selected?'is-selected':''}" data-cv-card="${esc(x.id)}"><input type="checkbox" data-cv-choice value="${esc(x.id)}" ${checked}/><div><div class="recommendation-title">${esc(x.title||'未命名经历')}</div><div class="recommendation-meta">${esc(meta)}</div><div class="reason-list">${reasons}</div></div><div class="match-score ${scoreClass(score)}">${score}%</div></label>`;
+  }).join('');
+}
+async function loadRecommendations({quiet=false}={}){
+  if(!state.health.careervault?.available){if(!quiet)notice('经历资产未连接，请先启动经历资产服务。',true);return false;}
+  if(state.recommendationsLoading)return false;
+  state.recommendationsLoading=true;renderRecommendations();
+  try{
+    const data=await api('/api/careervault/recommendations',{method:'POST',body:JSON.stringify(targetPayload())});
+    const defaults=new Set(data.selected_default_ids||[]);
+    state.recommendations=(data.items||[]).map(x=>({...x,selected:defaults.has(String(x.id))}));
+    state.recommendationDefaultIds=[...defaults];
+    state.recommendationSignature=targetSignature();
+    if(!quiet)notice(`已分析 ${state.recommendations.length} 条匹配经历。`);
+    return true;
+  }catch(e){state.recommendations=[];state.recommendationDefaultIds=[];state.recommendationSignature='';if(!quiet)notice(e.message,true);return false;}
+  finally{state.recommendationsLoading=false;renderRecommendations();}
+}
+function scheduleRecommendationAnalysis(){clearTimeout(recommendationTimer);invalidateRecommendations();const p=targetPayload();if(!state.health.careervault?.available)return;if(!p.opportunity_id&&p.jd.length<20)return;recommendationTimer=setTimeout(()=>loadRecommendations({quiet:true}),700);}
+
+function renderVersions(){
+  $('#versionList').innerHTML=state.versions.map(v=>{const r=v.resume||{};const source=r.source==='careervault'?'已确认经历':'本地资料';return `<article class="version-card" data-id="${v.id}"><div><b>${esc(v.name||'通用简历')}</b> <span class="source-badge ${source==='本地资料'?'legacy':''}">${source}</span><br><span>${esc(v.created_at||'')}</span></div><div class="memo-actions"><button class="small-btn" data-action="preview-version">预览</button><a class="small-btn" href="/api/resume-versions/${v.id}/docx">下载 DOCX</a></div></article>`;}).join('')||'<div class="empty-state">还没有生成过简历版本。</div>';
+}
+function renderResumePreview(version){
+  state.latestVersion=version;const r=version.resume||{};const p=r.profile_snapshot||state.profile||{};
+  const ids=r.selected_careervault_ids||[];
+  const sourceNote=`<div class="resume-source-note"><b>本次使用：</b>${r.source==='careervault'?'已确认的经历与项目':'本地经历资料'}${r.selection_mode?` · ${esc(r.selection_mode)}`:''}${ids.length?`<br><b>已选经历：</b>${ids.map(esc).join('、')}`:''}</div>`;
+  const sections=(r.sections||[]).map(sec=>`<section class="resume-section"><h3>${esc(sec.title||'')}</h3>${(sec.items||[]).map(item=>`<div class="resume-item"><div class="resume-item-head"><b>${esc([item.organization,item.title].filter(Boolean).join(' · '))}</b><span>${esc([item.date,item.location].filter(Boolean).join(' · '))}</span></div>${(item.bullets||[]).length?`<ul>${item.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul>`:''}</div>`).join('')}</section>`).join('');
+  const contact=[p.phone,p.email,p.current_city,p.portfolio_url||p.website].filter(Boolean).join(' | ');
+  $('#resumePreview').classList.remove('empty-preview');
+  $('#resumePreview').innerHTML=`${sourceNote}<h2>${esc(p.name||'个人简历')}</h2>${contact?`<div class="contact">${esc(contact)}</div>`:''}${r.headline?`<div class="headline">${esc(r.headline)}</div>`:''}${r.summary?`<p class="summary">${esc(r.summary)}</p>`:''}${sections}${(r.skills||[]).length?`<section class="resume-section"><h3>技能</h3><p>${esc(r.skills.join('、'))}</p></section>`:''}`;
+  $('#previewActions').innerHTML=`<a class="small-btn" href="/api/resume-versions/${version.id}/docx">下载 DOCX</a>`;
+}
+function renderDataStatus(){const d=state.dataStatus||{};$('#dataDbPath').textContent=d.db_path||'未知';$('#dataCounts').textContent=`岗位 ${d.opportunities||0} · 经历 ${d.experiences||0} · 简历版本 ${d.resume_versions||0} · 备份 ${d.backup_count||0}`;}
+
+// ---------- navigation ----------
+const titles=UI_TEXT.pageTitles;
+function goView(view){$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view));$$('.view').forEach(x=>x.classList.toggle('active-view',x.id===`view-${view}`));$('#viewTitle').textContent=titles[view]||'';}
+$$('.nav').forEach(btn=>btn.addEventListener('click',()=>goView(btn.dataset.view)));
+document.addEventListener('click',e=>{const go=e.target.closest('[data-go-view]');if(go)goView(go.dataset.goView);const job=e.target.closest('[data-dashboard-job]');if(job){goView('memo');const id=Number(job.dataset.dashboardJob);const item=state.opportunities.find(x=>x.id===id);if(item){$('#memoSearch').value=item.company||item.role||'';renderMemo();}}});
+$('#refreshBtn').addEventListener('click',loadAll);$('#refreshCareerVault').addEventListener('click',loadAll);
+
+// ---------- opportunity events ----------
+$$('.mode[data-mode]').forEach(btn=>btn.addEventListener('click',()=>{$$('.mode[data-mode]').forEach(x=>x.classList.remove('active'));btn.classList.add('active');$('#urlForm').classList.toggle('hidden',btn.dataset.mode!=='url');$('#textForm').classList.toggle('hidden',btn.dataset.mode!=='text');}));
+$$('[data-memo-scope]').forEach(btn=>btn.addEventListener('click',()=>{state.memoScope=btn.dataset.memoScope;$$('[data-memo-scope]').forEach(x=>x.classList.toggle('active',x===btn));renderMemo();}));
+$('#memoSearch').addEventListener('input',renderMemo);$('#memoCategoryFilter').addEventListener('change',renderMemo);$('#memoStatusFilter').addEventListener('change',renderMemo);
+$('#clearMemoFilters').addEventListener('click',()=>{$('#memoSearch').value='';$('#memoCategoryFilter').value='';$('#memoStatusFilter').value='';state.memoScope='all';$$('[data-memo-scope]').forEach(x=>x.classList.toggle('active',x.dataset.memoScope==='all'));renderMemo();});
+$('#urlForm').addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;b.disabled=true;try{await api('/api/opportunities/import-url',{method:'POST',body:JSON.stringify({url:$('#urlInput').value.trim()})});$('#urlInput').value='';notice('职位已导入列表。');await loadAll();}catch(err){notice(err.message,true);}finally{b.disabled=false;}});
+$('#textForm').addEventListener('submit',async e=>{e.preventDefault();const text=$('#textInput').value.trim();if(text.length<10)return notice('请输入至少 10 个字符的职位信息。',true);const b=e.submitter;b.disabled=true;try{await api('/api/opportunities/import-text',{method:'POST',body:JSON.stringify({text})});$('#textInput').value='';notice('职位信息已导入列表。');await loadAll();}catch(err){notice(err.message,true);}finally{b.disabled=false;}});
+$('#memoList').addEventListener('change',async e=>{const action=e.target.dataset.action;if(!action)return;const id=Number(e.target.closest('.memo-card').dataset.id);try{if(action==='status')await api(`/api/opportunities/${id}/status`,{method:'POST',body:JSON.stringify({status:e.target.value})});if(action==='job-category')await api(`/api/opportunities/${id}/category`,{method:'POST',body:JSON.stringify({category:e.target.value})});await loadAll();}catch(err){notice(err.message,true);}});
+$('#memoList').addEventListener('click',async e=>{const action=e.target.dataset.action;if(!action)return;const card=e.target.closest('.memo-card');if(!card)return;const id=Number(card.dataset.id),item=state.opportunities.find(x=>x.id===id);if(action==='edit'&&item)openMemoEditor(item);if(action==='delete'&&confirm('从职位列表中删除这条记录？')){try{await api(`/api/opportunities/${id}`,{method:'DELETE'});await loadAll();}catch(err){notice(err.message,true);}}});
+$('#memoEditClose').addEventListener('click',closeMemoEditor);$('#memoEditCancel').addEventListener('click',closeMemoEditor);
+$('#memoEditForm').addEventListener('submit',async e=>{e.preventDefault();const item=state.memoEditing;if(!item)return;const patch={company:$('#memoEditCompany').value.trim(),role:$('#memoEditRole').value.trim(),location:$('#memoEditLocation').value.trim(),deadline:$('#memoEditDeadline').value.trim(),note:$('#memoEditNote').value.trim()};try{await api(`/api/opportunities/${item.id}/edit`,{method:'POST',body:JSON.stringify(patch)});const cat=$('#memoEditCategory').value;if(cat!==(item.job_category||'unclassified'))await api(`/api/opportunities/${item.id}/category`,{method:'POST',body:JSON.stringify({category:cat})});closeMemoEditor();notice('职位信息已更新。');await loadAll();}catch(err){notice(err.message,true);}});
+
+// ---------- legacy events ----------
+$('#saveProfileBtn').addEventListener('click',async()=>{const payload={};for(const el of [...$('#profileForm').elements])if(el.name)payload[el.name]=el.value.trim();try{await api('/api/profile',{method:'PATCH',body:JSON.stringify(payload)});notice('基本资料已保存。');await loadAll();}catch(e){notice(e.message,true);}});
+$('#resumeImportForm').addEventListener('submit',async e=>{e.preventDefault();const file=$('#resumeFile').files[0];if(!file)return;const b=e.submitter;b.disabled=true;try{const fd=new FormData();fd.append('file',file);const res=await fetch('/api/resume/import',{method:'POST',body:fd});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.detail||'导入失败');notice(`已导入旧版本地经历 ${data.count} 条。`);$('#resumeFile').value='';await loadAll();}catch(err){notice(err.message,true);}finally{b.disabled=false;}});
+$('#experienceFilter').addEventListener('change',renderExperiences);$('#addExperienceBtn').addEventListener('click',()=>openExperience());$('#experienceClose').addEventListener('click',closeExperience);$('#experienceCancel').addEventListener('click',closeExperience);
+$('#experienceForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('#experienceId').value;const payload={category:$('#expCategory').value,title:$('#expTitle').value.trim(),organization:$('#expOrganization').value.trim(),location:$('#expLocation').value.trim(),start_date:$('#expStart').value.trim(),end_date:$('#expEnd').value.trim(),description:$('#expDescription').value.trim(),highlights:$('#expHighlights').value.split('\n').map(x=>x.trim()).filter(Boolean),tags:$('#expTags').value.split(/[,，]/).map(x=>x.trim()).filter(Boolean)};try{await api(id?`/api/experiences/${id}`:'/api/experiences',{method:id?'PATCH':'POST',body:JSON.stringify(payload)});closeExperience();await loadAll();}catch(err){notice(err.message,true);}});
+$('#experienceList').addEventListener('click',async e=>{const action=e.target.dataset.action;if(!action)return;const id=Number(e.target.closest('.experience-card').dataset.id),item=state.experiences.find(x=>x.id===id);if(action==='edit-exp')openExperience(item);if(action==='delete-exp'&&confirm('删除这条经历？')){await api(`/api/experiences/${id}`,{method:'DELETE'});await loadAll();}});
+
+// ---------- recommendation / resume events ----------
+$('#targetOpportunity').addEventListener('change',()=>{const id=Number($('#targetOpportunity').value||0);const item=state.opportunities.find(x=>x.id===id);if(item){$('#targetCompany').value=item.company||'';$('#targetRole').value=item.role||'';$('#targetJd').value=item.description||item.raw_text||'';}invalidateRecommendations();scheduleRecommendationAnalysis();});
+['targetCompany','targetRole','targetJd'].forEach(id=>$('#'+id).addEventListener('input',scheduleRecommendationAnalysis));
+$('#analyzeCareerVaultBtn').addEventListener('click',()=>loadRecommendations());
+$('#careerRecommendations').addEventListener('change',e=>{if(!e.target.matches('[data-cv-choice]'))return;const item=state.recommendations.find(x=>String(x.id)===e.target.value);if(item)item.selected=e.target.checked;renderRecommendations();});
+$('#selectRecommendedBtn').addEventListener('click',()=>{const defaults=new Set(state.recommendationDefaultIds);state.recommendations.forEach(x=>x.selected=defaults.has(String(x.id)));renderRecommendations();});
+$('#clearRecommendedBtn').addEventListener('click',()=>{state.recommendations.forEach(x=>x.selected=false);renderRecommendations();});
+$('#toggleAllExperiences').addEventListener('click',()=>{const boxes=$$('[data-exp-choice]');const all=boxes.length&&boxes.every(x=>x.checked);boxes.forEach(x=>x.checked=!all);});
+$('#resumeGenerateForm').addEventListener('submit',async e=>{
+  e.preventDefault();const b=e.submitter;const cvOk=!!state.health.careervault?.available;let payload=targetPayload();
+  if(cvOk){
+    if(state.recommendationSignature!==targetSignature()||!state.recommendations.length){const ok=await loadRecommendations();if(!ok)return;}
+    const ids=selectedRecommendationIds();if(!ids.length)return notice('请至少勾选一条匹配经历。',true);
+    payload.careervault_experience_ids=ids;payload.experience_ids=[];
+  }else{
+    const ids=$$('[data-exp-choice]').filter(x=>x.checked).map(x=>Number(x.value));if(!ids.length)return notice('经历资产未连接；如需继续生成，请先选择已有经历。',true);payload.experience_ids=ids;
+  }
+  b.disabled=true;b.textContent=cvOk?'正在生成岗位简历…':'正在生成简历…';
+  try{const data=await api('/api/resume/generate',{method:'POST',body:JSON.stringify(payload)});notice(`岗位简历已生成 · ${data.selection_mode||''}`);state.latestVersion=data.item;await loadAll();renderResumePreview(data.item);}catch(err){notice(err.message,true);}finally{b.disabled=false;b.textContent='生成岗位简历';}
+});
+$('#versionList').addEventListener('click',e=>{if(e.target.dataset.action!=='preview-version')return;const id=Number(e.target.closest('.version-card').dataset.id);const v=state.versions.find(x=>x.id===id);if(v)renderResumePreview(v);});
+
+// ---------- data safety ----------
+$('#backupDbBtn').addEventListener('click',async()=>{const b=$('#backupDbBtn');b.disabled=true;try{const data=await api('/api/data/backup',{method:'POST'});notice(`备份完成：${data.path}`);await loadAll();}catch(err){notice(err.message,true);}finally{b.disabled=false;}});
+$('#mergeDbForm').addEventListener('submit',async e=>{e.preventDefault();const file=$('#oldDbFile').files[0];if(!file)return notice('请选择需要导入的数据文件。',true);const b=e.submitter;b.disabled=true;try{const fd=new FormData();fd.append('file',file);const res=await fetch('/api/data/merge-db',{method:'POST',body:fd});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.detail||'合并失败');const m=data.merged||{};notice(`数据已合并：岗位 +${m.opportunities||0}，经历 +${m.experiences||0}。`);$('#oldDbFile').value='';await loadAll();}catch(err){notice(err.message,true);}finally{b.disabled=false;}});
+
+loadAll();
