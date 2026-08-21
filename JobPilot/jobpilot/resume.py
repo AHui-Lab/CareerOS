@@ -11,6 +11,7 @@ import httpx
 from docx import Document
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml.ns import qn
 from docx.shared import Inches, Pt
 from pypdf import PdfReader
 
@@ -407,6 +408,7 @@ def generate_docx_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byt
 
     styles = doc.styles
     styles["Normal"].font.name = "Microsoft YaHei"
+    styles["Normal"]._element.rPr.rFonts.set(qn("w:eastAsia"), "Microsoft YaHei")
     styles["Normal"].font.size = Pt(9.5)
 
     contact = "  |  ".join(x for x in [profile.get("phone"), profile.get("email"), profile.get("current_city"), profile.get("portfolio_url") or profile.get("website")] if x)
@@ -425,6 +427,8 @@ def generate_docx_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byt
         run = p.add_run(profile.get("name") or "个人简历")
         run.bold = True
         run.font.size = Pt(20)
+        run.font.name = "Microsoft YaHei"
+        run._element.rPr.rFonts.set(qn("w:eastAsia"), "Microsoft YaHei")
         if contact:
             cp = left.add_paragraph(contact)
             cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -437,7 +441,6 @@ def generate_docx_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byt
             borders = tc_pr.first_child_found_in("w:tcBorders")
             if borders is None:
                 from docx.oxml import OxmlElement
-                from docx.oxml.ns import qn
                 borders = OxmlElement("w:tcBorders")
                 tc_pr.append(borders)
             for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
@@ -454,6 +457,8 @@ def generate_docx_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byt
         run = p.add_run(profile.get("name") or "个人简历")
         run.bold = True
         run.font.size = Pt(20)
+        run.font.name = "Microsoft YaHei"
+        run._element.rPr.rFonts.set(qn("w:eastAsia"), "Microsoft YaHei")
         if contact:
             p = doc.add_paragraph(contact)
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER

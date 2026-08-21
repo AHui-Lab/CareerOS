@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import sqlite3
 import tempfile
+from urllib.parse import quote
 import email
 import email.header
 import email.utils
@@ -621,6 +622,19 @@ async def upload_profile_photo(file: UploadFile = File(...)):
     return {"profile": profile, "path": str(path)}
 
 
+@app.get("/api/profile/photo")
+async def profile_photo():
+    photo = db.get_profile().get("photo_path")
+    if not photo:
+        raise HTTPException(status_code=404, detail="尚未上传证件照")
+    private_root = (db.DATA_DIR / "private" / "profile").resolve()
+    path = Path(str(photo)).resolve()
+    if private_root not in path.parents or not path.is_file():
+        raise HTTPException(status_code=404, detail="证件照不存在")
+    media_type = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png"}.get(path.suffix.lower(), "application/octet-stream")
+    return FileResponse(path, media_type=media_type)
+
+
 @app.get("/api/experiences")
 async def experiences():
     return {"items": db.list_experiences()}
@@ -836,11 +850,15 @@ async def download_resume_docx(version_id: int):
     # Keep the generated content stable, but always use the latest local photo.
     profile = {**snapshot, **{key: value for key, value in current.items() if value}}
     content = generate_docx_bytes(profile, version)
-    safe = "JobPilot_Resume"
+    parts = ["CareerOS", "简历", version.get("target_company"), version.get("target_role")]
+    label = "_".join(str(item).strip() for item in parts if str(item or "").strip())
+    label = re.sub(r'[\\/:*?"<>|]+', "_", label).strip(" ._") or "CareerOS_简历"
+    ascii_name = f"CareerOS_Resume_{version_id}.docx"
+    encoded_name = quote(f"{label}_{version_id}.docx")
     return Response(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        headers={"Content-Disposition": f'attachment; filename="{safe}_{version_id}.docx"'},
+        headers={"Content-Disposition": f'attachment; filename="{ascii_name}"; filename*=UTF-8\'\'{encoded_name}'},
     )
 
 
