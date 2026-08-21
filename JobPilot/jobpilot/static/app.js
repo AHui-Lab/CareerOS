@@ -8,7 +8,7 @@ const UNSUBMITTED_STATUSES = new Set(['inbox','interested','preparing']);
 const SUBMITTED_STATUSES = new Set(['applied','interview','offer','rejected']);
 
 let state = {
-  opportunities:[], scheduleEvents:[], profile:{}, experiences:[], versions:[], dataStatus:{}, health:{}, latestVersion:null,
+  opportunities:[], scheduleEvents:[], emails:[], emailSettings:{}, profile:{}, experiences:[], versions:[], dataStatus:{}, health:{}, latestVersion:null,
   memoEditing:null, memoScope:'all', recommendations:[], recommendationDefaultIds:[], recommendationSignature:'',
   recommendationsLoading:false
 };
@@ -28,11 +28,13 @@ async function api(path,options={}){
 
 async function loadAll(){
   try{
-    const [ops,schedule,profile,exps,versions,dataStatus,health]=await Promise.all([
-      api('/api/opportunities'), api('/api/schedule-events'), api('/api/profile'), api('/api/experiences'), api('/api/resume-versions'), api('/api/data/status'), api('/api/health')
+    const [ops,schedule,emailMessages,emailSettings,profile,exps,versions,dataStatus,health]=await Promise.all([
+      api('/api/opportunities'), api('/api/schedule-events'), api('/api/email/messages'), api('/api/email/settings'), api('/api/profile'), api('/api/experiences'), api('/api/resume-versions'), api('/api/data/status'), api('/api/health')
     ]);
     state.opportunities=ops.items||[];
     state.scheduleEvents=schedule.items||[];
+    state.emails=emailMessages.items||[];
+    state.emailSettings=emailSettings.settings||{};
     state.profile=profile.profile||{};
     state.experiences=exps.items||[];
     state.versions=versions.items||[];
@@ -51,7 +53,7 @@ async function loadAll(){
   }catch(e){notice(e.message,true);}
 }
 
-function renderAll(){renderDashboard();renderCalendar();renderMemo();renderProfile();renderExperiences();renderTargetOptions();renderExperienceChooser();renderVersions();renderDataStatus();renderRecommendations();if(state.latestVersion)renderResumePreview(state.latestVersion);}
+function renderAll(){renderDashboard();renderCalendar();renderEmail();renderMemo();renderProfile();renderExperiences();renderTargetOptions();renderExperienceChooser();renderVersions();renderDataStatus();renderRecommendations();if(state.latestVersion)renderResumePreview(state.latestVersion);}
 
 const EVENT_TYPE={application:'投递',written_test:'笔试',interview:'面试',deadline:'截止',follow_up:'跟进',other:'其他'};
 const EVENT_CLASS={application:'event-application',written_test:'event-written-test',interview:'event-interview',deadline:'event-deadline',follow_up:'event-follow-up',other:'event-other'};
@@ -71,6 +73,14 @@ function renderCalendar(){
 function fillScheduleOpportunities(current=''){const select=$('#scheduleOpportunity');select.innerHTML='<option value="">不关联岗位</option>'+state.opportunities.map(x=>`<option value="${x.id}" ${String(x.id)===String(current)?'selected':''}>${esc(x.company||'待补充公司')} · ${esc(x.role||x.title||'岗位')}</option>`).join('');}
 function openSchedule(item=null,date=''){const x=item||{};$('#scheduleId').value=x.id||'';$('#scheduleDialogTitle').textContent=item?'编辑日程':'添加日程';$('#scheduleType').value=x.event_type||'other';$('#scheduleTitle').value=x.title||'';$('#scheduleDate').value=x.event_date||date||localDate(new Date());$('#scheduleTime').value=x.event_time||'';$('#scheduleLocation').value=x.location||'';$('#scheduleNotes').value=x.notes||'';fillScheduleOpportunities(x.opportunity_id||'');$('#scheduleDialog').showModal();}
 function closeSchedule(){if($('#scheduleDialog').open)$('#scheduleDialog').close();}
+
+function renderEmail(){
+  const s=state.emailSettings||{};if($('#emailHost')){$('#emailHost').value=s.imap_host||'';$('#emailPort').value=s.imap_port||993;$('#emailUsername').value=s.username||'';$('#emailFolder').value=s.folder||'INBOX';}
+  const pending=state.emails.filter(x=>x.status==='pending');if($('#emailCount'))$('#emailCount').textContent=`${pending.length} 封待确认 · 已同步 ${state.emails.length} 封`;
+  if(!$('#emailList'))return;
+  $('#emailList').innerHTML=state.emails.length?state.emails.map(x=>{const linked=x.company?` · ${esc(x.company)}${x.role?` / ${esc(x.role)}`:''}`:'';const status=x.status==='imported'?'<span class="email-status imported">已导入</span>':'<span class="email-status pending">待确认</span>';return `<article class="email-card ${x.status==='imported'?'is-imported':''}"><div class="email-select">${x.status==='pending'?`<input type="checkbox" data-email-choice="${x.id}" />`:''}</div><div class="email-main"><div class="email-head"><b>${esc(x.subject||'(无主题)')}</b><span>${status}${x.status==='pending'?` <button class="link-button danger-link" type="button" data-ignore-email="${x.id}">忽略</button>`:''}</span></div><div class="email-meta">${esc(x.received_at||'未知时间')} · ${esc(x.sender||'未知发件人')}${linked}</div><p>${esc(x.snippet||'（无正文摘要）')}</p>${x.status==='pending'?`<label class="email-link-label">关联岗位<select data-email-opportunity="${x.id}"><option value="">不关联岗位</option>${state.opportunities.map(o=>`<option value="${o.id}">${esc(o.company||'待补充公司')} · ${esc(o.role||o.title||'岗位')}</option>`).join('')}</select></label>`:''}</div></article>`;}).join(''):'<div class="empty-state compact">还没有邮件记录。</div>';
+  $('#emailEmpty')?.classList.add('hidden');
+}
 
 function renderDashboard(){
   const jobs=state.opportunities;
@@ -255,6 +265,12 @@ $('#scheduleClose').addEventListener('click',closeSchedule);$('#scheduleCancel')
 $('#calendarGrid').addEventListener('click',e=>{const day=e.target.closest('[data-calendar-date]');if(day)openSchedule(null,day.dataset.calendarDate);});
 $('#calendarUpcoming').addEventListener('click',async e=>{const edit=e.target.closest('[data-edit-schedule]');if(edit){const item=state.scheduleEvents.find(x=>String(x.id)===edit.dataset.editSchedule);if(item)openSchedule(item);return;}const remove=e.target.closest('[data-delete-schedule]');if(remove&&confirm('删除这条日程？')){try{await api(`/api/schedule-events/${remove.dataset.deleteSchedule}`,{method:'DELETE'});await loadAll();}catch(err){notice(err.message,true);}}});
 $('#scheduleForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('#scheduleId').value;const payload={event_type:$('#scheduleType').value,title:$('#scheduleTitle').value.trim(),event_date:$('#scheduleDate').value,event_time:$('#scheduleTime').value,location:$('#scheduleLocation').value.trim(),notes:$('#scheduleNotes').value.trim(),opportunity_id:Number($('#scheduleOpportunity').value)||null};try{await api(id?`/api/schedule-events/${id}`:'/api/schedule-events',{method:id?'PATCH':'POST',body:JSON.stringify(payload)});closeSchedule();notice(id?'日程已更新。':'日程已添加。');await loadAll();}catch(err){notice(err.message,true);}});
+
+// ---------- email tracking ----------
+$('#emailSettingsForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/email/settings',{method:'POST',body:JSON.stringify({imap_host:$('#emailHost').value.trim(),imap_port:Number($('#emailPort').value)||993,username:$('#emailUsername').value.trim(),password:$('#emailPassword').value,folder:$('#emailFolder').value.trim()||'INBOX'})});$('#emailPassword').value='';notice('邮箱配置已保存。');await loadAll();}catch(err){notice(err.message,true);}});
+$('#syncEmailBtn').addEventListener('click',async()=>{const button=$('#syncEmailBtn');button.disabled=true;button.textContent='检查中…';try{const data=await api('/api/email/sync',{method:'POST'});notice(`本次检查 ${data.checked||0} 封新邮件，新增 ${data.added||0} 封。`);await loadAll();}catch(err){notice(err.message,true);}finally{button.disabled=false;button.textContent='检查新邮件';}});
+$('#importEmailBtn').addEventListener('click',async()=>{const ids=$$('[data-email-choice]:checked');if(!ids.length)return notice('请先勾选需要导入的邮件。',true);const items=ids.map(box=>({email_id:Number(box.dataset.emailChoice),opportunity_id:Number($(`[data-email-opportunity="${box.dataset.emailChoice}"]`)?.value)||null}));const button=$('#importEmailBtn');button.disabled=true;try{const data=await api('/api/email/import',{method:'POST',body:JSON.stringify({items})});notice(`已导入 ${data.imported||0} 封求职邮件。`);await loadAll();}catch(err){notice(err.message,true);}finally{button.disabled=false;}});
+$('#emailList').addEventListener('click',async e=>{const button=e.target.closest('[data-ignore-email]');if(!button)return;try{await api(`/api/email/messages/${button.dataset.ignoreEmail}/ignore`,{method:'POST'});notice('邮件已忽略。');await loadAll();}catch(err){notice(err.message,true);}});
 
 // ---------- data safety ----------
 $('#backupDbBtn').addEventListener('click',async()=>{const b=$('#backupDbBtn');b.disabled=true;try{const data=await api('/api/data/backup',{method:'POST'});notice(`备份完成：${data.path}`);await loadAll();}catch(err){notice(err.message,true);}finally{b.disabled=false;}});

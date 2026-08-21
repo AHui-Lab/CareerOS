@@ -3,6 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 import sqlite3
 import tempfile
+import email
+import email.header
+import email.utils
+import imaplib
+import re
 from typing import Any
 
 from dotenv import load_dotenv
@@ -104,6 +109,23 @@ class ScheduleEventPatch(ScheduleEventPayload):
     location: str | None = None
     notes: str | None = None
     opportunity_id: int | None = None
+
+
+class EmailSettingsPayload(BaseModel):
+    imap_host: str = Field(default="imap.gmail.com", max_length=200)
+    imap_port: int = Field(default=993, ge=1, le=65535)
+    username: str = Field(default="", max_length=320)
+    password: str = Field(default="", max_length=500)
+    folder: str = Field(default="INBOX", max_length=120)
+
+
+class EmailImportItem(BaseModel):
+    email_id: int
+    opportunity_id: int | None = None
+
+
+class EmailImportPayload(BaseModel):
+    items: list[EmailImportItem] = Field(default_factory=list)
 
 
 class ProfilePatch(BaseModel):
@@ -386,6 +408,140 @@ async def remove_schedule_event(event_id: int):
     if not db.delete_schedule_event(event_id):
         raise HTTPException(status_code=404, detail="日程不存在")
     return {"ok": True}
+
+
+# --- incremental email tracking ---
+def _decode_email_header(value: str) -> str:
+    parts = email.header.decode_header(value or "")
+    return "".join(part.decode(charset or "utf-8", errors="replace") if isinstance(part, bytes) else str(part) for part, charset in parts).strip()
+
+
+def _email_body(message: email.message.Message) -> str:
+    chunks: list[str] = []
+    parts = message.walk() if message.is_multipart() else [message]
+    for part in parts:
+        if part.get_content_maintype() != "text" or part.get_content_disposition() == "attachment":
+            continue
+        try:
+            text = part.get_payload(decode=True)
+            charset = part.get_content_charset() or "utf-8"
+            decoded = (text or b"").decode(charset, errors="replace") if isinstance(text, bytes) else str(text or "")
+        except Exception:
+            decoded = str(part.get_payload() or "")
+        if part.get_content_subtype() == "html":
+            decoded = re.sub(r"<[^>]+>", " ", decoded)
+        chunks.append(re.sub(r"\s+", " ", decoded).strip())
+    return "\n".join(x for x in chunks if x)[:12000]
+
+
+def _sync_email_messages() -> dict[str, Any]:
+    settings = db.get_email_settings()
+    password = db.get_email_password()
+    required = [settings.get("imap_host"), settings.get("username"), password]
+    if not all(str(x or "").strip() for x in required):
+        raise HTTPException(status_code=400, detail="请先在设置中填写 IMAP 地址、邮箱账号和密码。")
+    client = None
+    try:
+        client = imaplib.IMAP4_SSL(str(settings["imap_host"]), int(settings.get("imap_port") or 993))
+        client.login(str(settings["username"]), password)
+        status, _ = client.select(str(settings.get("folder") or "INBOX"), readonly=True)
+        if status != "OK":
+            raise ValueError(f"无法打开邮箱文件夹：{settings.get('folder') or 'INBOX'}")
+        last_uid = int(settings.get("last_uid") or 0)
+        status, data = client.uid("SEARCH", None, f"UID {last_uid + 1}:*")
+        if status != "OK":
+            raise ValueError("无法读取邮箱新邮件列表")
+        uids = [int(x) for x in (data[0] or b"").split()]
+        # Protect the local app from an unexpectedly huge first sync.
+        selected_uids = uids[-100:]
+        messages: list[dict[str, Any]] = []
+        for uid in selected_uids:
+            status, fetched = client.uid("FETCH", str(uid), "(RFC822)")
+            if status != "OK":
+                continue
+            raw = next((part[1] for part in fetched if isinstance(part, tuple) and len(part) > 1), None)
+            if not raw:
+                continue
+            message = email.message_from_bytes(raw)
+            body = _email_body(message)
+            received = email.utils.parsedate_to_datetime(message.get("Date", "")) if message.get("Date") else None
+            messages.append({
+                "uid": uid,
+                "message_id": _decode_email_header(message.get("Message-ID", "")),
+                "sender": _decode_email_header(message.get("From", "")),
+                "subject": _decode_email_header(message.get("Subject", "(无主题)")) or "(无主题)",
+                "received_at": received.isoformat(sep=" ", timespec="minutes") if received else str(message.get("Date", "")),
+                "snippet": body[:240],
+                "body": body,
+            })
+        added = db.insert_email_messages(messages)
+        if uids:
+            db.advance_email_uid(max(uids))
+        return {"added": added, "checked": len(uids), "last_uid": max(uids or [last_uid]), "items": db.list_email_messages()}
+    except imaplib.IMAP4.error as exc:
+        raise HTTPException(status_code=502, detail=f"邮箱登录或读取失败：{exc}") from exc
+    except OSError as exc:
+        raise HTTPException(status_code=502, detail=f"无法连接邮箱服务器：{exc}") from exc
+    finally:
+        if client is not None:
+            try: client.logout()
+            except Exception: pass
+
+
+@app.get("/api/email/settings")
+async def email_settings():
+    return {"settings": db.get_email_settings()}
+
+
+@app.post("/api/email/settings")
+async def update_email_settings(payload: EmailSettingsPayload):
+    current = db.get_email_settings()
+    fields = payload.model_dump()
+    if not fields["password"]:
+        fields["password"] = db.get_email_password()
+    if fields["username"] != current.get("username") or fields["imap_host"] != current.get("imap_host") or fields["folder"] != current.get("folder"):
+        fields["last_uid"] = 0
+    db.save_email_settings(fields)
+    return {"settings": db.get_email_settings()}
+
+
+@app.post("/api/email/sync")
+async def sync_email():
+    return _sync_email_messages()
+
+
+@app.get("/api/email/messages")
+async def email_messages():
+    return {"items": db.list_email_messages()}
+
+
+@app.post("/api/email/messages/{email_id}/ignore")
+async def ignore_email_message(email_id: int):
+    item = db.update_email_message(email_id, status="ignored")
+    if not item:
+        raise HTTPException(status_code=404, detail="邮件不存在")
+    return {"item": item}
+
+
+@app.post("/api/email/import")
+async def import_email_messages(payload: EmailImportPayload):
+    if not payload.items:
+        raise HTTPException(status_code=400, detail="请至少选择一封邮件。")
+    imported = 0
+    for selected in payload.items:
+        message = next((x for x in db.list_email_messages(include_ignored=True) if int(x["id"]) == selected.email_id), None)
+        if not message:
+            raise HTTPException(status_code=404, detail=f"邮件不存在：{selected.email_id}")
+        if selected.opportunity_id and not db.get_opportunity(selected.opportunity_id):
+            raise HTTPException(status_code=404, detail="关联岗位不存在")
+        if selected.opportunity_id:
+            opportunity = db.get_opportunity(selected.opportunity_id) or {}
+            email_note = f"邮件跟踪：{message.get('received_at')} · {message.get('subject')} · {message.get('sender')}"
+            old_note = str(opportunity.get("note") or "").strip()
+            db.edit_opportunity(selected.opportunity_id, {"note": f"{old_note}\n{email_note}".strip()})
+        db.update_email_message(selected.email_id, status="imported", opportunity_id=selected.opportunity_id)
+        imported += 1
+    return {"imported": imported, "items": db.list_email_messages()}
 
 
 # --- legacy local profile / experience bank ---

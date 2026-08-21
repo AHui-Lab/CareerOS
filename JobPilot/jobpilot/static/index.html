@@ -15,6 +15,7 @@
       <button class="nav active" data-view="dashboard">首页</button>
       <div class="nav-group-label">求职管理</div>
       <button class="nav" data-view="memo">校招岗位</button>
+      <button class="nav" data-view="email">邮件跟踪</button>
       <button class="nav" data-view="resume">简历中心</button>
       <div class="nav-group-label">经历资产</div>
       <button class="nav" data-view="profile">经历与项目</button>
@@ -111,6 +112,22 @@
         </div>
         <div id="memoList" class="memo-list"></div>
         <div id="memoEmpty" class="empty-state hidden"><h3>没有符合条件的岗位</h3><p>可以调整筛选条件，或导入一个新的招聘链接。</p></div>
+      </section>
+    </section>
+
+    <section id="view-email" class="view">
+      <section class="panel email-connect-panel">
+        <div class="section-title"><div><p class="eyebrow">EMAIL TRACKING</p><h2>求职邮件跟踪</h2><p class="helper">只检查上次同步之后的新邮件，先由你确认，再关联到岗位。</p></div><button id="syncEmailBtn" class="primary-btn" type="button">检查新邮件</button></div>
+        <form id="emailSettingsForm" class="form-grid-2 email-settings-form">
+          <label>IMAP 服务器<input id="emailHost" placeholder="imap.gmail.com" required /></label><label>端口<input id="emailPort" type="number" value="993" min="1" max="65535" required /></label>
+          <label>邮箱账号<input id="emailUsername" type="email" required /></label><label>应用专用密码<input id="emailPassword" type="password" placeholder="留空表示保持原密码" /></label>
+          <label>文件夹<input id="emailFolder" value="INBOX" /></label><div class="email-setting-actions"><button class="ghost-btn" type="submit">保存邮箱配置</button><span id="emailSyncState" class="helper"></span></div>
+        </form>
+        <p class="helper email-security-note">建议使用邮箱的应用专用密码。密码只保存在本机 CareerOS 数据库中，不会上传 GitHub。</p>
+      </section>
+      <section class="list-section email-list-section">
+        <div class="list-toolbar"><div><p class="eyebrow">NEW MESSAGES</p><h2>待确认邮件 <span id="emailCount" class="helper"></span></h2></div><button id="importEmailBtn" class="ghost-btn" type="button">导入选中邮件</button></div>
+        <div id="emailList" class="email-list"></div><div id="emailEmpty" class="empty-state hidden"><h3>还没有待确认邮件</h3><p>保存邮箱配置后，点击“检查新邮件”。</p></div>
       </section>
     </section>
 

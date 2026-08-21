@@ -150,6 +150,37 @@ CREATE TABLE IF NOT EXISTS vault_documents (
 );
 CREATE INDEX IF NOT EXISTS idx_vault_documents_title ON vault_documents(title);
 CREATE INDEX IF NOT EXISTS idx_vault_documents_updated_at ON vault_documents(updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS email_settings (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    imap_host TEXT NOT NULL DEFAULT '',
+    imap_port INTEGER NOT NULL DEFAULT 993,
+    username TEXT NOT NULL DEFAULT '',
+    password TEXT NOT NULL DEFAULT '',
+    folder TEXT NOT NULL DEFAULT 'INBOX',
+    last_uid INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+INSERT OR IGNORE INTO email_settings(id) VALUES (1);
+
+CREATE TABLE IF NOT EXISTS email_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    uid INTEGER NOT NULL,
+    message_id TEXT NOT NULL DEFAULT '',
+    sender TEXT NOT NULL DEFAULT '',
+    subject TEXT NOT NULL DEFAULT '',
+    received_at TEXT NOT NULL DEFAULT '',
+    snippet TEXT NOT NULL DEFAULT '',
+    body TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'pending',
+    opportunity_id INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    imported_at TEXT NOT NULL DEFAULT '',
+    UNIQUE(uid),
+    FOREIGN KEY(opportunity_id) REFERENCES opportunities(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_email_messages_received ON email_messages(received_at DESC);
+CREATE INDEX IF NOT EXISTS idx_email_messages_status ON email_messages(status);
 """
 
 
@@ -250,6 +281,73 @@ def _resume_version_row(row: sqlite3.Row) -> dict[str, Any]:
     result["resume"] = _loads(result.pop("resume_json", "{}"), {})
     result["autofill"] = _loads(result.pop("autofill_json", "{}"), {})
     return result
+
+
+def get_email_settings() -> dict[str, Any]:
+    with connect() as conn:
+        row = conn.execute("SELECT id, imap_host, imap_port, username, folder, last_uid, updated_at FROM email_settings WHERE id = 1").fetchone()
+    return dict(row) if row else {"id": 1, "imap_port": 993, "folder": "INBOX", "last_uid": 0}
+
+
+def save_email_settings(fields: dict[str, Any]) -> dict[str, Any]:
+    allowed = {"imap_host", "imap_port", "username", "password", "folder", "last_uid"}
+    clean = {key: fields[key] for key in fields if key in allowed}
+    if "imap_port" in clean:
+        clean["imap_port"] = int(clean["imap_port"] or 993)
+    if clean:
+        with connect() as conn:
+            conn.execute(
+                f"UPDATE email_settings SET {', '.join(f'{field} = ?' for field in clean)}, updated_at = datetime('now', 'localtime') WHERE id = 1",
+                [*clean.values()],
+            )
+    return get_email_settings()
+
+
+def get_email_password() -> str:
+    with connect() as conn:
+        row = conn.execute("SELECT password FROM email_settings WHERE id = 1").fetchone()
+    return str(row[0] or "") if row else ""
+
+
+def insert_email_messages(items: list[dict[str, Any]]) -> int:
+    if not items:
+        return 0
+    with connect() as conn:
+        before = conn.total_changes
+        for item in items:
+            conn.execute(
+                "INSERT OR IGNORE INTO email_messages(uid, message_id, sender, subject, received_at, snippet, body) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                [item.get(key, "") for key in ("uid", "message_id", "sender", "subject", "received_at", "snippet", "body")],
+            )
+        return conn.total_changes - before
+
+
+def list_email_messages(*, include_ignored: bool = False) -> list[dict[str, Any]]:
+    query = "SELECT e.*, o.company, o.role FROM email_messages e LEFT JOIN opportunities o ON o.id = e.opportunity_id"
+    if not include_ignored:
+        query += " WHERE e.status != 'ignored'"
+    query += " ORDER BY e.received_at DESC, e.id DESC"
+    with connect() as conn:
+        rows = conn.execute(query).fetchall()
+    return [dict(row) for row in rows]
+
+
+def update_email_message(email_id: int, *, status: str | None = None, opportunity_id: int | None = None) -> dict[str, Any] | None:
+    fields: dict[str, Any] = {}
+    if status is not None: fields["status"] = status
+    if opportunity_id is not None: fields["opportunity_id"] = opportunity_id
+    if status == "imported": fields["imported_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if fields:
+        with connect() as conn:
+            conn.execute(f"UPDATE email_messages SET {', '.join(f'{key} = ?' for key in fields)} WHERE id = ?", [*fields.values(), email_id])
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM email_messages WHERE id = ?", (email_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def advance_email_uid(uid: int) -> None:
+    with connect() as conn:
+        conn.execute("UPDATE email_settings SET last_uid = MAX(last_uid, ?), updated_at = datetime('now', 'localtime') WHERE id = 1", (uid,))
 
 
 # --- opportunities / memo ---
