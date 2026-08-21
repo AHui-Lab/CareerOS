@@ -402,6 +402,8 @@ async def generate_tailored_resume(
 
 def generate_docx_bytes(profile: dict[str, Any], version: dict[str, Any]) -> bytes:
     resume = version.get("resume") or {}
+    headline = str(version.get("target_role") or resume.get("headline") or "").strip()
+    headline = re.sub(r"(方向)?候选人$", "", headline).strip()
     doc = Document()
     section = doc.sections[0]
     section.top_margin = section.bottom_margin = section.left_margin = section.right_margin = Pt(42)
@@ -466,10 +468,10 @@ def generate_docx_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byt
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p.paragraph_format.space_after = Pt(6)
 
-    if resume.get("headline"):
+    if headline:
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        r = p.add_run(str(resume["headline"]))
+        r = p.add_run(headline)
         r.bold = True
         r.font.size = Pt(11)
     if resume.get("summary"):
@@ -538,6 +540,8 @@ def generate_pdf_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byte
     pdfmetrics.registerFont(TTFont("CareerOS-CJK", str(font_path)))
 
     resume = version.get("resume") or {}
+    headline = str(version.get("target_role") or resume.get("headline") or "").strip()
+    headline = re.sub(r"(方向)?候选人$", "", headline).strip()
     out = io.BytesIO()
     doc = SimpleDocTemplate(out, pagesize=A4, leftMargin=16 * mm, rightMargin=16 * mm, topMargin=14 * mm, bottomMargin=14 * mm)
     styles = getSampleStyleSheet()
@@ -557,8 +561,8 @@ def generate_pdf_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byte
         story.append(header)
     else:
         story.extend(left)
-    if resume.get("headline"):
-        story.append(Paragraph(str(resume["headline"]), ParagraphStyle("CareerOSHeadline", parent=normal, alignment=TA_CENTER, fontSize=11, leading=15, textColor=colors.HexColor("#222222"))))
+    if headline:
+        story.append(Paragraph(headline, ParagraphStyle("CareerOSHeadline", parent=normal, alignment=TA_CENTER, fontSize=11, leading=15, textColor=colors.HexColor("#222222"))))
     if resume.get("summary"):
         story.append(Paragraph(str(resume["summary"]), normal))
     for section_data in resume.get("sections", []) if isinstance(resume.get("sections"), list) else []:
