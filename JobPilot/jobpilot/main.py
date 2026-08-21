@@ -128,6 +128,10 @@ class EmailImportPayload(BaseModel):
     items: list[EmailImportItem] = Field(default_factory=list)
 
 
+class EmailLinkPayload(BaseModel):
+    opportunity_id: int | None = None
+
+
 class ProfilePatch(BaseModel):
     name: str | None = None
     phone: str | None = None
@@ -469,7 +473,7 @@ def _sync_email_messages() -> dict[str, Any]:
             raise ValueError("无法读取邮箱新邮件列表")
         uids = [int(x) for x in (data[0] or b"").split()]
         # Protect the local app from an unexpectedly huge first sync.
-        selected_uids = uids[-100:]
+        selected_uids = uids[-20:]
         messages: list[dict[str, Any]] = []
         for uid in selected_uids:
             status, fetched = client.uid("FETCH", str(uid), "(RFC822)")
@@ -528,12 +532,27 @@ async def sync_email():
 
 @app.get("/api/email/messages")
 async def email_messages():
-    return {"items": db.list_email_messages()}
+    return {"items": db.list_email_messages(include_ignored=True)}
 
 
 @app.post("/api/email/messages/{email_id}/ignore")
 async def ignore_email_message(email_id: int):
     item = db.update_email_message(email_id, status="ignored")
+    if not item:
+        raise HTTPException(status_code=404, detail="邮件不存在")
+    return {"item": item}
+
+
+@app.post("/api/email/messages/ignore-pending")
+async def ignore_pending_email_messages():
+    return {"ignored": db.ignore_pending_email_messages(), "items": db.list_email_messages(include_ignored=True)}
+
+
+@app.post("/api/email/messages/{email_id}/link")
+async def link_email_message(email_id: int, payload: EmailLinkPayload):
+    if payload.opportunity_id and not db.get_opportunity(payload.opportunity_id):
+        raise HTTPException(status_code=404, detail="关联岗位不存在")
+    item = db.update_email_message(email_id, status="imported", opportunity_id=payload.opportunity_id, clear_opportunity=payload.opportunity_id is None)
     if not item:
         raise HTTPException(status_code=404, detail="邮件不存在")
     return {"item": item}

@@ -332,10 +332,11 @@ def list_email_messages(*, include_ignored: bool = False) -> list[dict[str, Any]
     return [dict(row) for row in rows]
 
 
-def update_email_message(email_id: int, *, status: str | None = None, opportunity_id: int | None = None) -> dict[str, Any] | None:
+def update_email_message(email_id: int, *, status: str | None = None, opportunity_id: int | None = None, clear_opportunity: bool = False) -> dict[str, Any] | None:
     fields: dict[str, Any] = {}
     if status is not None: fields["status"] = status
     if opportunity_id is not None: fields["opportunity_id"] = opportunity_id
+    elif clear_opportunity: fields["opportunity_id"] = None
     if status == "imported": fields["imported_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     if fields:
         with connect() as conn:
@@ -343,6 +344,12 @@ def update_email_message(email_id: int, *, status: str | None = None, opportunit
     with connect() as conn:
         row = conn.execute("SELECT * FROM email_messages WHERE id = ?", (email_id,)).fetchone()
     return dict(row) if row else None
+
+
+def ignore_pending_email_messages() -> int:
+    with connect() as conn:
+        cursor = conn.execute("UPDATE email_messages SET status = 'ignored' WHERE status = 'pending'")
+    return cursor.rowcount
 
 
 def advance_email_uid(uid: int) -> None:

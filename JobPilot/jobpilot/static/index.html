@@ -138,7 +138,8 @@
         <p class="technical-detail">资料核对日期：2026-08-22。邮箱服务商可能调整入口或安全策略，实际页面以对应官方说明为准。</p>
       </section>
       <section class="list-section email-list-section">
-        <div class="list-toolbar"><div><p class="eyebrow">NEW MESSAGES</p><h2>待确认邮件 <span id="emailCount" class="helper"></span></h2></div><button id="importEmailBtn" class="ghost-btn" type="button">导入选中邮件</button></div>
+        <div class="list-toolbar"><div><p class="eyebrow">EMAIL MANAGEMENT</p><h2 id="emailListTitle">待确认邮件 <span id="emailCount" class="helper"></span></h2></div><div class="toolbar-actions"><button id="ignorePendingEmailBtn" class="ghost-btn danger-button" type="button">忽略剩余邮件</button><button id="importEmailBtn" class="ghost-btn" type="button">导入选中邮件</button></div></div>
+        <div class="email-filter-bar"><button class="email-filter active" data-email-filter="pending" type="button">待确认</button><button class="email-filter" data-email-filter="imported" type="button">已导入</button><button class="email-filter" data-email-filter="ignored" type="button">已忽略</button><button class="email-filter" data-email-filter="all" type="button">全部</button></div>
         <div id="emailList" class="email-list"></div><div id="emailEmpty" class="empty-state hidden"><h3>还没有待确认邮件</h3><p>保存邮箱配置后，点击“检查新邮件”。</p></div>
       </section>
     </section>
