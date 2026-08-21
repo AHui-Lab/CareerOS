@@ -39,7 +39,7 @@
     const prev=el.previousElementSibling;if(prev)parts.push(prev.innerText||prev.textContent||'');
     const labelledBy=el.getAttribute?.('aria-labelledby');if(labelledBy)for(const id of labelledBy.split(/\s+/)){const node=document.getElementById(id);if(node)parts.push(node.innerText||node.textContent||'');}
     for(const node of [el.closest('[data-label]'),el.closest('[data-field]'),el.closest('[role="group"]')])if(node)parts.push((node.innerText||node.textContent||'').slice(0,220));
-    const p=el.parentElement;if(p)parts.push((p.innerText||'').slice(0,220));
+    let ancestor=el.parentElement;let depth=0;while(ancestor&&depth<3){parts.push((ancestor.innerText||ancestor.textContent||'').slice(0,220));ancestor=ancestor.parentElement;depth++;}
     return clean(parts.filter(Boolean).join(' '));
   }
 
@@ -58,7 +58,11 @@
     const proto=el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;const d=Object.getOwnPropertyDescriptor(proto,'value');if(d?.set)d.set.call(el,value);else el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));if(el.getAttribute('role')==='combobox'||el.getAttribute('aria-autocomplete')){el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',bubbles:true}));el.dispatchEvent(new KeyboardEvent('keyup',{key:'Enter',code:'Enter',bubbles:true}));}el.dispatchEvent(new Event('blur',{bubbles:true}));return true;
   }
 
-  function formControls(root=document){return [...root.querySelectorAll('input,textarea,select,[contenteditable="true"],[role="combobox"]')].filter(el=>!el.disabled&&!el.readOnly);}
+  function formControls(root=document){
+    const selector='input,textarea,select,[contenteditable="true"],[role="combobox"]',out=[],seen=new Set();
+    const walk=node=>{if(!node||seen.has(node))return;seen.add(node);for(const el of node.querySelectorAll?.(selector)||[]){if(!el.disabled&&!el.readOnly)out.push(el);if(el.shadowRoot)walk(el.shadowRoot);}for(const el of node.querySelectorAll?.('*')||[]){if(el.shadowRoot)walk(el.shadowRoot);}};
+    walk(root);return out;
+  }
 
   function fillScalars(pack){
     let filled=0,skippedFiles=0;const keys=[],used=new Set();
@@ -125,7 +129,8 @@
     for(const kind of ['education','internships','projects','research','campus'])repeated.push(await fillRepeated(kind,structured?.[kind]||[],adapter));
     const repeatedFields=repeated.reduce((n,x)=>n+x.fields,0),rowsAdded=repeated.reduce((n,x)=>n+x.added,0),rowsTouched=repeated.reduce((n,x)=>n+x.rows,0);
     if(options?.allowSensitive)risky.test=previousRisky;
-    return {adapter:adapter.label,adapter_id:adapter.id,scalar_filled:scalar.filled,repeated_fields:repeatedFields,repeated_rows:rowsTouched,rows_added:rowsAdded,skipped_files:scalar.skippedFiles,total_filled:scalar.filled+repeatedFields,warning:'JobPilot 未点击任何提交/下一步按钮，请人工逐项检查。'};
+    const unmatched=adapter.id==='zhiye'?formControls(document).map(labelFor).filter(label=>label&&!classifyScalar(label,pack)).slice(0,12):[];
+    return {adapter:adapter.label,adapter_id:adapter.id,scalar_filled:scalar.filled,repeated_fields:repeatedFields,repeated_rows:rowsTouched,rows_added:rowsAdded,skipped_files:scalar.skippedFiles,total_filled:scalar.filled+repeatedFields,unmatched_controls:unmatched,warning:'JobPilot 未点击任何提交/下一步按钮，请人工逐项检查。'};
   }
 
   window.JobPilotAutofill={run,detectAdapter};

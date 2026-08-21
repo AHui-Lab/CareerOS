@@ -52,13 +52,15 @@ fillBtn.addEventListener('click',async()=>{
       repeated_rows:total.repeated_rows+(item.repeated_rows||0),
       rows_added:total.rows_added+(item.rows_added||0),
       skipped_files:total.skipped_files+(item.skipped_files||0),
-      total_filled:total.total_filled+(item.total_filled||0)
-    }),{adapter:'通用网页',scalar_filled:0,repeated_fields:0,repeated_rows:0,rows_added:0,skipped_files:0,total_filled:0});
+      total_filled:total.total_filled+(item.total_filled||0),
+      unmatched_controls:[...(total.unmatched_controls||[]),...(item.unmatched_controls||[])]
+    }),{adapter:'通用网页',scalar_filled:0,repeated_fields:0,repeated_rows:0,rows_added:0,skipped_files:0,total_filled:0,unmatched_controls:[]});
     const version=data.resume_version?.name?`\n使用简历：${data.resume_version.name}`:'\n未找到定制简历，使用当前基础资料';
     const rows=result.repeated_rows?`，经历行 ${result.repeated_rows} 组 / ${result.repeated_fields} 个字段`:'';
     const added=result.rows_added?`，自动新增 ${result.rows_added} 行`:'';
     const files=result.skipped_files?`，${result.skipped_files} 个文件框需手动上传`:'';
-    setStatus(`${result.adapter} 适配 · 已填写 ${result.scalar_filled} 个基础字段${rows}${added}${files}${version}\n请逐项检查后再提交。`,result.total_filled?'ok':'warn');
+    const unmatched=result.unmatched_controls?.length?`\n未识别字段：${[...new Set(result.unmatched_controls)].slice(0,6).join(' / ')}`:'';
+    setStatus(`${result.adapter} 适配 · 已填写 ${result.scalar_filled} 个基础字段${rows}${added}${files}${version}${unmatched}\n请逐项检查后再提交。`,result.total_filled?'ok':'warn');
   }catch(e){setStatus(`填表失败：${e.message}`,'error');}
   finally{fillBtn.disabled=false;fillBtn.textContent='智能填写当前页面';}
 });
