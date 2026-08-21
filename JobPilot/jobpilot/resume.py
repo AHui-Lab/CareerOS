@@ -569,7 +569,10 @@ def generate_pdf_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byte
         for item in section_data.get("items", []) if isinstance(section_data.get("items"), list) else []:
             left_text = " · ".join(str(x) for x in [item.get("organization", ""), item.get("title", "")] if x)
             right_text = " · ".join(str(x) for x in [item.get("date", ""), item.get("location", "")] if x)
-            line = Table([[Paragraph(f"<b>{left_text}</b>", item_style), Paragraph(right_text, item_style)]], colWidths=[doc.width * 0.72, doc.width * 0.28])
+            heading_style = ParagraphStyle("CareerOSItemHeading", parent=item_style, leftIndent=0, firstLineIndent=0)
+            date_style = ParagraphStyle("CareerOSItemDate", parent=item_style, leftIndent=0, firstLineIndent=0, alignment=2)
+            line = Table([[Paragraph(f"<b>{left_text}</b>", heading_style), Paragraph(right_text, date_style)]], colWidths=[doc.width * 0.72, doc.width * 0.28])
+            line.hAlign = "LEFT"
             line.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("ALIGN", (1, 0), (1, 0), "RIGHT"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 1), ("BOTTOMPADDING", (0, 0), (-1, -1), 1)]))
             story.append(line)
             for bullet in item.get("bullets", []) if isinstance(item.get("bullets"), list) else []:
