@@ -17,8 +17,8 @@
       <button class="nav" data-view="memo">校招岗位</button>
       <button class="nav" data-view="email">邮件跟踪</button>
       <button class="nav" data-view="resume">简历中心</button>
-      <div class="nav-group-label">经历资产</div>
-      <button class="nav" data-view="vault">经历资产</button>
+      <div class="nav-group-label">个人资料</div>
+      <button class="nav" data-view="vault">经历和项目</button>
       <button class="nav" data-view="settings">设置</button>
     </nav>
     <div class="sidebar-note">V0.3.1 · 求职工作台<br><span id="aiBadge">连接检测中…</span></div>
@@ -32,7 +32,7 @@
     <div id="globalNotice" class="notice hidden" aria-live="polite"></div>
 
     <section id="view-dashboard" class="view active-view">
-      <div class="dashboard-hero panel"><div><p class="eyebrow">CAREEROS OVERVIEW</p><h2>把每一次投递，推进到下一步</h2><p class="helper">CareerOS 将岗位进展、经历资产和简历准备集中在一个工作台中。</p></div><button class="primary-btn" type="button" data-go-view="memo">导入招聘链接</button></div>
+      <div class="dashboard-hero panel"><div><p class="eyebrow">CAREEROS OVERVIEW</p><h2>把每一次投递，推进到下一步</h2><p class="helper">CareerOS 将岗位进展、经历和项目、简历准备集中在一个工作台中。</p></div><button class="primary-btn" type="button" data-go-view="memo">导入招聘链接</button></div>
       <section class="dashboard-stats" aria-label="求职概览">
         <article class="dashboard-stat"><span>岗位数量</span><strong id="dashboardTotal">0</strong><small>已保存的全部岗位</small></article>
         <article class="dashboard-stat"><span>准备投递</span><strong id="dashboardPreparing">0</strong><small>下一步可推进</small></article>
@@ -145,11 +145,8 @@
     </section>
 
     <section id="view-vault" class="view">
-      <section class="panel vault-shell-panel">
-        <div class="section-title"><div><p class="eyebrow">CAREER ASSETS</p><h2>经历资产</h2><p class="helper">在 CareerOS 中维护经历、项目、教育、获奖、专利和论文等事实资料。</p></div><button id="refreshVaultFrame" class="ghost-btn" type="button">刷新经历资产</button></div>
-        <div class="vault-frame-tabs" role="tablist" aria-label="经历资产导航"><button class="mode active" type="button" data-vault-view="dashboard">概览</button><button class="mode" type="button" data-vault-view="experiences">经历库</button><button class="mode" type="button" data-vault-view="profile">个人资料</button><button class="mode" type="button" data-vault-view="settings">配置</button></div>
-        <iframe id="careerVaultFrame" class="career-vault-frame" src="http://127.0.0.1:8766/?embedded=1" title="CareerVault 经历资产" loading="lazy"></iframe>
-      </section>
+      <div class="vault-frame-tabs" role="tablist" aria-label="经历和项目导航"><button class="mode active" type="button" data-vault-view="dashboard">概览</button><button class="mode" type="button" data-vault-view="experiences">经历库</button><button class="mode" type="button" data-vault-view="profile">个人资料</button><button class="mode" type="button" data-vault-view="settings">配置</button></div>
+      <iframe id="careerVaultFrame" class="career-vault-frame" src="http://127.0.0.1:8766/?embedded=1" title="经历和项目" loading="lazy"></iframe>
     </section>
 
     <section id="view-profile" class="view">
@@ -158,7 +155,7 @@
           <p class="eyebrow">YOUR EXPERIENCE</p><h2>经历与项目</h2>
           <p>管理你的真实经历、项目成果和能力证明。这些内容将用于岗位匹配和简历生成。</p>
           <div id="careerVaultProfileState" class="mini-status">正在检查经历数据…</div>
-          <div class="toolbar-actions"><a class="primary-btn" href="http://127.0.0.1:8766" target="_blank" rel="noopener">打开经历资产 ↗</a><button id="refreshCareerVault" class="ghost-btn" type="button">刷新状态</button></div>
+          <div class="toolbar-actions"><button class="primary-btn" type="button" data-go-view="vault">打开经历和项目</button><button id="refreshCareerVault" class="ghost-btn" type="button">刷新状态</button></div>
         </section>
 
         <section class="panel import-panel">
@@ -221,7 +218,7 @@
 
     <section id="view-settings" class="view">
       <div class="settings-grid">
-        <section class="panel"><p class="eyebrow">SYSTEM STATUS</p><h2>系统状态</h2><div class="system-status-list"><div><span class="status-dot" id="jobpilotStatusDot"></span><span>CareerOS 求职管理运行正常</span></div><div><span class="status-dot" id="careerStatusDot"></span><span>经历资产已连接</span></div><div><span class="status-dot" id="extensionStatusDot"></span><span>浏览器插件接口可用</span></div></div><p class="helper">浏览器插件会帮助你把招聘页面的岗位信息导入求职管理，并辅助填写招聘表单。</p></section>
+        <section class="panel"><p class="eyebrow">SYSTEM STATUS</p><h2>系统状态</h2><div class="system-status-list"><div><span class="status-dot" id="jobpilotStatusDot"></span><span>CareerOS 求职管理运行正常</span></div><div><span class="status-dot" id="careerStatusDot"></span><span>经历和项目已连接</span></div><div><span class="status-dot" id="extensionStatusDot"></span><span>浏览器插件接口可用</span></div></div><p class="helper">浏览器插件会帮助你把招聘页面的岗位信息导入求职管理，并辅助填写招聘表单。</p></section>
         <section class="panel"><p class="eyebrow">BROWSER ASSISTANT</p><h2>浏览器插件</h2><p>支持北森、Moka、牛客等常见招聘系统的辅助填表。插件不会自动提交申请，请始终由你确认后提交。</p><div class="ats-grid"><div class="ats-card"><b>北森 / iTalent</b><span class="helper">教育、实习、项目信息</span></div><div class="ats-card"><b>Moka</b><span class="helper">动态表单辅助</span></div><div class="ats-card"><b>牛客</b><span class="helper">校园招聘表单</span></div></div></section>
         <section class="panel"><p class="eyebrow">STARTUP</p><h2>启动工作台</h2><div class="career-os-box"><p>在项目根目录运行：</p><div class="career-os-command">career-os.bat</div><p class="helper">它会检查并启动求职工作台及经历服务。</p></div></section>
         <section class="panel"><p class="eyebrow">DATA SAFETY</p><h2>数据安全</h2><div class="data-box"><div><b>本地数据</b><span id="dataDbPath">读取中…</span></div><div id="dataCounts">读取中…</div></div><div class="toolbar-actions"><button id="backupDbBtn" class="primary-btn" type="button">立即备份</button></div><details class="advanced-settings"><summary>高级设置</summary><p class="helper">仅用于数据迁移和故障排查，不建议日常修改。</p><hr><form id="mergeDbForm" class="stack-form"><label>导入旧版数据<input id="oldDbFile" type="file" accept=".db,.sqlite,.sqlite3" /></label><button class="ghost-btn" type="submit">合并旧数据</button></form><p class="technical-detail">API 状态与数据库路径仅在此处显示。</p></details></section>

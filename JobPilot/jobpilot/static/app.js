@@ -45,7 +45,7 @@ async function loadAll(){
     $('#aiBadge').textContent=`${cvOk?'经历已连接':'等待连接'} · ${health.ai_enabled?'智能增强已开启':'本地生成可用'}`;
     const cvText=cvOk
       ? '经历与项目已连接，生成简历前会根据岗位要求进行匹配。'
-      : '经历资产未连接；请先启动经历资产服务。';
+      : '经历和项目未连接；请先启动经历服务。';
     if($('#careerVaultState')) $('#careerVaultState').textContent=cvText;
     if($('#careerVaultProfileState')) $('#careerVaultProfileState').textContent=cvText;
     if($('#legacyChooserWrap')) $('#legacyChooserWrap').classList.toggle('hidden',cvOk);
@@ -94,7 +94,7 @@ function renderDashboard(){
   const recentBox=$('#dashboardRecentJobs');
   if(recentBox)recentBox.innerHTML=recent.length?recent.map(x=>`<button class="dashboard-job" type="button" data-dashboard-job="${x.id}"><span><b>${esc(x.company||'待补充公司')}</b><small>${esc(x.role||x.title||'待补充岗位')}${x.location?` · ${esc(x.location)}`:''}</small></span><em class="status-chip status-${esc(x.status||'inbox')}">${esc(STATUS[x.status]||STATUS.inbox)}</em></button>`).join(''):'<div class="empty-state compact">还没有岗位，先导入一个招聘链接。</div>';
   const taskBox=$('#dashboardTasks');
-  if(taskBox){const tasks=[];if(pending)tasks.push(`<button class="task-item" type="button" data-go-view="memo"><strong>${pending} 个岗位待处理</strong><span>补充信息或推进投递状态 →</span></button>`);if(!state.health.careervault?.available)tasks.push('<button class="task-item" type="button" data-go-view="vault"><strong>经历资产尚未连接</strong><span>连接后才能进行经历匹配和简历生成 →</span></button>');if(!tasks.length)tasks.push('<div class="empty-state compact">目前没有待处理事项，继续保持进度。</div>');taskBox.innerHTML=tasks.join('');}
+  if(taskBox){const tasks=[];if(pending)tasks.push(`<button class="task-item" type="button" data-go-view="memo"><strong>${pending} 个岗位待处理</strong><span>补充信息或推进投递状态 →</span></button>`);if(!state.health.careervault?.available)tasks.push('<button class="task-item" type="button" data-go-view="vault"><strong>经历和项目尚未连接</strong><span>连接后才能进行经历匹配和简历生成 →</span></button>');if(!tasks.length)tasks.push('<div class="empty-state compact">目前没有待处理事项，继续保持进度。</div>');taskBox.innerHTML=tasks.join('');}
 }
 
 // ---------- opportunities ----------
@@ -150,7 +150,7 @@ function openExperience(item=null){$('#experienceId').value=item?.id||'';$('#exp
 function closeExperience(){if($('#experienceDialog').open)$('#experienceDialog').close();}
 function renderExperienceChooser(){
   const box=$('#resumeExperienceChooser');
-  if(!state.experiences.length){box.innerHTML='<div class="helper" style="padding:10px">暂时没有可选经历。连接经历资产后会自动提供匹配推荐。</div>';return;}
+  if(!state.experiences.length){box.innerHTML='<div class="helper" style="padding:10px">暂时没有可选经历。连接经历和项目后会自动提供匹配推荐。</div>';return;}
   box.innerHTML=state.experiences.map(x=>`<label><input type="checkbox" data-exp-choice value="${x.id}" /><span><b>${esc(CATEGORY[x.category]||x.category)} · ${esc(x.title||'未命名')}</b>${x.organization?`<br><span class="helper">${esc(x.organization)}</span>`:''}</span></label>`).join('');
 }
 
@@ -181,7 +181,7 @@ function renderRecommendations(){
   }).join('');
 }
 async function loadRecommendations({quiet=false}={}){
-  if(!state.health.careervault?.available){if(!quiet)notice('经历资产未连接，请先启动经历资产服务。',true);return false;}
+  if(!state.health.careervault?.available){if(!quiet)notice('经历和项目未连接，请先启动经历服务。',true);return false;}
   if(state.recommendationsLoading)return false;
   state.recommendationsLoading=true;renderRecommendations();
   try{
@@ -214,13 +214,13 @@ function renderDataStatus(){const d=state.dataStatus||{};$('#dataDbPath').textCo
 
 // ---------- navigation ----------
 const titles=UI_TEXT.pageTitles;
+const subtitles={vault:'统一管理教育、实习、项目、获奖、专利和论文等经历资料。'};
 let vaultView='dashboard';
-function goView(view){$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view));$$('.view').forEach(x=>x.classList.toggle('active-view',x.id===`view-${view}`));$('#viewTitle').textContent=titles[view]||'';if(view==='vault'){vaultView='dashboard';$$('[data-vault-view]').forEach(x=>x.classList.toggle('active',x.dataset.vaultView===vaultView));sendVaultView(vaultView);}}
+function goView(view){$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view));$$('.view').forEach(x=>x.classList.toggle('active-view',x.id===`view-${view}`));$('#viewTitle').textContent=titles[view]||'';$('#viewSubtitle').textContent=subtitles[view]||'集中查看岗位进展、待办事项和简历准备情况。';if(view==='vault'){vaultView='dashboard';$$('[data-vault-view]').forEach(x=>x.classList.toggle('active',x.dataset.vaultView===vaultView));sendVaultView(vaultView);}}
 function sendVaultView(view){const frame=$('#careerVaultFrame');if(!frame)return;vaultView=view;frame.contentWindow?.postMessage({type:'careeros-vault-view',view},'*');}
 $$('.nav').forEach(btn=>btn.addEventListener('click',()=>goView(btn.dataset.view)));
 document.addEventListener('click',e=>{const go=e.target.closest('[data-go-view]');if(go)goView(go.dataset.goView);const job=e.target.closest('[data-dashboard-job]');if(job){goView('memo');const id=Number(job.dataset.dashboardJob);const item=state.opportunities.find(x=>x.id===id);if(item){$('#memoSearch').value=item.company||item.role||'';renderMemo();}}});
 $('#refreshBtn').addEventListener('click',loadAll);$('#refreshCareerVault').addEventListener('click',loadAll);
-$('#refreshVaultFrame').addEventListener('click',()=>{$('#careerVaultFrame').src=`http://127.0.0.1:8766/?embedded=1&v=${Date.now()}`;});
 $('#careerVaultFrame').addEventListener('load',()=>sendVaultView(vaultView));
 $$('[data-vault-view]').forEach(btn=>btn.addEventListener('click',()=>{$$('[data-vault-view]').forEach(x=>x.classList.toggle('active',x===btn));sendVaultView(btn.dataset.vaultView);}));
 
@@ -258,7 +258,7 @@ $('#resumeGenerateForm').addEventListener('submit',async e=>{
     const ids=selectedRecommendationIds();if(!ids.length)return notice('请至少勾选一条匹配经历。',true);
     payload.careervault_experience_ids=ids;payload.experience_ids=[];
   }else{
-    const ids=$$('[data-exp-choice]').filter(x=>x.checked).map(x=>Number(x.value));if(!ids.length)return notice('经历资产未连接；如需继续生成，请先选择已有经历。',true);payload.experience_ids=ids;
+    const ids=$$('[data-exp-choice]').filter(x=>x.checked).map(x=>Number(x.value));if(!ids.length)return notice('经历和项目未连接；如需继续生成，请先选择已有经历。',true);payload.experience_ids=ids;
   }
   b.disabled=true;b.textContent=cvOk?'正在生成岗位简历…':'正在生成简历…';
   try{const data=await api('/api/resume/generate',{method:'POST',body:JSON.stringify(payload)});notice(`岗位简历已生成 · ${data.selection_mode||''}`);state.latestVersion=data.item;await loadAll();renderResumePreview(data.item);}catch(err){notice(err.message,true);}finally{b.disabled=false;b.textContent='生成岗位简历';}
