@@ -514,6 +514,72 @@ def generate_docx_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byt
     return out.getvalue()
 
 
+def generate_pdf_bytes(profile: dict[str, Any], version: dict[str, Any]) -> bytes:
+    """Generate a stable, printable PDF matching the resume preview."""
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+        from reportlab.lib.units import mm
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    except ImportError as exc:
+        raise RuntimeError("生成 PDF 需要安装 reportlab，请先运行 install.bat 更新依赖") from exc
+
+    font_path = Path(r"C:\Windows\Fonts\simhei.ttf")
+    if not font_path.is_file():
+        font_path = Path(r"C:\Windows\Fonts\msyh.ttc")
+    if not font_path.is_file():
+        raise RuntimeError("系统中未找到中文字体，无法生成中文 PDF")
+    pdfmetrics.registerFont(TTFont("CareerOS-CJK", str(font_path)))
+
+    resume = version.get("resume") or {}
+    out = io.BytesIO()
+    doc = SimpleDocTemplate(out, pagesize=A4, leftMargin=16 * mm, rightMargin=16 * mm, topMargin=14 * mm, bottomMargin=14 * mm)
+    styles = getSampleStyleSheet()
+    normal = ParagraphStyle("CareerOSNormal", parent=styles["Normal"], fontName="CareerOS-CJK", fontSize=9, leading=13, textColor=colors.HexColor("#333333"), spaceAfter=2)
+    name_style = ParagraphStyle("CareerOSName", parent=normal, fontSize=19, leading=23, alignment=TA_CENTER, textColor=colors.HexColor("#111111"), spaceAfter=3)
+    contact_style = ParagraphStyle("CareerOSContact", parent=normal, alignment=TA_CENTER, textColor=colors.HexColor("#666666"), spaceAfter=5)
+    section_style = ParagraphStyle("CareerOSSection", parent=normal, fontSize=11, leading=15, textColor=colors.HexColor("#111111"), spaceBefore=8, spaceAfter=4)
+    item_style = ParagraphStyle("CareerOSItem", parent=normal, fontSize=9.5, leading=14, textColor=colors.HexColor("#222222"), spaceAfter=2)
+    story: list[Any] = []
+    contact = "  |  ".join(str(x) for x in [profile.get("phone"), profile.get("email"), profile.get("current_city"), profile.get("portfolio_url") or profile.get("website")] if x)
+    photo = _private_photo_bytes(profile.get("photo_path"))
+    left = [Paragraph(str(profile.get("name") or "个人简历"), name_style), Paragraph(contact, contact_style) if contact else Spacer(1, 1)]
+    if photo:
+        picture = Image(str(photo), width=24 * mm, height=32 * mm)
+        header = Table([[left, picture]], colWidths=[doc.width - 29 * mm, 25 * mm])
+        header.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("ALIGN", (0, 0), (0, 0), "CENTER"), ("ALIGN", (1, 0), (1, 0), "RIGHT"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
+        story.append(header)
+    else:
+        story.extend(left)
+    if resume.get("headline"):
+        story.append(Paragraph(str(resume["headline"]), ParagraphStyle("CareerOSHeadline", parent=normal, alignment=TA_CENTER, fontSize=11, leading=15, textColor=colors.HexColor("#222222"))))
+    if resume.get("summary"):
+        story.append(Paragraph(str(resume["summary"]), normal))
+    for section_data in resume.get("sections", []) if isinstance(resume.get("sections"), list) else []:
+        title = str(section_data.get("title") or "").strip()
+        if not title:
+            continue
+        story.append(Paragraph(title, section_style))
+        for item in section_data.get("items", []) if isinstance(section_data.get("items"), list) else []:
+            left_text = " · ".join(str(x) for x in [item.get("organization", ""), item.get("title", "")] if x)
+            right_text = " · ".join(str(x) for x in [item.get("date", ""), item.get("location", "")] if x)
+            line = Table([[Paragraph(f"<b>{left_text}</b>", item_style), Paragraph(right_text, item_style)]], colWidths=[doc.width * 0.72, doc.width * 0.28])
+            line.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("ALIGN", (1, 0), (1, 0), "RIGHT"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 1), ("BOTTOMPADDING", (0, 0), (-1, -1), 1)]))
+            story.append(line)
+            for bullet in item.get("bullets", []) if isinstance(item.get("bullets"), list) else []:
+                story.append(Paragraph(str(bullet), ParagraphStyle("CareerOSBullet", parent=normal, leftIndent=10, firstLineIndent=-8, bulletIndent=0, bulletText="•")))
+    skills = resume.get("skills") if isinstance(resume.get("skills"), list) else []
+    if skills:
+        story.append(Paragraph("技能", section_style))
+        story.append(Paragraph("、".join(str(x) for x in skills if str(x).strip()), normal))
+    doc.build(story)
+    return out.getvalue()
+
+
 def _private_photo_bytes(photo_path: Any) -> Path | None:
     """Return a safe local photo path for python-docx to embed."""
     if not photo_path:

@@ -34,6 +34,7 @@ from .resume import (
     extract_resume_structured,
     extract_text_from_resume,
     generate_docx_bytes,
+    generate_pdf_bytes,
     generate_tailored_resume,
 )
 from .security import UnsafeUrlError
@@ -860,6 +861,25 @@ async def download_resume_docx(version_id: int):
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": f'attachment; filename="{ascii_name}"; filename*=UTF-8\'\'{encoded_name}'},
     )
+
+
+@app.get("/api/resume-versions/{version_id}/pdf")
+async def download_resume_pdf(version_id: int):
+    version = db.get_resume_version(version_id)
+    if not version:
+        raise HTTPException(status_code=404, detail="简历版本不存在")
+    resume_payload = version.get("resume") or {}
+    snapshot = resume_payload.get("profile_snapshot") if isinstance(resume_payload.get("profile_snapshot"), dict) else {}
+    current = db.get_profile()
+    profile = {**snapshot, **{key: value for key, value in current.items() if value}}
+    try:
+        content = generate_pdf_bytes(profile, version)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    label = "_".join(str(item).strip() for item in ["CareerOS", "简历", version.get("target_company"), version.get("target_role")] if str(item or "").strip())
+    label = re.sub(r'[\\/:*?"<>|]+', "_", label).strip(" ._") or "CareerOS_简历"
+    encoded_name = quote(f"{label}_{version_id}.pdf")
+    return Response(content=content, media_type="application/pdf", headers={"Content-Disposition": f"attachment; filename=CareerOS_Resume_{version_id}.pdf; filename*=UTF-8''{encoded_name}"})
 
 
 @app.delete("/api/resume-versions/{version_id}")
