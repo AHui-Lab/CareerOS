@@ -51,6 +51,7 @@ app.mount("/static", StaticFiles(directory=STATIC), name="static")
 
 ALLOWED_STATUSES = {"inbox", "interested", "preparing", "applied", "interview", "offer", "rejected", "ignored"}
 ALLOWED_CATEGORIES = {"education", "work", "internship", "project", "campus", "research", "award", "certificate", "skill", "other"}
+ALLOWED_EVENT_TYPES = {"application", "written_test", "interview", "deadline", "follow_up", "other"}
 
 
 class UrlImport(BaseModel):
@@ -83,6 +84,26 @@ class OpportunityEdit(BaseModel):
     location: str | None = Field(default=None, max_length=120)
     deadline: str | None = Field(default=None, max_length=80)
     note: str | None = Field(default=None, max_length=4000)
+
+
+class ScheduleEventPayload(BaseModel):
+    event_type: str = "other"
+    title: str = Field(default="", max_length=200)
+    event_date: str = Field(default="", max_length=20)
+    event_time: str = Field(default="", max_length=20)
+    location: str = Field(default="", max_length=200)
+    notes: str = Field(default="", max_length=4000)
+    opportunity_id: int | None = None
+
+
+class ScheduleEventPatch(ScheduleEventPayload):
+    event_type: str | None = None
+    title: str | None = None
+    event_date: str | None = None
+    event_time: str | None = None
+    location: str | None = None
+    notes: str | None = None
+    opportunity_id: int | None = None
 
 
 class ProfilePatch(BaseModel):
@@ -327,6 +348,43 @@ async def post_edit_opportunity(opportunity_id: int, payload: OpportunityEdit):
 async def delete_opportunity(opportunity_id: int):
     if not db.delete_opportunity(opportunity_id):
         raise HTTPException(status_code=404, detail="机会不存在")
+    return {"ok": True}
+
+
+# --- application calendar ---
+@app.get("/api/schedule-events")
+async def schedule_events(start: str = "", end: str = ""):
+    return {"items": db.list_schedule_events(start=start, end=end)}
+
+
+@app.post("/api/schedule-events")
+async def create_schedule_event(payload: ScheduleEventPayload):
+    if payload.event_type not in ALLOWED_EVENT_TYPES:
+        raise HTTPException(status_code=400, detail="未知日程类型")
+    if not payload.title.strip() or not payload.event_date.strip():
+        raise HTTPException(status_code=400, detail="日程标题和日期不能为空")
+    if payload.opportunity_id and not db.get_opportunity(payload.opportunity_id):
+        raise HTTPException(status_code=404, detail="关联岗位不存在")
+    return {"item": db.insert_schedule_event(payload.model_dump())}
+
+
+@app.patch("/api/schedule-events/{event_id}")
+async def patch_schedule_event(event_id: int, payload: ScheduleEventPatch):
+    fields = payload.model_dump(exclude_unset=True)
+    if "event_type" in fields and fields["event_type"] not in ALLOWED_EVENT_TYPES:
+        raise HTTPException(status_code=400, detail="未知日程类型")
+    if "opportunity_id" in fields and fields["opportunity_id"] and not db.get_opportunity(fields["opportunity_id"]):
+        raise HTTPException(status_code=404, detail="关联岗位不存在")
+    item = db.update_schedule_event(event_id, fields)
+    if not item:
+        raise HTTPException(status_code=404, detail="日程不存在")
+    return {"item": item}
+
+
+@app.delete("/api/schedule-events/{event_id}")
+async def remove_schedule_event(event_id: int):
+    if not db.delete_schedule_event(event_id):
+        raise HTTPException(status_code=404, detail="日程不存在")
     return {"ok": True}
 
 

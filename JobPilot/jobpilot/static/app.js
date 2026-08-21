@@ -8,7 +8,7 @@ const UNSUBMITTED_STATUSES = new Set(['inbox','interested','preparing']);
 const SUBMITTED_STATUSES = new Set(['applied','interview','offer','rejected']);
 
 let state = {
-  opportunities:[], profile:{}, experiences:[], versions:[], dataStatus:{}, health:{}, latestVersion:null,
+  opportunities:[], scheduleEvents:[], profile:{}, experiences:[], versions:[], dataStatus:{}, health:{}, latestVersion:null,
   memoEditing:null, memoScope:'all', recommendations:[], recommendationDefaultIds:[], recommendationSignature:'',
   recommendationsLoading:false
 };
@@ -28,10 +28,11 @@ async function api(path,options={}){
 
 async function loadAll(){
   try{
-    const [ops,profile,exps,versions,dataStatus,health]=await Promise.all([
-      api('/api/opportunities'), api('/api/profile'), api('/api/experiences'), api('/api/resume-versions'), api('/api/data/status'), api('/api/health')
+    const [ops,schedule,profile,exps,versions,dataStatus,health]=await Promise.all([
+      api('/api/opportunities'), api('/api/schedule-events'), api('/api/profile'), api('/api/experiences'), api('/api/resume-versions'), api('/api/data/status'), api('/api/health')
     ]);
     state.opportunities=ops.items||[];
+    state.scheduleEvents=schedule.items||[];
     state.profile=profile.profile||{};
     state.experiences=exps.items||[];
     state.versions=versions.items||[];
@@ -50,7 +51,26 @@ async function loadAll(){
   }catch(e){notice(e.message,true);}
 }
 
-function renderAll(){renderDashboard();renderMemo();renderProfile();renderExperiences();renderTargetOptions();renderExperienceChooser();renderVersions();renderDataStatus();renderRecommendations();if(state.latestVersion)renderResumePreview(state.latestVersion);}
+function renderAll(){renderDashboard();renderCalendar();renderMemo();renderProfile();renderExperiences();renderTargetOptions();renderExperienceChooser();renderVersions();renderDataStatus();renderRecommendations();if(state.latestVersion)renderResumePreview(state.latestVersion);}
+
+const EVENT_TYPE={application:'投递',written_test:'笔试',interview:'面试',deadline:'截止',follow_up:'跟进',other:'其他'};
+const EVENT_CLASS={application:'event-application',written_test:'event-written-test',interview:'event-interview',deadline:'event-deadline',follow_up:'event-follow-up',other:'event-other'};
+let calendarCursor=new Date(new Date().getFullYear(),new Date().getMonth(),1);
+function localDate(date){return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;}
+function renderCalendar(){
+  const grid=$('#calendarGrid');if(!grid)return;
+  const year=calendarCursor.getFullYear(),month=calendarCursor.getMonth(),first=new Date(year,month,1),days=new Date(year,month+1,0).getDate(),offset=(first.getDay()+6)%7;
+  $('#calendarMonth').textContent=`${year} 年 ${month+1} 月`;
+  const names=['一','二','三','四','五','六','日'];let html=names.map(x=>`<div class="calendar-weekday">${x}</div>`).join('');
+  for(let i=0;i<offset;i++)html+='<div class="calendar-day muted-day"></div>';
+  for(let day=1;day<=days;day++){const key=localDate(new Date(year,month,day));const items=state.scheduleEvents.filter(x=>x.event_date===key);const today=key===localDate(new Date());html+=`<button class="calendar-day ${today?'today':''}" type="button" data-calendar-date="${key}"><span class="calendar-date">${day}</span>${items.slice(0,3).map(x=>`<span class="calendar-event ${EVENT_CLASS[x.event_type]||EVENT_CLASS.other}" title="${esc(x.title)}">${esc(x.event_time?`${x.event_time} `:'')}${esc(x.title)}</span>`).join('')}${items.length>3?`<span class="calendar-more">+${items.length-3} 条</span>`:''}</button>`;}
+  grid.innerHTML=html;
+  const upcoming=state.scheduleEvents.filter(x=>x.event_date>=localDate(new Date())).slice(0,5);
+  $('#calendarUpcoming').innerHTML=`<div class="upcoming-head"><b>近期安排</b><span class="helper">${upcoming.length?`未来 ${upcoming.length} 条`:''}</span></div>${upcoming.length?upcoming.map(x=>`<div class="upcoming-item"><span class="event-dot ${EVENT_CLASS[x.event_type]||EVENT_CLASS.other}"></span><div><b>${esc(x.title)}</b><small>${esc(x.event_date)}${x.event_time?` · ${esc(x.event_time)}`:''}${x.company?` · ${esc(x.company)}`:''}</small></div><button class="link-button" type="button" data-edit-schedule="${x.id}">编辑</button><button class="link-button danger-link" type="button" data-delete-schedule="${x.id}">删除</button></div>`).join(''):'<div class="empty-state compact">还没有日程，点击“添加日程”记录下一次安排。</div>'}`;
+}
+function fillScheduleOpportunities(current=''){const select=$('#scheduleOpportunity');select.innerHTML='<option value="">不关联岗位</option>'+state.opportunities.map(x=>`<option value="${x.id}" ${String(x.id)===String(current)?'selected':''}>${esc(x.company||'待补充公司')} · ${esc(x.role||x.title||'岗位')}</option>`).join('');}
+function openSchedule(item=null,date=''){const x=item||{};$('#scheduleId').value=x.id||'';$('#scheduleDialogTitle').textContent=item?'编辑日程':'添加日程';$('#scheduleType').value=x.event_type||'other';$('#scheduleTitle').value=x.title||'';$('#scheduleDate').value=x.event_date||date||localDate(new Date());$('#scheduleTime').value=x.event_time||'';$('#scheduleLocation').value=x.location||'';$('#scheduleNotes').value=x.notes||'';fillScheduleOpportunities(x.opportunity_id||'');$('#scheduleDialog').showModal();}
+function closeSchedule(){if($('#scheduleDialog').open)$('#scheduleDialog').close();}
 
 function renderDashboard(){
   const jobs=state.opportunities;
@@ -226,6 +246,15 @@ $('#resumeGenerateForm').addEventListener('submit',async e=>{
   try{const data=await api('/api/resume/generate',{method:'POST',body:JSON.stringify(payload)});notice(`岗位简历已生成 · ${data.selection_mode||''}`);state.latestVersion=data.item;await loadAll();renderResumePreview(data.item);}catch(err){notice(err.message,true);}finally{b.disabled=false;b.textContent='生成岗位简历';}
 });
 $('#versionList').addEventListener('click',e=>{if(e.target.dataset.action!=='preview-version')return;const id=Number(e.target.closest('.version-card').dataset.id);const v=state.versions.find(x=>x.id===id);if(v)renderResumePreview(v);});
+
+// ---------- application calendar ----------
+$('#calendarPrev').addEventListener('click',()=>{calendarCursor.setMonth(calendarCursor.getMonth()-1);renderCalendar();});
+$('#calendarNext').addEventListener('click',()=>{calendarCursor.setMonth(calendarCursor.getMonth()+1);renderCalendar();});
+$('#addScheduleBtn').addEventListener('click',()=>openSchedule());
+$('#scheduleClose').addEventListener('click',closeSchedule);$('#scheduleCancel').addEventListener('click',closeSchedule);
+$('#calendarGrid').addEventListener('click',e=>{const day=e.target.closest('[data-calendar-date]');if(day)openSchedule(null,day.dataset.calendarDate);});
+$('#calendarUpcoming').addEventListener('click',async e=>{const edit=e.target.closest('[data-edit-schedule]');if(edit){const item=state.scheduleEvents.find(x=>String(x.id)===edit.dataset.editSchedule);if(item)openSchedule(item);return;}const remove=e.target.closest('[data-delete-schedule]');if(remove&&confirm('删除这条日程？')){try{await api(`/api/schedule-events/${remove.dataset.deleteSchedule}`,{method:'DELETE'});await loadAll();}catch(err){notice(err.message,true);}}});
+$('#scheduleForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('#scheduleId').value;const payload={event_type:$('#scheduleType').value,title:$('#scheduleTitle').value.trim(),event_date:$('#scheduleDate').value,event_time:$('#scheduleTime').value,location:$('#scheduleLocation').value.trim(),notes:$('#scheduleNotes').value.trim(),opportunity_id:Number($('#scheduleOpportunity').value)||null};try{await api(id?`/api/schedule-events/${id}`:'/api/schedule-events',{method:id?'PATCH':'POST',body:JSON.stringify(payload)});closeSchedule();notice(id?'日程已更新。':'日程已添加。');await loadAll();}catch(err){notice(err.message,true);}});
 
 // ---------- data safety ----------
 $('#backupDbBtn').addEventListener('click',async()=>{const b=$('#backupDbBtn');b.disabled=true;try{const data=await api('/api/data/backup',{method:'POST'});notice(`备份完成：${data.path}`);await loadAll();}catch(err){notice(err.message,true);}finally{b.disabled=false;}});

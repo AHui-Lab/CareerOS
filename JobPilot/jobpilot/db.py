@@ -57,6 +57,21 @@ CREATE TABLE IF NOT EXISTS opportunities (
 CREATE INDEX IF NOT EXISTS idx_opportunities_status ON opportunities(status);
 CREATE INDEX IF NOT EXISTS idx_opportunities_created_at ON opportunities(created_at DESC);
 
+CREATE TABLE IF NOT EXISTS schedule_events (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_type TEXT NOT NULL DEFAULT 'other',
+    title TEXT NOT NULL DEFAULT '',
+    event_date TEXT NOT NULL DEFAULT '',
+    event_time TEXT NOT NULL DEFAULT '',
+    location TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    opportunity_id INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY(opportunity_id) REFERENCES opportunities(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_schedule_events_date ON schedule_events(event_date, event_time);
+
 CREATE TABLE IF NOT EXISTS profile (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     name TEXT NOT NULL DEFAULT '',
@@ -330,7 +345,70 @@ def update_status(opportunity_id: int, status: str) -> dict[str, Any] | None:
 def delete_opportunity(opportunity_id: int) -> bool:
     with connect() as conn:
         cursor = conn.execute("DELETE FROM opportunities WHERE id = ?", (opportunity_id,))
-        return cursor.rowcount > 0
+    return cursor.rowcount > 0
+
+
+# --- schedule / calendar ---
+SCHEDULE_EVENT_FIELDS = {"event_type", "title", "event_date", "event_time", "location", "notes", "opportunity_id"}
+
+
+def _schedule_event_row(row: sqlite3.Row) -> dict[str, Any]:
+    return dict(row)
+
+
+def list_schedule_events(*, start: str = "", end: str = "") -> list[dict[str, Any]]:
+    query = "SELECT e.*, o.company, o.role FROM schedule_events e LEFT JOIN opportunities o ON o.id = e.opportunity_id"
+    params: list[Any] = []
+    filters = []
+    if start:
+        filters.append("e.event_date >= ?"); params.append(start)
+    if end:
+        filters.append("e.event_date <= ?"); params.append(end)
+    if filters:
+        query += " WHERE " + " AND ".join(filters)
+    query += " ORDER BY e.event_date ASC, e.event_time ASC, e.id ASC"
+    with connect() as conn:
+        rows = conn.execute(query, params).fetchall()
+    return [_schedule_event_row(row) for row in rows]
+
+
+def get_schedule_event(event_id: int) -> dict[str, Any] | None:
+    rows = list_schedule_events()
+    return next((row for row in rows if int(row["id"]) == event_id), None)
+
+
+def insert_schedule_event(item: dict[str, Any]) -> dict[str, Any]:
+    fields = ["event_type", "title", "event_date", "event_time", "location", "notes", "opportunity_id"]
+    payload = {field: item.get(field, "") for field in fields}
+    payload["opportunity_id"] = int(payload["opportunity_id"]) if payload["opportunity_id"] else None
+    with connect() as conn:
+        cursor = conn.execute(
+            f"INSERT INTO schedule_events ({','.join(fields)}) VALUES ({','.join('?' for _ in fields)})",
+            [payload[field] for field in fields],
+        )
+        event_id = int(cursor.lastrowid)
+    return get_schedule_event(event_id) or {}
+
+
+def update_schedule_event(event_id: int, fields: dict[str, Any]) -> dict[str, Any] | None:
+    if not get_schedule_event(event_id):
+        return None
+    clean = {key: fields[key] for key in fields if key in SCHEDULE_EVENT_FIELDS}
+    if "opportunity_id" in clean:
+        clean["opportunity_id"] = int(clean["opportunity_id"]) if clean["opportunity_id"] else None
+    if clean:
+        with connect() as conn:
+            conn.execute(
+                f"UPDATE schedule_events SET {', '.join(f'{field} = ?' for field in clean)}, updated_at = datetime('now', 'localtime') WHERE id = ?",
+                [*clean.values(), event_id],
+            )
+    return get_schedule_event(event_id)
+
+
+def delete_schedule_event(event_id: int) -> bool:
+    with connect() as conn:
+        cursor = conn.execute("DELETE FROM schedule_events WHERE id = ?", (event_id,))
+    return cursor.rowcount > 0
 
 
 # --- profile ---
@@ -622,4 +700,3 @@ def merge_legacy_database(old_path: Path) -> dict[str, int]:
         old.close()
     backup_database()
     return result
-

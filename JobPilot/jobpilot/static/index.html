@@ -39,6 +39,11 @@
         <article class="dashboard-stat"><span>面试中</span><strong id="dashboardInterview">0</strong><small>需要持续跟进</small></article>
         <article class="dashboard-stat"><span>Offer</span><strong id="dashboardOffer">0</strong><small>已获得的岗位结果</small></article>
       </section>
+      <section class="panel calendar-panel">
+        <div class="section-title"><div><p class="eyebrow">APPLICATION CALENDAR</p><h2>求职日历</h2><p class="helper">记录投递、笔试、面试和截止时间，集中查看近期安排。</p></div><div class="calendar-actions"><button id="calendarPrev" class="ghost-btn" type="button">‹</button><strong id="calendarMonth"></strong><button id="calendarNext" class="ghost-btn" type="button">›</button><button id="addScheduleBtn" class="primary-btn" type="button">+ 添加日程</button></div></div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+        <div id="calendarUpcoming" class="calendar-upcoming"></div>
+      </section>
       <div class="dashboard-grid"><section class="panel"><div class="section-title"><div><p class="eyebrow">RECENT JOBS</p><h2>最近关注岗位</h2></div><button class="link-button" type="button" data-go-view="memo">查看全部</button></div><div id="dashboardRecentJobs" class="dashboard-list"></div></section><section class="panel"><p class="eyebrow">NEXT ACTIONS</p><h2>待处理事项</h2><div id="dashboardTasks" class="task-list"></div></section></div>
     </section>
 
@@ -216,7 +221,23 @@
   </form>
 </dialog>
 
+<dialog id="scheduleDialog" class="dialog">
+  <form id="scheduleForm" method="dialog">
+    <input id="scheduleId" type="hidden" />
+    <div class="dialog-head"><div><p class="eyebrow">SCHEDULE</p><h2 id="scheduleDialogTitle">添加日程</h2></div><button id="scheduleClose" class="icon-btn" type="button">×</button></div>
+    <div class="form-grid-2">
+      <label>类型<select id="scheduleType"><option value="application">投递</option><option value="written_test">笔试</option><option value="interview">面试</option><option value="deadline">截止时间</option><option value="follow_up">跟进</option><option value="other">其他</option></select></label>
+      <label>标题<input id="scheduleTitle" required placeholder="例如：一面 / 秋招网申" /></label>
+      <label>日期<input id="scheduleDate" type="date" required /></label><label>时间<input id="scheduleTime" type="time" /></label>
+      <label>地点 / 会议链接<input id="scheduleLocation" /></label>
+      <label>关联岗位<select id="scheduleOpportunity"><option value="">不关联岗位</option></select></label>
+    </div>
+    <label>备注<textarea id="scheduleNotes" rows="4" placeholder="面试官、准备事项或其他提醒"></textarea></label>
+    <div class="dialog-actions"><button id="scheduleCancel" class="ghost-btn" type="button">取消</button><button class="primary-btn" type="submit">保存日程</button></div>
+  </form>
+</dialog>
+
   <script src="/static/ui-text.js?v=040"></script>
-  <script src="/static/app.js?v=040"></script>
+  <script src="/static/app.js?v=20260822-1"></script>
 </body>
 </html>
