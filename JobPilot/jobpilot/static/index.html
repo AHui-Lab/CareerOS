@@ -237,6 +237,8 @@
       <label>岗位类别<select id="memoEditCategory"><option value="unclassified">未分类</option><option value="ai">AI / 大模型</option><option value="algorithm">算法</option><option value="software">软件开发</option><option value="test">测试 / 测开</option><option value="embedded">嵌入式</option><option value="semiconductor">半导体 / 工艺</option><option value="hardware">硬件 / 电子</option><option value="product">产品 / 运营</option><option value="other">其他</option></select></label>
       <label>地点<input id="memoEditLocation" /></label><label>截止时间<input id="memoEditDeadline" /></label>
     </div>
+    <div class="referral-info-box"><div><p class="eyebrow">REFERRAL</p><h3>内推信息</h3><p class="helper">导入岗位后可在这里补填内推码，保存后会跟随岗位记录。</p></div><label>内推码<input id="memoEditReferralCode" placeholder="例如：ABC123" /></label></div>
+    <label>JD 内容<textarea id="memoEditJd" rows="12" placeholder="可从招聘链接打开后，手动复制并粘贴完整 JD。简历中心会优先使用这里的内容进行匹配。"></textarea></label>
     <label>备注<textarea id="memoEditNote" rows="5"></textarea></label>
     <div class="dialog-actions"><button id="memoEditCancel" class="ghost-btn" type="button">取消</button><button class="primary-btn" type="submit">保存修改</button></div>
   </form>

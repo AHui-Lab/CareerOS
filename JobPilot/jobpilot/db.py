@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS opportunities (
     deadline TEXT NOT NULL DEFAULT '',
     description TEXT NOT NULL DEFAULT '',
     raw_text TEXT NOT NULL DEFAULT '',
+    jd_text TEXT NOT NULL DEFAULT '',
+    referral_code TEXT NOT NULL DEFAULT '',
     note TEXT NOT NULL DEFAULT '',
     match_score INTEGER NOT NULL DEFAULT 0,
     match_reasons TEXT NOT NULL DEFAULT '[]',
@@ -233,6 +235,8 @@ def init_db() -> None:
             "adapter_name": "ALTER TABLE opportunities ADD COLUMN adapter_name TEXT NOT NULL DEFAULT '通用网页'",
             "page_context": "ALTER TABLE opportunities ADD COLUMN page_context TEXT NOT NULL DEFAULT '{}'",
             "note": "ALTER TABLE opportunities ADD COLUMN note TEXT NOT NULL DEFAULT ''",
+            "jd_text": "ALTER TABLE opportunities ADD COLUMN jd_text TEXT NOT NULL DEFAULT ''",
+            "referral_code": "ALTER TABLE opportunities ADD COLUMN referral_code TEXT NOT NULL DEFAULT ''",
         }
         for column, sql in migrations.items():
             if column not in columns:
@@ -392,10 +396,12 @@ def _serialized_opportunity(item: dict[str, Any]) -> dict[str, Any]:
 def insert_opportunity(item: dict[str, Any]) -> dict[str, Any]:
     fields = (
         "source_url", "source_type", "title", "company", "role", "location", "deadline",
-        "description", "raw_text", "note", "match_score", "match_reasons", "risks", "status",
+        "description", "raw_text", "jd_text", "referral_code", "note", "match_score", "match_reasons", "risks", "status",
         "page_kind", "adapter_name", "page_context"
     )
     payload = _serialized_opportunity(item)
+    if not payload.get("jd_text"):
+        payload["jd_text"] = payload.get("description", "") or payload.get("raw_text", "")
     values = [payload.get(field, "") for field in fields]
     with connect() as conn:
         cursor = conn.execute(
@@ -426,7 +432,7 @@ def refresh_opportunity(opportunity_id: int, item: dict[str, Any], *, preserve_s
 
 
 def edit_opportunity(opportunity_id: int, fields: dict[str, Any]) -> dict[str, Any] | None:
-    allowed = {"company", "role", "location", "deadline", "note"}
+    allowed = {"company", "role", "location", "deadline", "note", "jd_text", "referral_code"}
     clean = {key: str(value or "").strip() for key, value in fields.items() if key in allowed}
     if not clean:
         return get_opportunity(opportunity_id)
