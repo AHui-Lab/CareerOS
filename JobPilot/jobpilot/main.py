@@ -413,7 +413,23 @@ async def remove_schedule_event(event_id: int):
 # --- incremental email tracking ---
 def _decode_email_header(value: str) -> str:
     parts = email.header.decode_header(value or "")
-    return "".join(part.decode(charset or "utf-8", errors="replace") if isinstance(part, bytes) else str(part) for part, charset in parts).strip()
+    decoded_parts: list[str] = []
+    for part, charset in parts:
+        if not isinstance(part, bytes):
+            decoded_parts.append(str(part))
+            continue
+        encoding = str(charset or "utf-8").strip()
+        try:
+            decoded_parts.append(part.decode(encoding, errors="replace"))
+        except (LookupError, UnicodeError):
+            # Some mail clients, including QQ mailbox messages, use the
+            # non-standard `unknown-8bit` label. Keep the message and fall
+            # back to encodings that can safely represent the raw bytes.
+            try:
+                decoded_parts.append(part.decode("utf-8", errors="replace"))
+            except UnicodeError:
+                decoded_parts.append(part.decode("latin-1", errors="replace"))
+    return "".join(decoded_parts).strip()
 
 
 def _email_body(message: email.message.Message) -> str:
