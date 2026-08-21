@@ -526,7 +526,7 @@ def generate_pdf_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byte
         from reportlab.lib.units import mm
         from reportlab.pdfbase import pdfmetrics
         from reportlab.pdfbase.ttfonts import TTFont
-        from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+        from reportlab.platypus import Image, KeepInFrame, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
     except ImportError as exc:
         raise RuntimeError("生成 PDF 需要安装 reportlab，请先运行 install.bat 更新依赖") from exc
 
@@ -578,7 +578,10 @@ def generate_pdf_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byte
     if skills:
         story.append(Paragraph("技能", section_style))
         story.append(Paragraph("、".join(str(x) for x in skills if str(x).strip()), normal))
-    doc.build(story)
+    # The PDF is the one-page A4 delivery version. Keep all content, but
+    # proportionally shrink the composed story when a candidate has many
+    # sections instead of silently spilling onto a second page.
+    doc.build([KeepInFrame(doc.width, doc.height, story, mode="shrink")])
     return out.getvalue()
 
 
