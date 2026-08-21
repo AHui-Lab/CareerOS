@@ -39,11 +39,21 @@ fillBtn.addEventListener('click',async()=>{
   try{
     const res=await fetch(`${API}/api/autofill/package`);const data=await res.json();if(!res.ok)throw new Error(data.detail||'读取资料失败');
     const pack=data.package||{},structured=data.structured||{};if(!Object.values(pack).some(Boolean)&&!(structured.education||[]).length)throw new Error('没有可填写资料，请先在 CareerOS 生成一版岗位简历');
-    await chrome.scripting.executeScript({target:{tabId},files:['autofill-runtime.js']});
-    const [{result}] = await chrome.scripting.executeScript({target:{tabId},args:[structured,pack,{allowSensitive:document.querySelector('#allowSensitive').checked}],func:async(structured,pack,options)=>{
+    await chrome.scripting.executeScript({target:{tabId,allFrames:true},files:['autofill-runtime.js']});
+    const frameResults = await chrome.scripting.executeScript({target:{tabId,allFrames:true},args:[structured,pack,{allowSensitive:document.querySelector('#allowSensitive').checked}],func:async(structured,pack,options)=>{
       if(!window.JobPilotAutofill)throw new Error('JobPilot Autofill Runtime 未加载');
       return await window.JobPilotAutofill.run(structured,pack,options);
     }});
+    const result=frameResults.map(x=>x.result).filter(Boolean).reduce((total,item)=>({
+      ...total,
+      adapter:item.adapter||total.adapter,
+      scalar_filled:total.scalar_filled+(item.scalar_filled||0),
+      repeated_fields:total.repeated_fields+(item.repeated_fields||0),
+      repeated_rows:total.repeated_rows+(item.repeated_rows||0),
+      rows_added:total.rows_added+(item.rows_added||0),
+      skipped_files:total.skipped_files+(item.skipped_files||0),
+      total_filled:total.total_filled+(item.total_filled||0)
+    }),{adapter:'通用网页',scalar_filled:0,repeated_fields:0,repeated_rows:0,rows_added:0,skipped_files:0,total_filled:0});
     const version=data.resume_version?.name?`\n使用简历：${data.resume_version.name}`:'\n未找到定制简历，使用当前基础资料';
     const rows=result.repeated_rows?`，经历行 ${result.repeated_rows} 组 / ${result.repeated_fields} 个字段`:'';
     const added=result.rows_added?`，自动新增 ${result.rows_added} 行`:'';

@@ -1,7 +1,7 @@
 (()=>{
   if(window.JobPilotAutofill)return;
 
-  const norm=s=>String(s||'').toLowerCase().replace(/\u00a0/g,' ').replace(/[\s:：*（）()\[\]_-]+/g,'');
+  const norm=s=>String(s||'').toLowerCase().replace(/\u00a0/g,' ').replace(/[\s:：*（）()\[\]_{},，。！？!?/\\-]+/g,'');
   const clean=s=>String(s||'').replace(/\u00a0/g,' ').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
   const risky=/薪资|工资|期望薪资|调剂|服从|加班|政治|党派|健康|疾病|婚姻|家庭|亲属|民族|宗教|身份证|证件号|是否愿意|是否接受/i;
@@ -36,7 +36,9 @@
     const parent=el.closest('label');if(parent)parts.push(parent.innerText);
     for(const a of ['placeholder','name','id','aria-label','title','data-label'])parts.push(el.getAttribute?.(a)||'');
     const prev=el.previousElementSibling;if(prev)parts.push(prev.innerText||prev.textContent||'');
-    const p=el.parentElement;if(p)parts.push((p.innerText||'').slice(0,160));
+    const labelledBy=el.getAttribute?.('aria-labelledby');if(labelledBy)for(const id of labelledBy.split(/\s+/)){const node=document.getElementById(id);if(node)parts.push(node.innerText||node.textContent||'');}
+    for(const node of [el.closest('[data-label]'),el.closest('[data-field]'),el.closest('[role="group"]')])if(node)parts.push((node.innerText||node.textContent||'').slice(0,220));
+    const p=el.parentElement;if(p)parts.push((p.innerText||'').slice(0,220));
     return clean(parts.filter(Boolean).join(' '));
   }
 
@@ -48,11 +50,14 @@
     if(el.tagName==='SELECT'){
       const v=norm(value),opts=[...el.options];const hit=opts.find(o=>norm(o.textContent)===v)||opts.find(o=>norm(o.textContent).includes(v)||v.includes(norm(o.textContent)));if(!hit)return false;el.value=hit.value;el.dispatchEvent(new Event('change',{bubbles:true}));return true;
     }
+    if(el.isContentEditable||el.getAttribute('contenteditable')==='true'){
+      el.textContent=value;el.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertText',data:value}));el.dispatchEvent(new Event('change',{bubbles:true}));return true;
+    }
     const type=(el.getAttribute('type')||'text').toLowerCase();if(['hidden','file','password','submit','button','radio','checkbox','image','reset'].includes(type))return false;
     const proto=el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;const d=Object.getOwnPropertyDescriptor(proto,'value');if(d?.set)d.set.call(el,value);else el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));el.dispatchEvent(new Event('blur',{bubbles:true}));return true;
   }
 
-  function formControls(root=document){return [...root.querySelectorAll('input,textarea,select')].filter(el=>!el.disabled&&!el.readOnly);}
+  function formControls(root=document){return [...root.querySelectorAll('input,textarea,select,[contenteditable="true"],[role="combobox"]')].filter(el=>!el.disabled&&!el.readOnly);}
 
   function fillScalars(pack){
     let filled=0,skippedFiles=0;const keys=[],used=new Set();
