@@ -9,8 +9,9 @@ from typing import Any
 
 import httpx
 from docx import Document
+from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Pt
+from docx.shared import Inches, Pt
 from pypdf import PdfReader
 
 from . import db
@@ -408,17 +409,55 @@ def generate_docx_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byt
     styles["Normal"].font.name = "Microsoft YaHei"
     styles["Normal"].font.size = Pt(9.5)
 
-    p = doc.add_paragraph()
-    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = p.add_run(profile.get("name") or "个人简历")
-    run.bold = True
-    run.font.size = Pt(20)
-
     contact = "  |  ".join(x for x in [profile.get("phone"), profile.get("email"), profile.get("current_city"), profile.get("portfolio_url") or profile.get("website")] if x)
-    if contact:
-        p = doc.add_paragraph(contact)
+    photo = _private_photo_bytes(profile.get("photo_path"))
+    if photo:
+        header = doc.add_table(rows=1, cols=2)
+        header.alignment = WD_TABLE_ALIGNMENT.CENTER
+        header.autofit = False
+        header.columns[0].width = Inches(5.8)
+        header.columns[1].width = Inches(1.0)
+        left, right = header.rows[0].cells
+        left.width = Inches(5.8)
+        right.width = Inches(1.0)
+        p = left.paragraphs[0]
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        p.paragraph_format.space_after = Pt(6)
+        run = p.add_run(profile.get("name") or "个人简历")
+        run.bold = True
+        run.font.size = Pt(20)
+        if contact:
+            cp = left.add_paragraph(contact)
+            cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            cp.paragraph_format.space_after = Pt(6)
+        rp = right.paragraphs[0]
+        rp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        rp.add_run().add_picture(str(photo), width=Inches(0.9), height=Inches(1.2))
+        for cell in (left, right):
+            tc_pr = cell._tc.get_or_add_tcPr()
+            borders = tc_pr.first_child_found_in("w:tcBorders")
+            if borders is None:
+                from docx.oxml import OxmlElement
+                from docx.oxml.ns import qn
+                borders = OxmlElement("w:tcBorders")
+                tc_pr.append(borders)
+            for edge in ("top", "left", "bottom", "right", "insideH", "insideV"):
+                tag = f"w:{edge}"
+                element = borders.find(qn(tag))
+                if element is None:
+                    from docx.oxml import OxmlElement
+                    element = OxmlElement(tag)
+                    borders.append(element)
+                element.set(qn("w:val"), "nil")
+    else:
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = p.add_run(profile.get("name") or "个人简历")
+        run.bold = True
+        run.font.size = Pt(20)
+        if contact:
+            p = doc.add_paragraph(contact)
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_after = Pt(6)
 
     if resume.get("headline"):
         p = doc.add_paragraph()
@@ -468,3 +507,22 @@ def generate_docx_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byt
     out = io.BytesIO()
     doc.save(out)
     return out.getvalue()
+
+
+def _private_photo_bytes(photo_path: Any) -> Path | None:
+    """Return a safe local photo path for python-docx to embed."""
+    if not photo_path:
+        return None
+    try:
+        private_root = (db.DATA_DIR / "private" / "profile").resolve()
+        path = Path(str(photo_path)).resolve()
+        if private_root not in path.parents or not path.is_file():
+            return None
+        # python-docx embeds JPEG/PNG directly. WEBP remains supported by the
+        # upload form but is intentionally skipped here until conversion is
+        # available in the runtime; the text resume still generates normally.
+        if path.suffix.lower() not in {".jpg", ".jpeg", ".png"}:
+            return None
+        return path
+    except Exception:
+        return None

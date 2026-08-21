@@ -831,7 +831,10 @@ async def download_resume_docx(version_id: int):
     if not version:
         raise HTTPException(status_code=404, detail="简历版本不存在")
     resume_payload = version.get("resume") or {}
-    profile = resume_payload.get("profile_snapshot") if isinstance(resume_payload.get("profile_snapshot"), dict) else db.get_profile()
+    snapshot = resume_payload.get("profile_snapshot") if isinstance(resume_payload.get("profile_snapshot"), dict) else {}
+    current = db.get_profile()
+    # Keep the generated content stable, but always use the latest local photo.
+    profile = {**snapshot, **{key: value for key, value in current.items() if value}}
     content = generate_docx_bytes(profile, version)
     safe = "JobPilot_Resume"
     return Response(
