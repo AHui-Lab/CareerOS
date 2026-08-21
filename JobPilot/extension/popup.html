@@ -3,6 +3,7 @@ body{font:14px/1.5 Inter,"Segoe UI","Microsoft YaHei",sans-serif;width:340px;mar
 <h1>CareerOS</h1><div class="muted">导入校招职位；生成岗位简历后，在网申页面辅助填写。</div>
 <div class="card"><div id="pageTitle" class="title">正在读取页面…</div><div id="pageUrl" class="url"></div></div>
 <div class="actions"><button id="fillBtn" disabled>智能填写当前页面</button><button id="saveBtn" class="secondary" disabled>导入当前职位</button></div>
+<label style="display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:12px"><input id="allowSensitive" type="checkbox" style="margin-top:3px"><span>本次允许填写身份证、政治面貌、民族等敏感字段<br><span class="muted">仅本次有效，证件照文件仍需手动上传。</span></span></label>
 <div id="status" class="status muted">请先启动 JobPilot。</div>
 <div class="divider"></div><div class="hint">智能填表不会点击“提交”，不会自动回答薪资、调剂、家庭、政治面貌、健康等需要本人判断的问题；文件上传仍需手动选择。</div>
 <script src="popup.js"></script></body></html>

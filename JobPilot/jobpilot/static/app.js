@@ -53,7 +53,7 @@ async function loadAll(){
   }catch(e){notice(e.message,true);}
 }
 
-function renderAll(){renderDashboard();renderCalendar();renderEmail();renderMemo();renderProfile();renderExperiences();renderTargetOptions();renderExperienceChooser();renderVersions();renderDataStatus();renderRecommendations();if(state.latestVersion)renderResumePreview(state.latestVersion);}
+function renderAll(){renderDashboard();renderCalendar();renderEmail();renderMemo();renderProfile();renderPrivateProfile();renderExperiences();renderTargetOptions();renderExperienceChooser();renderVersions();renderDataStatus();renderRecommendations();if(state.latestVersion)renderResumePreview(state.latestVersion);}
 
 const EVENT_TYPE={application:'投递',written_test:'笔试',interview:'面试',deadline:'截止',follow_up:'跟进',other:'其他'};
 const EVENT_CLASS={application:'event-application',written_test:'event-written-test',interview:'event-interview',deadline:'event-deadline',follow_up:'event-follow-up',other:'event-other'};
@@ -140,6 +140,7 @@ function closeMemoEditor(){if($('#memoDialog').open)$('#memoDialog').close();sta
 
 // ---------- legacy profile / experiences ----------
 function renderProfile(){if(!$('#profileForm'))return;for(const el of [...$('#profileForm').elements])if(el.name)el.value=state.profile[el.name]||'';}
+function renderPrivateProfile(){const form=$('#privateProfileForm');if(!form)return;$$('[data-private-field]',form).forEach(el=>{el.value=state.profile[el.dataset.privateField]||'';});const photo=state.profile.photo_path;$('#privatePhotoState').textContent=photo?`已保存：${photo}`:'仅保存到本机，不会自动上传到招聘网站。';}
 function renderExperiences(){
   const filter=$('#experienceFilter')?.value||'';
   const rows=state.experiences.filter(x=>!filter||x.category===filter);
@@ -198,7 +199,7 @@ async function loadRecommendations({quiet=false}={}){
 function scheduleRecommendationAnalysis(){clearTimeout(recommendationTimer);invalidateRecommendations();const p=targetPayload();if(!state.health.careervault?.available)return;if(!p.opportunity_id&&p.jd.length<20)return;recommendationTimer=setTimeout(()=>loadRecommendations({quiet:true}),700);}
 
 function renderVersions(){
-  $('#versionList').innerHTML=state.versions.map(v=>{const r=v.resume||{};const source=r.source==='careervault'?'已确认经历':'本地资料';return `<article class="version-card" data-id="${v.id}"><div><b>${esc(v.name||'通用简历')}</b> <span class="source-badge ${source==='本地资料'?'legacy':''}">${source}</span><br><span>${esc(v.created_at||'')}</span></div><div class="memo-actions"><button class="small-btn" data-action="preview-version">预览</button><a class="small-btn" href="/api/resume-versions/${v.id}/docx">下载 DOCX</a></div></article>`;}).join('')||'<div class="empty-state">还没有生成过简历版本。</div>';
+  $('#versionList').innerHTML=state.versions.map(v=>{const r=v.resume||{};const source=r.source==='careervault'?'已确认经历':'本地资料';return `<article class="version-card" data-id="${v.id}"><div><b>${esc(v.name||'通用简历')}</b> <span class="source-badge ${source==='本地资料'?'legacy':''}">${source}</span><br><span>${esc(v.created_at||'')}${v.target_company||v.target_role?` · ${esc([v.target_company,v.target_role].filter(Boolean).join(' · '))}`:''}</span></div><div class="memo-actions"><button class="small-btn" data-action="preview-version">预览</button><a class="small-btn" href="/api/resume-versions/${v.id}/docx">下载 DOCX</a><button class="small-btn danger" data-action="delete-version">删除</button></div></article>`;}).join('')||'<div class="empty-state">还没有生成过简历版本。</div>';
 }
 function renderResumePreview(version){
   state.latestVersion=version;const r=version.resume||{};const p=r.profile_snapshot||state.profile||{};
@@ -208,7 +209,7 @@ function renderResumePreview(version){
   const contact=[p.phone,p.email,p.current_city,p.portfolio_url||p.website].filter(Boolean).join(' | ');
   $('#resumePreview').classList.remove('empty-preview');
   $('#resumePreview').innerHTML=`${sourceNote}<h2>${esc(p.name||'个人简历')}</h2>${contact?`<div class="contact">${esc(contact)}</div>`:''}${r.headline?`<div class="headline">${esc(r.headline)}</div>`:''}${r.summary?`<p class="summary">${esc(r.summary)}</p>`:''}${sections}${(r.skills||[]).length?`<section class="resume-section"><h3>技能</h3><p>${esc(r.skills.join('、'))}</p></section>`:''}`;
-  $('#previewActions').innerHTML=`<a class="small-btn" href="/api/resume-versions/${version.id}/docx">下载 DOCX</a>`;
+  $('#previewActions').innerHTML=`<a class="small-btn" href="/api/resume-versions/${version.id}/docx">下载 DOCX</a><button class="small-btn danger" type="button" data-preview-delete="${version.id}">删除此版本</button>`;
 }
 function renderDataStatus(){const d=state.dataStatus||{};$('#dataDbPath').textContent=d.db_path||'未知';$('#dataCounts').textContent=`岗位 ${d.opportunities||0} · 经历 ${d.experiences||0} · 简历版本 ${d.resume_versions||0} · 备份 ${d.backup_count||0}`;}
 
@@ -239,6 +240,8 @@ $('#memoEditForm').addEventListener('submit',async e=>{e.preventDefault();const 
 
 // ---------- legacy events ----------
 $('#saveProfileBtn').addEventListener('click',async()=>{const payload={};for(const el of [...$('#profileForm').elements])if(el.name)payload[el.name]=el.value.trim();try{await api('/api/profile',{method:'PATCH',body:JSON.stringify(payload)});notice('基本资料已保存。');await loadAll();}catch(e){notice(e.message,true);}});
+$('#privateProfileForm').addEventListener('submit',async e=>{e.preventDefault();const payload={};$$('[data-private-field]',e.currentTarget).forEach(el=>payload[el.dataset.privateField]=el.value.trim());try{await api('/api/profile',{method:'PATCH',body:JSON.stringify(payload)});$('#privateProfileState').textContent='✓ 已保存到本机';await loadAll();}catch(err){$('#privateProfileState').textContent='保存失败：'+err.message;}});
+$('#privatePhotoFile').addEventListener('change',async e=>{const file=e.target.files[0];if(!file)return;const fd=new FormData();fd.append('file',file);$('#privatePhotoState').textContent='证件照保存中…';try{const res=await fetch('/api/profile/photo',{method:'POST',body:fd});const data=await res.json();if(!res.ok)throw new Error(data.detail||'上传失败');state.profile=data.profile||state.profile;renderPrivateProfile();}catch(err){$('#privatePhotoState').textContent='保存失败：'+err.message;}});
 $('#resumeImportForm').addEventListener('submit',async e=>{e.preventDefault();const file=$('#resumeFile').files[0];if(!file)return;const b=e.submitter;b.disabled=true;try{const fd=new FormData();fd.append('file',file);const res=await fetch('/api/resume/import',{method:'POST',body:fd});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.detail||'导入失败');notice(`已导入旧版本地经历 ${data.count} 条。`);$('#resumeFile').value='';await loadAll();}catch(err){notice(err.message,true);}finally{b.disabled=false;}});
 $('#experienceFilter').addEventListener('change',renderExperiences);$('#addExperienceBtn').addEventListener('click',()=>openExperience());$('#experienceClose').addEventListener('click',closeExperience);$('#experienceCancel').addEventListener('click',closeExperience);
 $('#experienceForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('#experienceId').value;const payload={category:$('#expCategory').value,title:$('#expTitle').value.trim(),organization:$('#expOrganization').value.trim(),location:$('#expLocation').value.trim(),start_date:$('#expStart').value.trim(),end_date:$('#expEnd').value.trim(),description:$('#expDescription').value.trim(),highlights:$('#expHighlights').value.split('\n').map(x=>x.trim()).filter(Boolean),tags:$('#expTags').value.split(/[,，]/).map(x=>x.trim()).filter(Boolean)};try{await api(id?`/api/experiences/${id}`:'/api/experiences',{method:id?'PATCH':'POST',body:JSON.stringify(payload)});closeExperience();await loadAll();}catch(err){notice(err.message,true);}});
@@ -264,7 +267,9 @@ $('#resumeGenerateForm').addEventListener('submit',async e=>{
   b.disabled=true;b.textContent=cvOk?'正在生成岗位简历…':'正在生成简历…';
   try{const data=await api('/api/resume/generate',{method:'POST',body:JSON.stringify(payload)});notice(`岗位简历已生成 · ${data.selection_mode||''}`);state.latestVersion=data.item;await loadAll();renderResumePreview(data.item);}catch(err){notice(err.message,true);}finally{b.disabled=false;b.textContent='生成岗位简历';}
 });
-$('#versionList').addEventListener('click',e=>{if(e.target.dataset.action!=='preview-version')return;const id=Number(e.target.closest('.version-card').dataset.id);const v=state.versions.find(x=>x.id===id);if(v)renderResumePreview(v);});
+async function deleteResumeVersion(id){if(!confirm('确定删除这份简历版本吗？已下载到本地的 DOCX 不会受到影响。'))return;try{await api(`/api/resume-versions/${id}`,{method:'DELETE'});if(String(state.latestVersion?.id)===String(id))state.latestVersion=null;notice('简历版本已删除。');await loadAll();}catch(err){notice(err.message,true);}}
+$('#versionList').addEventListener('click',e=>{const action=e.target.dataset.action;if(action==='preview-version'){const id=Number(e.target.closest('.version-card').dataset.id);const v=state.versions.find(x=>x.id===id);if(v)renderResumePreview(v);}if(action==='delete-version')deleteResumeVersion(Number(e.target.closest('.version-card').dataset.id));});
+$('#previewActions').addEventListener('click',e=>{if(e.target.dataset.previewDelete)deleteResumeVersion(Number(e.target.dataset.previewDelete));});
 
 // ---------- application calendar ----------
 $('#calendarPrev').addEventListener('click',()=>{calendarCursor.setMonth(calendarCursor.getMonth()-1);renderCalendar();});

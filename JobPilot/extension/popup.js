@@ -40,9 +40,9 @@ fillBtn.addEventListener('click',async()=>{
     const res=await fetch(`${API}/api/autofill/package`);const data=await res.json();if(!res.ok)throw new Error(data.detail||'读取资料失败');
     const pack=data.package||{},structured=data.structured||{};if(!Object.values(pack).some(Boolean)&&!(structured.education||[]).length)throw new Error('没有可填写资料，请先在 CareerOS 生成一版岗位简历');
     await chrome.scripting.executeScript({target:{tabId},files:['autofill-runtime.js']});
-    const [{result}] = await chrome.scripting.executeScript({target:{tabId},args:[structured,pack],func:async(structured,pack)=>{
+    const [{result}] = await chrome.scripting.executeScript({target:{tabId},args:[structured,pack,{allowSensitive:document.querySelector('#allowSensitive').checked}],func:async(structured,pack,options)=>{
       if(!window.JobPilotAutofill)throw new Error('JobPilot Autofill Runtime 未加载');
-      return await window.JobPilotAutofill.run(structured,pack);
+      return await window.JobPilotAutofill.run(structured,pack,options);
     }});
     const version=data.resume_version?.name?`\n使用简历：${data.resume_version.name}`:'\n未找到定制简历，使用当前基础资料';
     const rows=result.repeated_rows?`，经历行 ${result.repeated_rows} 组 / ${result.repeated_fields} 个字段`:'';

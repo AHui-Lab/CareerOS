@@ -9,7 +9,7 @@
 
   const scalarAliases={
     name:['姓名','名字','name','full name','username'],phone:['手机号','手机号码','联系电话','mobile','phone','tel'],email:['邮箱','电子邮箱','email','e-mail'],
-    current_city:['现居地','当前城市','居住城市','所在城市','现居城市'],school:['毕业院校','学校名称','学校','院校','university','school'],college:['学院','院系','department'],major:['专业名称','所学专业','专业','major'],degree:['最高学历','学历','学位','degree'],graduation_date:['毕业时间','毕业日期','毕业年份','graduation'],gpa:['gpa','绩点'],rank:['专业排名','成绩排名','排名'],birth_date:['出生日期','生日','birth'],gender:['性别','gender'],portfolio_url:['作品集','作品链接','portfolio'],website:['个人网站','个人主页','website'],github_url:['github'],self_intro:['自我介绍','个人介绍','自我评价','个人优势','个人简介','summary','introduction'],education_experience:['教育经历','教育背景'],internship_experience:['实习经历','工作经历','实习经验','工作经验'],project_experience:['项目经历','项目经验','项目介绍'],campus_experience:['校园经历','学生工作','社团经历','校园活动'],research_experience:['科研经历','研究经历','科研项目'],awards:['荣誉奖项','获奖经历','奖励情况','奖项'],skills:['专业技能','技能特长','技能','skills']
+    current_city:['现居地','当前城市','居住城市','所在城市','现居城市'],school:['毕业院校','学校名称','学校','院校','university','school'],college:['学院','院系','department'],major:['专业名称','所学专业','专业','major'],degree:['最高学历','学历','学位','degree'],education_start_date:['入学时间','入学日期','教育开始时间'],degree_type:['学位类型','学历类型','degree type'],graduation_date:['毕业时间','毕业日期','毕业年份','graduation'],gpa:['gpa','绩点'],rank:['专业排名','成绩排名','排名'],birth_date:['出生日期','生日','birth'],gender:['性别','gender'],id_type:['证件类型','证件类别','id type'],id_number:['身份证号','证件号码','证件号','id number'],ethnicity:['民族','ethnicity'],native_place:['籍贯','户籍所在地','生源地','native place'],political_status:['政治面貌','政治身份','political'],marital_status:['婚姻状况','婚姻','marital'],household_registration:['户口所在地','户籍','户口'],address:['详细地址','通讯地址','联系地址','address'],emergency_contact_name:['紧急联系人','紧急联系人姓名'],emergency_contact_phone:['紧急联系人电话','紧急联系电话'],portfolio_url:['作品集','作品链接','portfolio'],website:['个人网站','个人主页','website'],github_url:['github'],self_intro:['自我介绍','个人介绍','自我评价','个人优势','个人简介','summary','introduction'],education_experience:['教育经历','教育背景'],internship_experience:['实习经历','工作经历','实习经验','工作经验'],project_experience:['项目经历','项目经验','项目介绍'],campus_experience:['校园经历','学生工作','社团经历','校园活动'],research_experience:['科研经历','研究经历','科研项目'],awards:['荣誉奖项','获奖经历','奖励情况','奖项'],skills:['专业技能','技能特长','技能','skills']
   };
 
   const repeatedAliases={
@@ -112,10 +112,13 @@
     return {kind,rows:rowsTouched.size,fields,added:ensured.added};
   }
 
-  async function run(structured={},pack={}){
-    const adapter=detectAdapter(),scalar=fillScalars(pack||{}),repeated=[];
+  async function run(structured={},pack={},options={}){
+    const adapter=detectAdapter(),previousRisky=risky.test;
+    if(options?.allowSensitive)risky.test=()=>false;
+    const scalar=fillScalars(pack||{}),repeated=[];
     for(const kind of ['education','internships','projects','research','campus'])repeated.push(await fillRepeated(kind,structured?.[kind]||[],adapter));
     const repeatedFields=repeated.reduce((n,x)=>n+x.fields,0),rowsAdded=repeated.reduce((n,x)=>n+x.added,0),rowsTouched=repeated.reduce((n,x)=>n+x.rows,0);
+    if(options?.allowSensitive)risky.test=previousRisky;
     return {adapter:adapter.label,adapter_id:adapter.id,scalar_filled:scalar.filled,repeated_fields:repeatedFields,repeated_rows:rowsTouched,rows_added:rowsAdded,skipped_files:scalar.skippedFiles,total_filled:scalar.filled+repeatedFields,warning:'JobPilot 未点击任何提交/下一步按钮，请人工逐项检查。'};
   }
 

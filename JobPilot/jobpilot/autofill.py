@@ -75,8 +75,10 @@ def _section_kind(title: str) -> str:
 
 def flat_profile(profile: dict[str, Any]) -> dict[str, str]:
     keys = (
-        "name", "phone", "email", "gender", "birth_date", "current_city", "school", "college", "major", "degree",
-        "graduation_date", "gpa", "rank", "website", "portfolio_url", "github_url",
+        "name", "phone", "email", "gender", "birth_date", "id_type", "id_number", "ethnicity", "native_place",
+        "political_status", "marital_status", "household_registration", "address", "emergency_contact_name",
+        "emergency_contact_phone", "current_city", "school", "college", "major", "degree", "education_start_date",
+        "degree_type", "graduation_date", "gpa", "rank", "website", "portfolio_url", "github_url",
     )
     out = {key: _text(profile.get(key)) for key in keys}
     out["self_intro"] = _text(profile.get("summary"))
@@ -88,6 +90,11 @@ def build_structured_autofill(version: dict[str, Any] | None, fallback_profile: 
     resume = version.get("resume") if isinstance(version.get("resume"), dict) else {}
     profile = resume.get("profile_snapshot") if isinstance(resume.get("profile_snapshot"), dict) else fallback_profile
     profile = dict(profile or {})
+    # Sensitive local fields must always come from the current private profile,
+    # even when the selected resume version was generated earlier.
+    for key in ("id_type", "id_number", "ethnicity", "native_place", "political_status", "marital_status", "household_registration", "address", "emergency_contact_name", "emergency_contact_phone", "photo_path"):
+        if _text(fallback_profile.get(key)):
+            profile[key] = fallback_profile[key]
 
     structured: dict[str, Any] = {
         "schema_version": 2,
@@ -151,7 +158,11 @@ def build_flat_package(version: dict[str, Any] | None, fallback_profile: dict[st
     version = version or {}
     resume = version.get("resume") if isinstance(version.get("resume"), dict) else {}
     profile = resume.get("profile_snapshot") if isinstance(resume.get("profile_snapshot"), dict) else fallback_profile
-    result = flat_profile(profile or {})
+    profile = dict(profile or {})
+    for key in ("id_type", "id_number", "ethnicity", "native_place", "political_status", "marital_status", "household_registration", "address", "emergency_contact_name", "emergency_contact_phone", "photo_path"):
+        if _text(fallback_profile.get(key)):
+            profile[key] = fallback_profile[key]
+    result = flat_profile(profile)
 
     saved = version.get("autofill") if isinstance(version.get("autofill"), dict) else {}
     for key, value in saved.items():

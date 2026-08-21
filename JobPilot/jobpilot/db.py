@@ -81,12 +81,25 @@ CREATE TABLE IF NOT EXISTS profile (
     email TEXT NOT NULL DEFAULT '',
     gender TEXT NOT NULL DEFAULT '',
     birth_date TEXT NOT NULL DEFAULT '',
+    id_type TEXT NOT NULL DEFAULT '身份证',
+    id_number TEXT NOT NULL DEFAULT '',
+    ethnicity TEXT NOT NULL DEFAULT '',
+    native_place TEXT NOT NULL DEFAULT '',
+    political_status TEXT NOT NULL DEFAULT '',
+    marital_status TEXT NOT NULL DEFAULT '',
+    household_registration TEXT NOT NULL DEFAULT '',
+    address TEXT NOT NULL DEFAULT '',
+    emergency_contact_name TEXT NOT NULL DEFAULT '',
+    emergency_contact_phone TEXT NOT NULL DEFAULT '',
+    photo_path TEXT NOT NULL DEFAULT '',
     current_city TEXT NOT NULL DEFAULT '',
     school TEXT NOT NULL DEFAULT '',
     college TEXT NOT NULL DEFAULT '',
     major TEXT NOT NULL DEFAULT '',
     degree TEXT NOT NULL DEFAULT '',
     graduation_date TEXT NOT NULL DEFAULT '',
+    education_start_date TEXT NOT NULL DEFAULT '',
+    degree_type TEXT NOT NULL DEFAULT '',
     gpa TEXT NOT NULL DEFAULT '',
     rank TEXT NOT NULL DEFAULT '',
     website TEXT NOT NULL DEFAULT '',
@@ -230,7 +243,7 @@ def init_db() -> None:
     with sqlite3.connect(DB_PATH) as conn:
         conn.executescript(SCHEMA)
         columns = {row[1] for row in conn.execute("PRAGMA table_info(opportunities)").fetchall()}
-        migrations = {
+        opportunity_migrations = {
             "page_kind": "ALTER TABLE opportunities ADD COLUMN page_kind TEXT NOT NULL DEFAULT 'unknown'",
             "adapter_name": "ALTER TABLE opportunities ADD COLUMN adapter_name TEXT NOT NULL DEFAULT '通用网页'",
             "page_context": "ALTER TABLE opportunities ADD COLUMN page_context TEXT NOT NULL DEFAULT '{}'",
@@ -238,8 +251,27 @@ def init_db() -> None:
             "jd_text": "ALTER TABLE opportunities ADD COLUMN jd_text TEXT NOT NULL DEFAULT ''",
             "referral_code": "ALTER TABLE opportunities ADD COLUMN referral_code TEXT NOT NULL DEFAULT ''",
         }
-        for column, sql in migrations.items():
+        profile_columns = {row[1] for row in conn.execute("PRAGMA table_info(profile)").fetchall()}
+        profile_migrations = {
+            "id_type": "ALTER TABLE profile ADD COLUMN id_type TEXT NOT NULL DEFAULT '身份证'",
+            "id_number": "ALTER TABLE profile ADD COLUMN id_number TEXT NOT NULL DEFAULT ''",
+            "ethnicity": "ALTER TABLE profile ADD COLUMN ethnicity TEXT NOT NULL DEFAULT ''",
+            "native_place": "ALTER TABLE profile ADD COLUMN native_place TEXT NOT NULL DEFAULT ''",
+            "political_status": "ALTER TABLE profile ADD COLUMN political_status TEXT NOT NULL DEFAULT ''",
+            "marital_status": "ALTER TABLE profile ADD COLUMN marital_status TEXT NOT NULL DEFAULT ''",
+            "household_registration": "ALTER TABLE profile ADD COLUMN household_registration TEXT NOT NULL DEFAULT ''",
+            "address": "ALTER TABLE profile ADD COLUMN address TEXT NOT NULL DEFAULT ''",
+            "emergency_contact_name": "ALTER TABLE profile ADD COLUMN emergency_contact_name TEXT NOT NULL DEFAULT ''",
+            "emergency_contact_phone": "ALTER TABLE profile ADD COLUMN emergency_contact_phone TEXT NOT NULL DEFAULT ''",
+            "photo_path": "ALTER TABLE profile ADD COLUMN photo_path TEXT NOT NULL DEFAULT ''",
+            "education_start_date": "ALTER TABLE profile ADD COLUMN education_start_date TEXT NOT NULL DEFAULT ''",
+            "degree_type": "ALTER TABLE profile ADD COLUMN degree_type TEXT NOT NULL DEFAULT ''",
+        }
+        for column, sql in opportunity_migrations.items():
             if column not in columns:
+                conn.execute(sql)
+        for column, sql in profile_migrations.items():
+            if column not in profile_columns:
                 conn.execute(sql)
     # On version upgrades make a safety snapshot after migrations. Keep this best-effort.
     if existed or migrated:
@@ -524,8 +556,10 @@ def delete_schedule_event(event_id: int) -> bool:
 
 # --- profile ---
 PROFILE_FIELDS = {
-    "name", "phone", "email", "gender", "birth_date", "current_city", "school", "college", "major", "degree",
-    "graduation_date", "gpa", "rank", "website", "portfolio_url", "github_url", "summary"
+    "name", "phone", "email", "gender", "birth_date", "id_type", "id_number", "ethnicity", "native_place",
+    "political_status", "marital_status", "household_registration", "address", "emergency_contact_name",
+    "emergency_contact_phone", "photo_path", "current_city", "school", "college", "major", "degree",
+    "graduation_date", "education_start_date", "degree_type", "gpa", "rank", "website", "portfolio_url", "github_url", "summary"
 }
 
 
@@ -544,6 +578,12 @@ def update_profile(fields: dict[str, Any]) -> dict[str, Any]:
                 [*clean.values()],
             )
     return get_profile()
+
+
+def delete_resume_version(version_id: int) -> bool:
+    with connect() as conn:
+        cursor = conn.execute("DELETE FROM resume_versions WHERE id = ?", (version_id,))
+    return cursor.rowcount > 0
 
 
 # --- experiences ---

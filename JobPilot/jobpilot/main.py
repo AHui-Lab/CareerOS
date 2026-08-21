@@ -140,12 +140,25 @@ class ProfilePatch(BaseModel):
     email: str | None = None
     gender: str | None = None
     birth_date: str | None = None
+    id_type: str | None = None
+    id_number: str | None = None
+    ethnicity: str | None = None
+    native_place: str | None = None
+    political_status: str | None = None
+    marital_status: str | None = None
+    household_registration: str | None = None
+    address: str | None = None
+    emergency_contact_name: str | None = None
+    emergency_contact_phone: str | None = None
+    photo_path: str | None = None
     current_city: str | None = None
     school: str | None = None
     college: str | None = None
     major: str | None = None
     degree: str | None = None
     graduation_date: str | None = None
+    education_start_date: str | None = None
+    degree_type: str | None = None
     gpa: str | None = None
     rank: str | None = None
     website: str | None = None
@@ -592,6 +605,22 @@ async def patch_profile(payload: ProfilePatch):
     return {"profile": db.update_profile(payload.model_dump(exclude_unset=True))}
 
 
+@app.post("/api/profile/photo")
+async def upload_profile_photo(file: UploadFile = File(...)):
+    suffix = Path(file.filename or "").suffix.lower()
+    if suffix not in {".jpg", ".jpeg", ".png", ".webp"}:
+        raise HTTPException(status_code=400, detail="证件照仅支持 JPG、PNG 或 WEBP 图片")
+    content = await file.read()
+    if not content or len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="证件照不能为空且不能超过 10MB")
+    folder = db.DATA_DIR / "private" / "profile"
+    folder.mkdir(parents=True, exist_ok=True)
+    path = folder / f"id-photo{suffix}"
+    path.write_bytes(content)
+    profile = db.update_profile({"photo_path": str(path)})
+    return {"profile": profile, "path": str(path)}
+
+
 @app.get("/api/experiences")
 async def experiences():
     return {"items": db.list_experiences()}
@@ -812,6 +841,13 @@ async def download_resume_docx(version_id: int):
     )
 
 
+@app.delete("/api/resume-versions/{version_id}")
+async def delete_resume_version(version_id: int):
+    if not db.delete_resume_version(version_id):
+        raise HTTPException(status_code=404, detail="简历版本不存在")
+    return {"ok": True}
+
+
 @app.get("/api/autofill/package")
 async def autofill_package(opportunity_id: int | None = None):
     version = db.latest_resume_version(opportunity_id=opportunity_id)
@@ -823,5 +859,5 @@ async def autofill_package(opportunity_id: int | None = None):
         "package": package,
         "structured": structured,
         "resume_version": version,
-        "warning": "只用于填写安全的文本/下拉字段与重复经历行；不会自动点击提交，也不会自动处理薪资、家庭、政治面貌、健康等需要本人判断的问题。",
+        "warning": "默认只填写普通文本/下拉字段与重复经历行；不会自动点击提交。身份证、政治面貌、民族等敏感字段需要在浏览器助手中单次明确允许，证件照文件仍需手动上传。",
     }

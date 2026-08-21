@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CareerOS 浏览器助手",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "导入校招职位，使用经历资产生成岗位简历并辅助网申填表（不自动提交）。",
   "permissions": [
     "activeTab",
