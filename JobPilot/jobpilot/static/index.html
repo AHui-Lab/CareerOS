@@ -125,6 +125,18 @@
         </form>
         <p class="helper email-security-note">建议使用邮箱的应用专用密码。密码只保存在本机 CareerOS 数据库中，不会上传 GitHub。</p>
       </section>
+      <section class="panel email-guide-panel">
+        <div class="section-title"><div><p class="eyebrow">SETUP GUIDE</p><h2>主流邮箱配置说明</h2><p class="helper">CareerOS 通过 IMAP 读取邮件。配置前先在邮箱网页端开启 IMAP，并按邮箱类型填写登录密码、客户端授权码或应用专用密码。</p></div></div>
+        <div class="email-provider-grid">
+          <article class="email-provider-card"><div class="email-provider-head"><h3>QQ 邮箱</h3><span>@qq.com / Foxmail</span></div><dl><dt>IMAP</dt><dd><code>imap.qq.com:993</code> · SSL/TLS</dd><dt>SMTP</dt><dd><code>smtp.qq.com:465</code> · SSL/TLS（发信时使用）</dd><dt>登录密码</dt><dd>填写 QQ 邮箱生成的“授权码”，不要填写 QQ 登录密码。</dd></dl><ol><li>进入 QQ 邮箱网页版 → 设置 → 账户。</li><li>在“POP3/IMAP/SMTP/Exchange/CardDAV/CalDAV”区域开启 IMAP/SMTP 服务。</li><li>按提示完成安全验证，复制生成的授权码到上方“应用专用密码”。</li></ol><a href="https://service.mail.qq.com/" target="_blank" rel="noopener">打开 QQ 邮箱帮助 ↗</a></article>
+          <article class="email-provider-card"><div class="email-provider-head"><h3>网易邮箱</h3><span>@163.com / @126.com / @yeah.net</span></div><dl><dt>IMAP</dt><dd><code>imap.163.com:993</code> · SSL/TLS</dd><dt>SMTP</dt><dd><code>smtp.163.com:465</code> · SSL/TLS（发信时使用）</dd><dt>登录密码</dt><dd>填写“客户端授权码”，不要填写网易网页登录密码。</dd></dl><ol><li>登录网易邮箱网页版 → 设置 → POP3/SMTP/IMAP。</li><li>开启 IMAP/SMTP 服务，并点击“客户端授权密码/新增授权码”。</li><li>完成短信验证后立即保存授权码，填入上方密码框。</li></ol><a href="https://help.mail.126.com/faqDetail.do?code=d7a5dc8471cd0c0e8b4b8f4f8e49998b374173cfe9171305fa1ce630d7f67ac286624f309a1a7089" target="_blank" rel="noopener">打开网易帮助 ↗</a></article>
+          <article class="email-provider-card"><div class="email-provider-head"><h3>Outlook.com</h3><span>@outlook.com / @hotmail.com / @live.com</span></div><dl><dt>IMAP</dt><dd><code>outlook.office365.com:993</code> · SSL/TLS</dd><dt>SMTP</dt><dd><code>smtp-mail.outlook.com:587</code> · STARTTLS</dd><dt>身份验证</dt><dd>官方要求 OAuth2/现代身份验证；普通 IMAP 密码方式可能被拒绝。</dd></dl><ol><li>Outlook 网页版设置 → 邮件 → 转发和 IMAP。</li><li>开启“允许设备和应用使用 IMAP”，保存设置。</li><li>若 CareerOS 的密码方式无法连接，请使用 Microsoft OAuth2，或为账号创建应用密码（账号策略支持时）。</li></ol><a href="https://support.microsoft.com/zh-CN/Outlook/pop-imap-and-smtp-settings-for-outlook-com" target="_blank" rel="noopener">打开 Microsoft 官方说明 ↗</a></article>
+          <article class="email-provider-card"><div class="email-provider-head"><h3>Gmail</h3><span>@gmail.com / Google Workspace</span></div><dl><dt>IMAP</dt><dd><code>imap.gmail.com:993</code> · SSL/TLS</dd><dt>SMTP</dt><dd><code>smtp.gmail.com:465</code> · SSL/TLS，或 587 · STARTTLS</dd><dt>登录密码</dt><dd>建议使用 Google 应用专用密码；需要先开启两步验证。</dd></dl><ol><li>Google 账号 → 安全性 → 开启两步验证。</li><li>进入“应用专用密码”，创建一个用于 CareerOS 的密码。</li><li>Gmail 设置 → 查看所有设置 → 转发和 POP/IMAP → 开启 IMAP。</li></ol><a href="https://support.google.com/mail/answer/185833?hl=zh-Hans" target="_blank" rel="noopener">打开 Google 官方说明 ↗</a></article>
+          <article class="email-provider-card"><div class="email-provider-head"><h3>iCloud Mail</h3><span>@icloud.com / @me.com / @mac.com</span></div><dl><dt>IMAP</dt><dd><code>imap.mail.me.com:993</code> · SSL/TLS</dd><dt>SMTP</dt><dd><code>smtp.mail.me.com:587</code> · STARTTLS（也支持 465）</dd><dt>登录密码</dt><dd>必须使用 Apple 账户生成的“App 专用密码”。</dd></dl><ol><li>在 Apple 账户页面开启双重认证。</li><li>登录 Apple 账户 → 登录和安全 → App 专用密码 → 生成密码。</li><li>用户名填完整 iCloud 邮箱；把生成的 App 专用密码填入上方密码框。</li></ol><a href="https://support.apple.com/en-ie/102525" target="_blank" rel="noopener">打开 Apple 官方说明 ↗</a></article>
+        </div>
+        <div class="email-guide-notes"><strong>连接失败时先检查：</strong><span>服务器和端口是否匹配</span><span>IMAP 是否已开启</span><span>密码框是否填写授权码/应用专用密码</span><span>邮箱是否拦截了新的登录活动</span></div>
+        <p class="technical-detail">资料核对日期：2026-08-22。邮箱服务商可能调整入口或安全策略，实际页面以对应官方说明为准。</p>
+      </section>
       <section class="list-section email-list-section">
         <div class="list-toolbar"><div><p class="eyebrow">NEW MESSAGES</p><h2>待确认邮件 <span id="emailCount" class="helper"></span></h2></div><button id="importEmailBtn" class="ghost-btn" type="button">导入选中邮件</button></div>
         <div id="emailList" class="email-list"></div><div id="emailEmpty" class="empty-state hidden"><h3>还没有待确认邮件</h3><p>保存邮箱配置后，点击“检查新邮件”。</p></div>
@@ -255,6 +267,6 @@
 </dialog>
 
   <script src="/static/ui-text.js?v=040"></script>
-  <script src="/static/app.js?v=20260822-1"></script>
+  <script src="/static/app.js?v=20260822-2"></script>
 </body>
 </html>
