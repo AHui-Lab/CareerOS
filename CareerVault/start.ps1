@@ -78,5 +78,18 @@ elseif ($null -ne $listenerPid) {
 }
 
 $env:CAREERVAULT_FORCE_RESTART = ""
-Start-Process $BaseUrl
-& $PythonExe "run.py"
+$runtime = Join-Path $PSScriptRoot ".runtime"
+New-Item -ItemType Directory -Force -Path $runtime | Out-Null
+$stdout = Join-Path $runtime "careervault.out.log"
+$stderr = Join-Path $runtime "careervault.err.log"
+$process = Start-Process -FilePath (Join-Path $PSScriptRoot $PythonExe) -ArgumentList @((Join-Path $PSScriptRoot "run.py")) -WorkingDirectory $PSScriptRoot -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+$deadline = (Get-Date).AddSeconds(15)
+while ((Get-Date) -lt $deadline) {
+    $health = Get-CareerVaultHealth
+    if ($null -ne $health) { Start-Process $BaseUrl; exit 0 }
+    Start-Sleep -Milliseconds 350
+}
+if ($process -and -not $process.HasExited) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }
+Write-Host "CareerVault failed to become healthy. Check $stderr" -ForegroundColor Red
+Read-Host "Press Enter to exit"
+exit 5

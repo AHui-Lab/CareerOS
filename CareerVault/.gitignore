@@ -18,3 +18,4 @@ cache/
 # Generated resumes may contain personal information
 vault/generated/*
 !vault/generated/.gitkeep
+.runtime/

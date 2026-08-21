@@ -65,9 +65,22 @@ function Start-LocalService(
     }
 
     Write-Host "[START] $Name from $Root"
-    $command = '"' + $python + '" "' + $runPy + '"'
-    Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', $command -WorkingDirectory $Root | Out-Null
-    return Wait-Health $HealthUrl $Name
+    $runtime = Join-Path $Root '.runtime'
+    New-Item -ItemType Directory -Force -Path $runtime | Out-Null
+    $safeName = ($Name -replace '[^A-Za-z0-9_-]', '_').ToLowerInvariant()
+    $stdout = Join-Path $runtime "$safeName.out.log"
+    $stderr = Join-Path $runtime "$safeName.err.log"
+    $process = Start-Process -FilePath $python -ArgumentList @($runPy) -WorkingDirectory $Root -WindowStyle Hidden -RedirectStandardOutput $stdout -RedirectStandardError $stderr -PassThru
+    try {
+        return Wait-Health $HealthUrl $Name
+    } catch {
+        $tail = @()
+        if (Test-Path $stderr) { $tail += Get-Content $stderr -Tail 12 -ErrorAction SilentlyContinue }
+        if (Test-Path $stdout) { $tail += Get-Content $stdout -Tail 12 -ErrorAction SilentlyContinue }
+        if ($tail.Count -gt 0) { Write-Host ($tail -join [Environment]::NewLine) -ForegroundColor DarkYellow }
+        if ($process -and -not $process.HasExited) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }
+        throw
+    }
 }
 
 Write-Host '=== CareerOS ==='
