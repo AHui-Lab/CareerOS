@@ -18,7 +18,7 @@
       <button class="nav" data-view="email">邮件跟踪</button>
       <button class="nav" data-view="resume">简历中心</button>
       <div class="nav-group-label">经历资产</div>
-      <button class="nav" data-view="profile">经历与项目</button>
+      <button class="nav" data-view="vault">经历资产</button>
       <button class="nav" data-view="settings">设置</button>
     </nav>
     <div class="sidebar-note">V0.3.1 · 求职工作台<br><span id="aiBadge">连接检测中…</span></div>
@@ -141,6 +141,14 @@
         <div class="list-toolbar"><div><p class="eyebrow">EMAIL MANAGEMENT</p><h2 id="emailListTitle">待确认邮件 <span id="emailCount" class="helper"></span></h2></div><div class="toolbar-actions"><button id="ignorePendingEmailBtn" class="ghost-btn danger-button" type="button">忽略剩余邮件</button><button id="importEmailBtn" class="ghost-btn" type="button">导入选中邮件</button></div></div>
         <div class="email-filter-bar"><button class="email-filter active" data-email-filter="pending" type="button">待确认</button><button class="email-filter" data-email-filter="imported" type="button">已导入</button><button class="email-filter" data-email-filter="ignored" type="button">已忽略</button><button class="email-filter" data-email-filter="all" type="button">全部</button></div>
         <div id="emailList" class="email-list"></div><div id="emailEmpty" class="empty-state hidden"><h3>还没有待确认邮件</h3><p>保存邮箱配置后，点击“检查新邮件”。</p></div>
+      </section>
+    </section>
+
+    <section id="view-vault" class="view">
+      <section class="panel vault-shell-panel">
+        <div class="section-title"><div><p class="eyebrow">CAREER ASSETS</p><h2>经历资产</h2><p class="helper">在 CareerOS 中维护经历、项目、教育、获奖、专利和论文等事实资料。</p></div><button id="refreshVaultFrame" class="ghost-btn" type="button">刷新经历资产</button></div>
+        <div class="vault-frame-tabs" role="tablist" aria-label="经历资产导航"><button class="mode active" type="button" data-vault-view="dashboard">概览</button><button class="mode" type="button" data-vault-view="experiences">经历库</button><button class="mode" type="button" data-vault-view="profile">个人资料</button><button class="mode" type="button" data-vault-view="settings">配置</button></div>
+        <iframe id="careerVaultFrame" class="career-vault-frame" src="http://127.0.0.1:8766/?embedded=1" title="CareerVault 经历资产" loading="lazy"></iframe>
       </section>
     </section>
 

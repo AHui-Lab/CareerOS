@@ -94,7 +94,7 @@ function renderDashboard(){
   const recentBox=$('#dashboardRecentJobs');
   if(recentBox)recentBox.innerHTML=recent.length?recent.map(x=>`<button class="dashboard-job" type="button" data-dashboard-job="${x.id}"><span><b>${esc(x.company||'待补充公司')}</b><small>${esc(x.role||x.title||'待补充岗位')}${x.location?` · ${esc(x.location)}`:''}</small></span><em class="status-chip status-${esc(x.status||'inbox')}">${esc(STATUS[x.status]||STATUS.inbox)}</em></button>`).join(''):'<div class="empty-state compact">还没有岗位，先导入一个招聘链接。</div>';
   const taskBox=$('#dashboardTasks');
-  if(taskBox){const tasks=[];if(pending)tasks.push(`<button class="task-item" type="button" data-go-view="memo"><strong>${pending} 个岗位待处理</strong><span>补充信息或推进投递状态 →</span></button>`);if(!state.health.careervault?.available)tasks.push('<button class="task-item" type="button" data-go-view="profile"><strong>经历资产尚未连接</strong><span>连接后才能进行经历匹配和简历生成 →</span></button>');if(!tasks.length)tasks.push('<div class="empty-state compact">目前没有待处理事项，继续保持进度。</div>');taskBox.innerHTML=tasks.join('');}
+  if(taskBox){const tasks=[];if(pending)tasks.push(`<button class="task-item" type="button" data-go-view="memo"><strong>${pending} 个岗位待处理</strong><span>补充信息或推进投递状态 →</span></button>`);if(!state.health.careervault?.available)tasks.push('<button class="task-item" type="button" data-go-view="vault"><strong>经历资产尚未连接</strong><span>连接后才能进行经历匹配和简历生成 →</span></button>');if(!tasks.length)tasks.push('<div class="empty-state compact">目前没有待处理事项，继续保持进度。</div>');taskBox.innerHTML=tasks.join('');}
 }
 
 // ---------- opportunities ----------
@@ -214,10 +214,15 @@ function renderDataStatus(){const d=state.dataStatus||{};$('#dataDbPath').textCo
 
 // ---------- navigation ----------
 const titles=UI_TEXT.pageTitles;
-function goView(view){$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view));$$('.view').forEach(x=>x.classList.toggle('active-view',x.id===`view-${view}`));$('#viewTitle').textContent=titles[view]||'';}
+let vaultView='dashboard';
+function goView(view){$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view));$$('.view').forEach(x=>x.classList.toggle('active-view',x.id===`view-${view}`));$('#viewTitle').textContent=titles[view]||'';if(view==='vault'){vaultView='dashboard';$$('[data-vault-view]').forEach(x=>x.classList.toggle('active',x.dataset.vaultView===vaultView));sendVaultView(vaultView);}}
+function sendVaultView(view){const frame=$('#careerVaultFrame');if(!frame)return;vaultView=view;frame.contentWindow?.postMessage({type:'careeros-vault-view',view},'*');}
 $$('.nav').forEach(btn=>btn.addEventListener('click',()=>goView(btn.dataset.view)));
 document.addEventListener('click',e=>{const go=e.target.closest('[data-go-view]');if(go)goView(go.dataset.goView);const job=e.target.closest('[data-dashboard-job]');if(job){goView('memo');const id=Number(job.dataset.dashboardJob);const item=state.opportunities.find(x=>x.id===id);if(item){$('#memoSearch').value=item.company||item.role||'';renderMemo();}}});
 $('#refreshBtn').addEventListener('click',loadAll);$('#refreshCareerVault').addEventListener('click',loadAll);
+$('#refreshVaultFrame').addEventListener('click',()=>{$('#careerVaultFrame').src=`http://127.0.0.1:8766/?embedded=1&v=${Date.now()}`;});
+$('#careerVaultFrame').addEventListener('load',()=>sendVaultView(vaultView));
+$$('[data-vault-view]').forEach(btn=>btn.addEventListener('click',()=>{$$('[data-vault-view]').forEach(x=>x.classList.toggle('active',x===btn));sendVaultView(btn.dataset.vaultView);}));
 
 // ---------- opportunity events ----------
 $$('.mode[data-mode]').forEach(btn=>btn.addEventListener('click',()=>{$$('.mode[data-mode]').forEach(x=>x.classList.remove('active'));btn.classList.add('active');$('#urlForm').classList.toggle('hidden',btn.dataset.mode!=='url');$('#textForm').classList.toggle('hidden',btn.dataset.mode!=='text');}));

@@ -27,7 +27,8 @@
     <section id="integration" class="view"></section>
   </main>
   <div id="modal" class="modal hidden"><div class="modal-card" id="modalCard"></div></div>
-  <script src="/static/app.js?v=20260822-2"></script>
+  <script>if(new URLSearchParams(location.search).get('embedded')==='1')document.body.classList.add('embedded-mode');</script>
+  <script src="/static/app.js?v=20260822-3"></script>
   <script src="/static/migration-review.js?v=20260822-1"></script>
 </body>
 </html>
