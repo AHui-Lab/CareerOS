@@ -128,6 +128,39 @@ CREATE TABLE IF NOT EXISTS experiences (
 CREATE INDEX IF NOT EXISTS idx_experiences_category ON experiences(category);
 CREATE INDEX IF NOT EXISTS idx_experiences_created_at ON experiences(created_at DESC);
 
+CREATE TABLE IF NOT EXISTS interview_questions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    question_type TEXT NOT NULL DEFAULT 'interview',
+    source_type TEXT NOT NULL DEFAULT 'personal',
+    role_category TEXT NOT NULL DEFAULT '',
+    company TEXT NOT NULL DEFAULT '',
+    opportunity_id INTEGER,
+    question TEXT NOT NULL DEFAULT '',
+    answer TEXT NOT NULL DEFAULT '',
+    feeling TEXT NOT NULL DEFAULT '',
+    tags TEXT NOT NULL DEFAULT '[]',
+    event_date TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    FOREIGN KEY(opportunity_id) REFERENCES opportunities(id) ON DELETE SET NULL
+);
+CREATE INDEX IF NOT EXISTS idx_interview_questions_role ON interview_questions(role_category);
+CREATE INDEX IF NOT EXISTS idx_interview_questions_date ON interview_questions(event_date DESC);
+
+CREATE TABLE IF NOT EXISTS role_field_sets (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    role_category TEXT NOT NULL DEFAULT '',
+    title TEXT NOT NULL DEFAULT '',
+    self_evaluation TEXT NOT NULL DEFAULT '',
+    strengths TEXT NOT NULL DEFAULT '',
+    skills TEXT NOT NULL DEFAULT '[]',
+    common_answers TEXT NOT NULL DEFAULT '{}',
+    notes TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_role_field_sets_role ON role_field_sets(role_category);
+
 CREATE TABLE IF NOT EXISTS resume_sources (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     filename TEXT NOT NULL DEFAULT '',
@@ -641,7 +674,104 @@ def update_experience(experience_id: int, fields: dict[str, Any]) -> dict[str, A
 def delete_experience(experience_id: int) -> bool:
     with connect() as conn:
         cursor = conn.execute("DELETE FROM experiences WHERE id = ?", (experience_id,))
-        return cursor.rowcount > 0
+    return cursor.rowcount > 0
+
+
+# --- interview / written-test question bank ---
+INTERVIEW_QUESTION_FIELDS = {"question_type", "source_type", "role_category", "company", "opportunity_id", "question", "answer", "feeling", "tags", "event_date"}
+
+
+def _question_row(row: sqlite3.Row) -> dict[str, Any]:
+    result = dict(row)
+    result["tags"] = _loads(result.get("tags"), [])
+    return result
+
+
+def list_interview_questions(*, role_category: str = "", source_type: str = "", question_type: str = "") -> list[dict[str, Any]]:
+    where, params = [], []
+    if role_category:
+        where.append("role_category = ?"); params.append(role_category)
+    if source_type:
+        where.append("source_type = ?"); params.append(source_type)
+    if question_type:
+        where.append("question_type = ?"); params.append(question_type)
+    sql = "SELECT * FROM interview_questions" + (" WHERE " + " AND ".join(where) if where else "") + " ORDER BY event_date DESC, updated_at DESC, id DESC"
+    with connect() as conn:
+        rows = conn.execute(sql, params).fetchall()
+    return [_question_row(row) for row in rows]
+
+
+def get_interview_question(question_id: int) -> dict[str, Any] | None:
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM interview_questions WHERE id = ?", (question_id,)).fetchone()
+    return _question_row(row) if row else None
+
+
+def save_interview_question(item: dict[str, Any], question_id: int | None = None) -> dict[str, Any]:
+    clean = {key: item.get(key) for key in INTERVIEW_QUESTION_FIELDS if key in item}
+    clean["tags"] = json.dumps(clean.get("tags") or [], ensure_ascii=False)
+    clean["opportunity_id"] = int(clean["opportunity_id"]) if clean.get("opportunity_id") else None
+    if question_id:
+        sets = ", ".join(f"{key} = ?" for key in clean)
+        with connect() as conn:
+            conn.execute(f"UPDATE interview_questions SET {sets}, updated_at = datetime('now', 'localtime') WHERE id = ?", [*clean.values(), question_id])
+        return get_interview_question(question_id) or {}
+    fields = list(clean)
+    with connect() as conn:
+        cur = conn.execute(f"INSERT INTO interview_questions ({','.join(fields)}) VALUES ({','.join('?' for _ in fields)})", [clean[field] for field in fields])
+        new_id = int(cur.lastrowid)
+    return get_interview_question(new_id) or {}
+
+
+def delete_interview_question(question_id: int) -> bool:
+    with connect() as conn:
+        cursor = conn.execute("DELETE FROM interview_questions WHERE id = ?", (question_id,))
+    return cursor.rowcount > 0
+
+
+# --- reusable role-specific application fields ---
+ROLE_FIELD_SET_FIELDS = {"role_category", "title", "self_evaluation", "strengths", "skills", "common_answers", "notes"}
+
+
+def _role_field_row(row: sqlite3.Row) -> dict[str, Any]:
+    result = dict(row)
+    result["skills"] = _loads(result.get("skills"), [])
+    result["common_answers"] = _loads(result.get("common_answers"), {})
+    return result
+
+
+def list_role_field_sets(role_category: str = "") -> list[dict[str, Any]]:
+    with connect() as conn:
+        rows = conn.execute("SELECT * FROM role_field_sets" + (" WHERE role_category = ?" if role_category else "") + " ORDER BY updated_at DESC, id DESC", (role_category,) if role_category else ()).fetchall()
+    return [_role_field_row(row) for row in rows]
+
+
+def get_role_field_set(field_set_id: int) -> dict[str, Any] | None:
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM role_field_sets WHERE id = ?", (field_set_id,)).fetchone()
+    return _role_field_row(row) if row else None
+
+
+def save_role_field_set(item: dict[str, Any], field_set_id: int | None = None) -> dict[str, Any]:
+    clean = {key: item.get(key) for key in ROLE_FIELD_SET_FIELDS if key in item}
+    clean["skills"] = json.dumps(clean.get("skills") or [], ensure_ascii=False)
+    clean["common_answers"] = json.dumps(clean.get("common_answers") or {}, ensure_ascii=False)
+    if field_set_id:
+        sets = ", ".join(f"{key} = ?" for key in clean)
+        with connect() as conn:
+            conn.execute(f"UPDATE role_field_sets SET {sets}, updated_at = datetime('now', 'localtime') WHERE id = ?", [*clean.values(), field_set_id])
+        return get_role_field_set(field_set_id) or {}
+    fields = list(clean)
+    with connect() as conn:
+        cur = conn.execute(f"INSERT INTO role_field_sets ({','.join(fields)}) VALUES ({','.join('?' for _ in fields)})", [clean[field] for field in fields])
+        new_id = int(cur.lastrowid)
+    return get_role_field_set(new_id) or {}
+
+
+def delete_role_field_set(field_set_id: int) -> bool:
+    with connect() as conn:
+        cursor = conn.execute("DELETE FROM role_field_sets WHERE id = ?", (field_set_id,))
+    return cursor.rowcount > 0
 
 
 def replace_imported_experiences(items: list[dict[str, Any]], *, source: str) -> list[dict[str, Any]]:

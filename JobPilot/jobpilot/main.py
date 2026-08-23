@@ -193,6 +193,52 @@ class ExperiencePatch(BaseModel):
     tags: list[str] | None = None
 
 
+class InterviewQuestionPayload(BaseModel):
+    question_type: str = "interview"
+    source_type: str = "personal"
+    role_category: str = Field(default="", max_length=120)
+    company: str = Field(default="", max_length=160)
+    opportunity_id: int | None = None
+    question: str = Field(default="", max_length=8000)
+    answer: str = Field(default="", max_length=12000)
+    feeling: str = Field(default="", max_length=6000)
+    tags: list[str] = Field(default_factory=list)
+    event_date: str = Field(default="", max_length=20)
+
+
+class InterviewQuestionPatch(InterviewQuestionPayload):
+    question_type: str | None = None
+    source_type: str | None = None
+    role_category: str | None = None
+    company: str | None = None
+    opportunity_id: int | None = None
+    question: str | None = None
+    answer: str | None = None
+    feeling: str | None = None
+    tags: list[str] | None = None
+    event_date: str | None = None
+
+
+class RoleFieldSetPayload(BaseModel):
+    role_category: str = Field(default="", max_length=120)
+    title: str = Field(default="", max_length=160)
+    self_evaluation: str = Field(default="", max_length=8000)
+    strengths: str = Field(default="", max_length=8000)
+    skills: list[str] = Field(default_factory=list)
+    common_answers: dict[str, str] = Field(default_factory=dict)
+    notes: str = Field(default="", max_length=6000)
+
+
+class RoleFieldSetPatch(RoleFieldSetPayload):
+    role_category: str | None = None
+    title: str | None = None
+    self_evaluation: str | None = None
+    strengths: str | None = None
+    skills: list[str] | None = None
+    common_answers: dict[str, str] | None = None
+    notes: str | None = None
+
+
 class CareerRecommendationRequest(BaseModel):
     opportunity_id: int | None = None
     target_company: str = Field(default="", max_length=120)
@@ -886,6 +932,68 @@ async def download_resume_pdf(version_id: int):
 async def delete_resume_version(version_id: int):
     if not db.delete_resume_version(version_id):
         raise HTTPException(status_code=404, detail="简历版本不存在")
+    return {"ok": True}
+
+
+@app.get("/api/interview-questions")
+async def interview_questions(role_category: str = "", source_type: str = "", question_type: str = ""):
+    return {"items": db.list_interview_questions(role_category=role_category, source_type=source_type, question_type=question_type)}
+
+
+@app.post("/api/interview-questions")
+async def create_interview_question(payload: InterviewQuestionPayload):
+    if not payload.question.strip():
+        raise HTTPException(status_code=400, detail="请填写题目内容。")
+    if payload.question_type not in {"written_test", "interview"}:
+        raise HTTPException(status_code=400, detail="题目类型不正确。")
+    if payload.source_type not in {"network", "personal"}:
+        raise HTTPException(status_code=400, detail="题目来源不正确。")
+    if payload.opportunity_id and not db.get_opportunity(payload.opportunity_id):
+        raise HTTPException(status_code=404, detail="关联岗位不存在。")
+    return {"item": db.save_interview_question(payload.model_dump())}
+
+
+@app.patch("/api/interview-questions/{question_id}")
+async def patch_interview_question(question_id: int, payload: InterviewQuestionPatch):
+    current = db.get_interview_question(question_id)
+    if not current:
+        raise HTTPException(status_code=404, detail="题目不存在。")
+    fields = payload.model_dump(exclude_unset=True)
+    if "question" in fields and not str(fields["question"] or "").strip():
+        raise HTTPException(status_code=400, detail="题目内容不能为空。")
+    return {"item": db.save_interview_question(fields, question_id)}
+
+
+@app.delete("/api/interview-questions/{question_id}")
+async def remove_interview_question(question_id: int):
+    if not db.delete_interview_question(question_id):
+        raise HTTPException(status_code=404, detail="题目不存在。")
+    return {"ok": True}
+
+
+@app.get("/api/role-field-sets")
+async def role_field_sets(role_category: str = ""):
+    return {"items": db.list_role_field_sets(role_category)}
+
+
+@app.post("/api/role-field-sets")
+async def create_role_field_set(payload: RoleFieldSetPayload):
+    if not payload.role_category.strip():
+        raise HTTPException(status_code=400, detail="请填写岗位类别。")
+    return {"item": db.save_role_field_set(payload.model_dump())}
+
+
+@app.patch("/api/role-field-sets/{field_set_id}")
+async def patch_role_field_set(field_set_id: int, payload: RoleFieldSetPatch):
+    if not db.get_role_field_set(field_set_id):
+        raise HTTPException(status_code=404, detail="常用字段不存在。")
+    return {"item": db.save_role_field_set(payload.model_dump(exclude_unset=True), field_set_id)}
+
+
+@app.delete("/api/role-field-sets/{field_set_id}")
+async def remove_role_field_set(field_set_id: int):
+    if not db.delete_role_field_set(field_set_id):
+        raise HTTPException(status_code=404, detail="常用字段不存在。")
     return {"ok": True}
 
 

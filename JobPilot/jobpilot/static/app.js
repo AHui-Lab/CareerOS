@@ -8,7 +8,7 @@ const UNSUBMITTED_STATUSES = new Set(['inbox','interested','preparing']);
 const SUBMITTED_STATUSES = new Set(['applied','interview','offer','rejected']);
 
 let state = {
-  opportunities:[], scheduleEvents:[], emails:[], emailSettings:{}, profile:{}, experiences:[], versions:[], dataStatus:{}, health:{}, latestVersion:null,
+  opportunities:[], scheduleEvents:[], emails:[], emailSettings:{}, profile:{}, experiences:[], versions:[], interviewQuestions:[], roleFieldSets:[], dataStatus:{}, health:{}, latestVersion:null,
   memoEditing:null, memoScope:'all', emailFilter:'pending', recommendations:[], recommendationDefaultIds:[], recommendationSignature:'',
   recommendationsLoading:false
 };
@@ -28,8 +28,8 @@ async function api(path,options={}){
 
 async function loadAll(){
   try{
-    const [ops,schedule,emailMessages,emailSettings,profile,exps,versions,dataStatus,health]=await Promise.all([
-      api('/api/opportunities'), api('/api/schedule-events'), api('/api/email/messages'), api('/api/email/settings'), api('/api/profile'), api('/api/experiences'), api('/api/resume-versions'), api('/api/data/status'), api('/api/health')
+    const [ops,schedule,emailMessages,emailSettings,profile,exps,versions,questions,fieldSets,dataStatus,health]=await Promise.all([
+      api('/api/opportunities'), api('/api/schedule-events'), api('/api/email/messages'), api('/api/email/settings'), api('/api/profile'), api('/api/experiences'), api('/api/resume-versions'), api('/api/interview-questions'), api('/api/role-field-sets'), api('/api/data/status'), api('/api/health')
     ]);
     state.opportunities=ops.items||[];
     state.scheduleEvents=schedule.items||[];
@@ -38,6 +38,8 @@ async function loadAll(){
     state.profile=profile.profile||{};
     state.experiences=exps.items||[];
     state.versions=versions.items||[];
+    state.interviewQuestions=questions.items||[];
+    state.roleFieldSets=fieldSets.items||[];
     state.dataStatus=dataStatus||{};
     state.health=health||{};
     state.latestVersion=state.latestVersion || state.versions[0] || null;
@@ -53,7 +55,7 @@ async function loadAll(){
   }catch(e){notice(e.message,true);}
 }
 
-function renderAll(){renderDashboard();renderCalendar();renderEmail();renderMemo();renderProfile();renderPrivateProfile();renderExperiences();renderTargetOptions();renderExperienceChooser();renderVersions();renderDataStatus();renderRecommendations();if(state.latestVersion)renderResumePreview(state.latestVersion);}
+function renderAll(){renderDashboard();renderCalendar();renderEmail();renderMemo();renderProfile();renderPrivateProfile();renderExperiences();renderInterviewQuestions();renderRoleFieldSets();renderTargetOptions();renderExperienceChooser();renderVersions();renderDataStatus();renderRecommendations();if(state.latestVersion)renderResumePreview(state.latestVersion);}
 
 const EVENT_TYPE={application:'投递',written_test:'笔试',interview:'面试',deadline:'截止',follow_up:'跟进',other:'其他'};
 const EVENT_CLASS={application:'event-application',written_test:'event-written-test',interview:'event-interview',deadline:'event-deadline',follow_up:'event-follow-up',other:'event-other'};
@@ -213,6 +215,18 @@ function renderResumePreview(version){
   $('#resumePreview').innerHTML=`${sourceNote}<div class="resume-preview-heading"><div><h2>${esc(p.name||'个人简历')}</h2>${contact?`<div class="contact">${esc(contact)}</div>`:''}</div>${photo}</div>${headline?`<div class="headline">${esc(headline)}</div>`:''}${r.summary?`<p class="summary">${esc(r.summary)}</p>`:''}${sections}${(r.skills||[]).length?`<section class="resume-section"><h3>技能</h3><p>${esc(r.skills.join('、'))}</p></section>`:''}`;
   $('#previewActions').innerHTML=`<a class="small-btn primary-link" href="/api/resume-versions/${version.id}/pdf">下载 PDF</a><a class="small-btn" href="/api/resume-versions/${version.id}/docx">下载 DOCX</a><button class="small-btn danger" type="button" data-preview-delete="${version.id}">删除此版本</button>`;
 }
+function renderInterviewQuestions(){
+  const list=$('#interviewQuestionList');if(!list)return;
+  const role=$('#interviewRoleFilter')?.value||'',type=$('#interviewTypeFilter')?.value||'',source=$('#interviewSourceFilter')?.value||'';
+  const roles=[...new Set([...state.interviewQuestions.map(x=>x.role_category).filter(Boolean),...state.opportunities.map(x=>x.role).filter(Boolean)])];
+  const select=$('#interviewRoleFilter'),current=select.value;select.innerHTML='<option value="">全部岗位类别</option>'+roles.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join('');if(roles.includes(current))select.value=current;
+  const rows=state.interviewQuestions.filter(x=>(!role||x.role_category===role)&&(!type||x.question_type===type)&&(!source||x.source_type===source));
+  list.innerHTML=rows.map(x=>`<article class="interview-question-card" data-id="${x.id}"><div class="interview-question-head"><div><span class="tag">${x.question_type==='written_test'?'笔试':'面试'}</span><span class="tag">${x.source_type==='network'?'网络题库':'亲身经历'}</span>${x.role_category?`<span class="tag">${esc(x.role_category)}</span>`:''}${x.company?`<span class="helper">${esc(x.company)}</span>`:''}</div><span class="helper">${esc(x.event_date||'')}</span></div><h3>${esc(x.question)}</h3>${x.answer?`<div class="question-block"><b>回答 / 参考答案</b><p>${esc(x.answer)}</p></div>`:''}${x.feeling?`<div class="question-block feeling"><b>复盘感受</b><p>${esc(x.feeling)}</p></div>`:''}<div class="interview-question-foot"><div class="tag-list">${(x.tags||[]).map(t=>`<span>${esc(t)}</span>`).join('')}</div><div class="memo-actions"><button class="small-btn" data-action="edit-question">编辑</button><button class="small-btn danger" data-action="delete-question">删除</button></div></div></article>`).join('');
+  $('#interviewQuestionEmpty').classList.toggle('hidden',rows.length>0);
+}
+function openInterviewQuestion(item=null){const x=item||{};$('#interviewQuestionId').value=x.id||'';$('#interviewQuestionDialogTitle').textContent=item?'编辑题目':'记录笔面试题目';$('#interviewQuestionType').value=x.question_type||'interview';$('#interviewQuestionSource').value=x.source_type||'personal';$('#interviewQuestionRole').value=x.role_category||'';$('#interviewQuestionCompany').value=x.company||'';$('#interviewQuestionDate').value=x.event_date||localDate(new Date());$('#interviewQuestionText').value=x.question||'';$('#interviewQuestionAnswer').value=x.answer||'';$('#interviewQuestionFeeling').value=x.feeling||'';$('#interviewQuestionTags').value=(x.tags||[]).join(', ');const select=$('#interviewQuestionOpportunity');select.innerHTML='<option value="">不关联岗位</option>'+state.opportunities.map(o=>`<option value="${o.id}" ${String(o.id)===String(x.opportunity_id||'')?'selected':''}>${esc(o.company||'待补充公司')} · ${esc(o.role||o.title||'岗位')}</option>`).join('');$('#interviewQuestionDialog').showModal();}
+function renderRoleFieldSets(){const list=$('#roleFieldSetList');if(!list)return;list.innerHTML=state.roleFieldSets.map(x=>`<article class="role-field-set-card" data-id="${x.id}"><div class="interview-question-head"><div><span class="tag">${esc(x.role_category)}</span><b>${esc(x.title||'常用字段')}</b></div></div>${x.self_evaluation?`<p><b>自我评价：</b>${esc(x.self_evaluation)}</p>`:''}${x.strengths?`<p><b>个人优势：</b>${esc(x.strengths)}</p>`:''}${(x.skills||[]).length?`<div class="tag-list">${x.skills.map(s=>`<span>${esc(s)}</span>`).join('')}</div>`:''}<div class="memo-actions"><button class="small-btn" data-action="edit-field-set">编辑</button><button class="small-btn danger" data-action="delete-field-set">删除</button></div></article>`).join('')||'<div class="empty-state compact">还没有岗位常用字段，先按岗位类别建立一组。</div>';}
+function openRoleFieldSet(item=null){const x=item||{};$('#roleFieldSetId').value=x.id||'';$('#roleFieldSetDialogTitle').textContent=item?'编辑岗位常用字段':'新建岗位常用字段';$('#roleFieldSetRole').value=x.role_category||'';$('#roleFieldSetTitle').value=x.title||'';$('#roleFieldSetSelfEvaluation').value=x.self_evaluation||'';$('#roleFieldSetStrengths').value=x.strengths||'';$('#roleFieldSetSkills').value=(x.skills||[]).join('\n');$('#roleFieldSetAnswers').value=Object.entries(x.common_answers||{}).map(([k,v])=>`${k}：${v}`).join('\n');$('#roleFieldSetNotes').value=x.notes||'';$('#roleFieldSetDialog').showModal();}
 function renderDataStatus(){const d=state.dataStatus||{};$('#dataDbPath').textContent=d.db_path||'未知';$('#dataCounts').textContent=`岗位 ${d.opportunities||0} · 经历 ${d.experiences||0} · 简历版本 ${d.resume_versions||0} · 备份 ${d.backup_count||0}`;}
 
 // ---------- navigation ----------
@@ -220,7 +234,7 @@ const titles=UI_TEXT.pageTitles;
 const subtitles={vault:'统一管理教育、实习、项目、获奖、专利和论文等经历资料。'};
 let vaultView='dashboard';
 function goView(view){$$('.nav').forEach(x=>x.classList.toggle('active',x.dataset.view===view));$$('.view').forEach(x=>x.classList.toggle('active-view',x.id===`view-${view}`));$('#viewTitle').textContent=titles[view]||'';$('#viewSubtitle').textContent=subtitles[view]||'集中查看岗位进展、待办事项和简历准备情况。';if(view==='vault'){vaultView='dashboard';$$('[data-vault-view]').forEach(x=>x.classList.toggle('active',x.dataset.vaultView===vaultView));sendVaultView(vaultView);}}
-function sendVaultView(view){const frame=$('#careerVaultFrame');if(!frame)return;vaultView=view;frame.contentWindow?.postMessage({type:'careeros-vault-view',view},'*');}
+function sendVaultView(view){const frame=$('#careerVaultFrame'),panel=$('#commonFieldsPanel');if(!frame)return;vaultView=view;const fields=view==='fields';frame.classList.toggle('hidden',fields);panel?.classList.toggle('hidden',!fields);if(!fields)frame.contentWindow?.postMessage({type:'careeros-vault-view',view},'*');}
 $$('.nav').forEach(btn=>btn.addEventListener('click',()=>goView(btn.dataset.view)));
 document.addEventListener('click',e=>{const go=e.target.closest('[data-go-view]');if(go)goView(go.dataset.goView);const job=e.target.closest('[data-dashboard-job]');if(job){goView('memo');const id=Number(job.dataset.dashboardJob);const item=state.opportunities.find(x=>x.id===id);if(item){$('#memoSearch').value=item.company||item.role||'';renderMemo();}}});
 $('#refreshBtn').addEventListener('click',loadAll);$('#refreshCareerVault').addEventListener('click',loadAll);
@@ -248,6 +262,14 @@ $('#resumeImportForm').addEventListener('submit',async e=>{e.preventDefault();co
 $('#experienceFilter').addEventListener('change',renderExperiences);$('#addExperienceBtn').addEventListener('click',()=>openExperience());$('#experienceClose').addEventListener('click',closeExperience);$('#experienceCancel').addEventListener('click',closeExperience);
 $('#experienceForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('#experienceId').value;const payload={category:$('#expCategory').value,title:$('#expTitle').value.trim(),organization:$('#expOrganization').value.trim(),location:$('#expLocation').value.trim(),start_date:$('#expStart').value.trim(),end_date:$('#expEnd').value.trim(),description:$('#expDescription').value.trim(),highlights:$('#expHighlights').value.split('\n').map(x=>x.trim()).filter(Boolean),tags:$('#expTags').value.split(/[,，]/).map(x=>x.trim()).filter(Boolean)};try{await api(id?`/api/experiences/${id}`:'/api/experiences',{method:id?'PATCH':'POST',body:JSON.stringify(payload)});closeExperience();await loadAll();}catch(err){notice(err.message,true);}});
 $('#experienceList').addEventListener('click',async e=>{const action=e.target.dataset.action;if(!action)return;const id=Number(e.target.closest('.experience-card').dataset.id),item=state.experiences.find(x=>x.id===id);if(action==='edit-exp')openExperience(item);if(action==='delete-exp'&&confirm('删除这条经历？')){await api(`/api/experiences/${id}`,{method:'DELETE'});await loadAll();}});
+
+$('#addInterviewQuestionBtn').addEventListener('click',()=>openInterviewQuestion());$('#interviewQuestionClose').addEventListener('click',()=>$('#interviewQuestionDialog').close());$('#interviewQuestionCancel').addEventListener('click',()=>$('#interviewQuestionDialog').close());$('#interviewRoleFilter').addEventListener('change',renderInterviewQuestions);$('#interviewTypeFilter').addEventListener('change',renderInterviewQuestions);$('#interviewSourceFilter').addEventListener('change',renderInterviewQuestions);
+$('#interviewQuestionForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('#interviewQuestionId').value;const payload={question_type:$('#interviewQuestionType').value,source_type:$('#interviewQuestionSource').value,role_category:$('#interviewQuestionRole').value.trim(),company:$('#interviewQuestionCompany').value.trim(),event_date:$('#interviewQuestionDate').value,opportunity_id:Number($('#interviewQuestionOpportunity').value)||null,question:$('#interviewQuestionText').value.trim(),answer:$('#interviewQuestionAnswer').value.trim(),feeling:$('#interviewQuestionFeeling').value.trim(),tags:$('#interviewQuestionTags').value.split(/[,，]/).map(x=>x.trim()).filter(Boolean)};try{await api(id?`/api/interview-questions/${id}`:'/api/interview-questions',{method:id?'PATCH':'POST',body:JSON.stringify(payload)});$('#interviewQuestionDialog').close();notice(id?'题目已更新。':'题目已保存。');await loadAll();}catch(err){notice(err.message,true);}});
+$('#interviewQuestionList').addEventListener('click',async e=>{const action=e.target.dataset.action;if(!action)return;const id=Number(e.target.closest('.interview-question-card').dataset.id),item=state.interviewQuestions.find(x=>x.id===id);if(action==='edit-question')openInterviewQuestion(item);if(action==='delete-question'&&confirm('删除这道题目？')){await api(`/api/interview-questions/${id}`,{method:'DELETE'});await loadAll();}});
+
+$('#addRoleFieldSetBtn').addEventListener('click',()=>openRoleFieldSet());$('#roleFieldSetClose').addEventListener('click',()=>$('#roleFieldSetDialog').close());$('#roleFieldSetCancel').addEventListener('click',()=>$('#roleFieldSetDialog').close());
+$('#roleFieldSetForm').addEventListener('submit',async e=>{e.preventDefault();const id=$('#roleFieldSetId').value;const answers={};$('#roleFieldSetAnswers').value.split('\n').map(x=>x.trim()).filter(Boolean).forEach(line=>{const i=line.search(/[:：]/);if(i>0)answers[line.slice(0,i).trim()]=line.slice(i+1).trim();});const payload={role_category:$('#roleFieldSetRole').value.trim(),title:$('#roleFieldSetTitle').value.trim(),self_evaluation:$('#roleFieldSetSelfEvaluation').value.trim(),strengths:$('#roleFieldSetStrengths').value.trim(),skills:$('#roleFieldSetSkills').value.split('\n').map(x=>x.trim()).filter(Boolean),common_answers:answers,notes:$('#roleFieldSetNotes').value.trim()};try{await api(id?`/api/role-field-sets/${id}`:'/api/role-field-sets',{method:id?'PATCH':'POST',body:JSON.stringify(payload)});$('#roleFieldSetDialog').close();notice(id?'岗位常用字段已更新。':'岗位常用字段已保存。');await loadAll();}catch(err){notice(err.message,true);}});
+$('#roleFieldSetList').addEventListener('click',async e=>{const action=e.target.dataset.action;if(!action)return;const id=Number(e.target.closest('.role-field-set-card').dataset.id),item=state.roleFieldSets.find(x=>x.id===id);if(action==='edit-field-set')openRoleFieldSet(item);if(action==='delete-field-set'&&confirm('删除这组岗位常用字段？')){await api(`/api/role-field-sets/${id}`,{method:'DELETE'});await loadAll();}});
 
 // ---------- recommendation / resume events ----------
 $('#targetOpportunity').addEventListener('change',()=>{const id=Number($('#targetOpportunity').value||0);const item=state.opportunities.find(x=>x.id===id);if(item){$('#targetCompany').value=item.company||'';$('#targetRole').value=item.role||'';$('#targetJd').value=item.jd_text||item.description||item.raw_text||'';}invalidateRecommendations();scheduleRecommendationAnalysis();});
