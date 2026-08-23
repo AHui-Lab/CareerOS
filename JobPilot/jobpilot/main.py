@@ -997,16 +997,40 @@ async def remove_role_field_set(field_set_id: int):
     return {"ok": True}
 
 
+def _best_role_field_set(role: str) -> dict[str, Any] | None:
+    role = str(role or "").strip().lower()
+    if not role:
+        return None
+    candidates = []
+    for item in db.list_role_field_sets():
+        category = str(item.get("role_category") or "").strip().lower()
+        if not category:
+            continue
+        score = 2 if category in role or role in category else 0
+        if score:
+            candidates.append((score, item))
+    return max(candidates, key=lambda x: x[0])[1] if candidates else None
+
+
 @app.get("/api/autofill/package")
 async def autofill_package(opportunity_id: int | None = None):
     version = db.latest_resume_version(opportunity_id=opportunity_id)
     profile = db.get_profile()
     package = build_flat_package(version, profile)
     structured = build_structured_autofill(version, profile)
+    role_field_set = _best_role_field_set(str((version or {}).get("target_role") or ""))
+    if role_field_set:
+        if role_field_set.get("self_evaluation"):
+            package["self_intro"] = role_field_set["self_evaluation"]
+        if role_field_set.get("skills"):
+            package["skills"] = "、".join(role_field_set["skills"])
+            structured["skills"] = role_field_set["skills"]
+        structured["role_field_set"] = role_field_set
     return {
         "schema_version": 2,
         "package": package,
         "structured": structured,
+        "role_field_set": role_field_set,
         "resume_version": version,
         "warning": "默认只填写普通文本/下拉字段与重复经历行；不会自动点击提交。身份证、政治面貌、民族等敏感字段需要在浏览器助手中单次明确允许，证件照文件仍需手动上传。",
     }
