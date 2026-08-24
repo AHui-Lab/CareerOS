@@ -80,6 +80,13 @@ def _ensure_repo() -> None:
         _git("config", "user.email", "careeros-sync@users.noreply.github.com")
     if not _git("config", "user.name", check=False):
         _git("config", "user.name", "CareerOS Sync")
+    # 允许用户创建仓库时顺手初始化 README；首次同步时先接上远程历史。
+    branch = str(config.get("branch") or "main")
+    remote_ref = _git("ls-remote", "origin", f"refs/heads/{branch}", check=False)
+    local_head = _git("rev-parse", "--verify", "HEAD", check=False)
+    if remote_ref and not local_head:
+        _git("fetch", "origin", branch)
+        _git("checkout", "-B", branch, f"origin/{branch}")
 
 
 def _derive(passphrase: str, salt: bytes) -> bytes:
