@@ -8,7 +8,7 @@ const UNSUBMITTED_STATUSES = new Set(['inbox','interested','preparing']);
 const SUBMITTED_STATUSES = new Set(['applied','interview','offer','rejected']);
 
 let state = {
-  opportunities:[], scheduleEvents:[], emails:[], emailSettings:{}, profile:{}, experiences:[], versions:[], interviewQuestions:[], roleFieldSets:[], dataStatus:{}, health:{}, latestVersion:null,
+  opportunities:[], scheduleEvents:[], emails:[], emailSettings:{}, profile:{}, experiences:[], versions:[], interviewQuestions:[], roleFieldSets:[], dataStatus:{}, syncStatus:{}, health:{}, latestVersion:null,
   memoEditing:null, memoScope:'all', emailFilter:'pending', recommendations:[], recommendationDefaultIds:[], recommendationSignature:'',
   recommendationsLoading:false
 };
@@ -28,8 +28,8 @@ async function api(path,options={}){
 
 async function loadAll(){
   try{
-    const [ops,schedule,emailMessages,emailSettings,profile,exps,versions,questions,fieldSets,dataStatus,health]=await Promise.all([
-      api('/api/opportunities'), api('/api/schedule-events'), api('/api/email/messages'), api('/api/email/settings'), api('/api/profile'), api('/api/experiences'), api('/api/resume-versions'), api('/api/interview-questions'), api('/api/role-field-sets'), api('/api/data/status'), api('/api/health')
+    const [ops,schedule,emailMessages,emailSettings,profile,exps,versions,questions,fieldSets,dataStatus,syncStatus,health]=await Promise.all([
+      api('/api/opportunities'), api('/api/schedule-events'), api('/api/email/messages'), api('/api/email/settings'), api('/api/profile'), api('/api/experiences'), api('/api/resume-versions'), api('/api/interview-questions'), api('/api/role-field-sets'), api('/api/data/status'), api('/api/sync/status'), api('/api/health')
     ]);
     state.opportunities=ops.items||[];
     state.scheduleEvents=schedule.items||[];
@@ -41,6 +41,7 @@ async function loadAll(){
     state.interviewQuestions=questions.items||[];
     state.roleFieldSets=fieldSets.items||[];
     state.dataStatus=dataStatus||{};
+    state.syncStatus=syncStatus||{};
     state.health=health||{};
     state.latestVersion=state.latestVersion || state.versions[0] || null;
     const cvOk=!!health.careervault?.available;
@@ -55,7 +56,7 @@ async function loadAll(){
   }catch(e){notice(e.message,true);}
 }
 
-function renderAll(){renderDashboard();renderCalendar();renderEmail();renderMemo();renderProfile();renderPrivateProfile();renderExperiences();renderInterviewQuestions();renderRoleFieldSets();renderTargetOptions();renderExperienceChooser();renderVersions();renderDataStatus();renderRecommendations();if(state.latestVersion)renderResumePreview(state.latestVersion);}
+function renderAll(){renderDashboard();renderCalendar();renderEmail();renderMemo();renderProfile();renderPrivateProfile();renderExperiences();renderInterviewQuestions();renderRoleFieldSets();renderTargetOptions();renderExperienceChooser();renderVersions();renderDataStatus();renderSyncStatus();renderRecommendations();if(state.latestVersion)renderResumePreview(state.latestVersion);}
 
 const EVENT_TYPE={application:'投递',written_test:'笔试',interview:'面试',deadline:'截止',follow_up:'跟进',other:'其他'};
 const EVENT_CLASS={application:'event-application',written_test:'event-written-test',interview:'event-interview',deadline:'event-deadline',follow_up:'event-follow-up',other:'event-other'};
@@ -228,6 +229,7 @@ function openInterviewQuestion(item=null){const x=item||{};$('#interviewQuestion
 function renderRoleFieldSets(){const list=$('#roleFieldSetList');if(!list)return;list.innerHTML=state.roleFieldSets.map(x=>`<article class="role-field-set-card" data-id="${x.id}"><div class="interview-question-head"><div><span class="tag">${esc(x.role_category)}</span><b>${esc(x.title||'常用字段')}</b></div></div>${x.self_evaluation?`<p><b>自我评价：</b>${esc(x.self_evaluation)}</p>`:''}${x.strengths?`<p><b>个人优势：</b>${esc(x.strengths)}</p>`:''}${(x.skills||[]).length?`<div class="tag-list">${x.skills.map(s=>`<span>${esc(s)}</span>`).join('')}</div>`:''}<div class="memo-actions"><button class="small-btn" data-action="edit-field-set">编辑</button><button class="small-btn danger" data-action="delete-field-set">删除</button></div></article>`).join('')||'<div class="empty-state compact">还没有岗位常用字段，先按岗位类别建立一组。</div>';}
 function openRoleFieldSet(item=null){const x=item||{};$('#roleFieldSetId').value=x.id||'';$('#roleFieldSetDialogTitle').textContent=item?'编辑岗位常用字段':'新建岗位常用字段';$('#roleFieldSetRole').value=x.role_category||'';$('#roleFieldSetTitle').value=x.title||'';$('#roleFieldSetSelfEvaluation').value=x.self_evaluation||'';$('#roleFieldSetStrengths').value=x.strengths||'';$('#roleFieldSetSkills').value=(x.skills||[]).join('\n');$('#roleFieldSetAnswers').value=Object.entries(x.common_answers||{}).map(([k,v])=>`${k}：${v}`).join('\n');$('#roleFieldSetNotes').value=x.notes||'';$('#roleFieldSetDialog').showModal();}
 function renderDataStatus(){const d=state.dataStatus||{};$('#dataDbPath').textContent=d.db_path||'未知';$('#dataCounts').textContent=`岗位 ${d.opportunities||0} · 经历 ${d.experiences||0} · 简历版本 ${d.resume_versions||0} · 备份 ${d.backup_count||0}`;}
+function renderSyncStatus(){const s=state.syncStatus||{};const badge=$('#syncStateBadge');const text=$('#syncStateText');if(!badge||!text)return;badge.textContent=s.configured?(s.pending_remote?'有待确认更新':'已配置'):'未配置';text.textContent=!s.configured?'配置私有仓库地址和同步口令后即可使用。':s.pending_remote?'检测到远程更新，请先检查并确认后再接受。':`上次检查：${s.last_checked_at||'尚未检查'} · 上次提交：${s.last_sync_at||'尚未提交'}${s.last_error?' · '+s.last_error:''}`;$('#syncAcceptBtn').disabled=!s.pending_remote;$('#syncRollbackBtn').disabled=!s.rollback_available;if(s.remote_url)$('#syncRemoteUrl').value=s.remote_url;if(s.branch)$('#syncBranch').value=s.branch;$('#syncAutoStart').checked=s.auto_start_check!==false;$('#syncAutoClose').checked=s.auto_close_sync!==false;}
 
 // ---------- navigation ----------
 const titles=UI_TEXT.pageTitles;
@@ -316,5 +318,11 @@ $('#emailList').addEventListener('click',async e=>{const ignore=e.target.closest
 // ---------- data safety ----------
 $('#backupDbBtn').addEventListener('click',async()=>{const b=$('#backupDbBtn');b.disabled=true;try{const data=await api('/api/data/backup',{method:'POST'});notice(`备份完成：${data.path}`);await loadAll();}catch(err){notice(err.message,true);}finally{b.disabled=false;}});
 $('#mergeDbForm').addEventListener('submit',async e=>{e.preventDefault();const file=$('#oldDbFile').files[0];if(!file)return notice('请选择需要导入的数据文件。',true);const b=e.submitter;b.disabled=true;try{const fd=new FormData();fd.append('file',file);const res=await fetch('/api/data/merge-db',{method:'POST',body:fd});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.detail||'合并失败');const m=data.merged||{};notice(`数据已合并：岗位 +${m.opportunities||0}，经历 +${m.experiences||0}。`);$('#oldDbFile').value='';await loadAll();}catch(err){notice(err.message,true);}finally{b.disabled=false;}});
+$('#syncConfigForm').addEventListener('submit',async e=>{e.preventDefault();try{await api('/api/sync/config',{method:'POST',body:JSON.stringify({remote_url:$('#syncRemoteUrl').value.trim(),branch:$('#syncBranch').value.trim()||'main',passphrase:$('#syncPassphrase').value,auto_start_check:$('#syncAutoStart').checked,auto_close_sync:$('#syncAutoClose').checked})});$('#syncPassphrase').value='';notice('同步配置已保存。同步口令只保存在本机。');await loadAll();}catch(err){notice(err.message,true);}});
+async function syncAction(id,path,success){const b=$(id);b.disabled=true;try{await api(path,{method:'POST'});notice(success);await loadAll();}catch(err){notice(err.message,true);}finally{renderSyncStatus();}}
+$('#syncCheckBtn').addEventListener('click',()=>syncAction('#syncCheckBtn','/api/sync/check','远程检查完成。'));
+$('#syncAcceptBtn').addEventListener('click',()=>{if(confirm('接受远程数据会覆盖本机当前数据，但系统会先自动备份。确定继续吗？'))syncAction('#syncAcceptBtn','/api/sync/accept','远程数据已接受，本机已更新。');});
+$('#syncCommitBtn').addEventListener('click',()=>syncAction('#syncCommitBtn','/api/sync/commit','当前全部数据已加密提交到私有仓库。'));
+$('#syncRollbackBtn').addEventListener('click',()=>{if(confirm('确定回滚到上次接受远程更新前的本机版本吗？'))syncAction('#syncRollbackBtn','/api/sync/rollback','已回滚到接受更新前的本机版本。');});
 
 loadAll();

@@ -214,6 +214,7 @@
         <section class="panel"><p class="eyebrow">BROWSER ASSISTANT</p><h2>浏览器插件</h2><p>支持北森、Moka、牛客等常见招聘系统的辅助填表。插件不会自动提交申请，请始终由你确认后提交。</p><div class="ats-grid"><div class="ats-card"><b>北森 / iTalent</b><span class="helper">教育、实习、项目信息</span></div><div class="ats-card"><b>Moka</b><span class="helper">动态表单辅助</span></div><div class="ats-card"><b>牛客</b><span class="helper">校园招聘表单</span></div></div></section>
         <section class="panel"><p class="eyebrow">STARTUP</p><h2>启动工作台</h2><div class="career-os-box"><p>在项目根目录运行：</p><div class="career-os-command">career-os.bat</div><p class="helper">它会检查并启动求职工作台及经历服务。</p></div></section>
         <section class="panel"><p class="eyebrow">DATA SAFETY</p><h2>数据安全</h2><div class="data-box"><div><b>本地数据</b><span id="dataDbPath">读取中…</span></div><div id="dataCounts">读取中…</div></div><div class="toolbar-actions"><button id="backupDbBtn" class="primary-btn" type="button">立即备份</button></div><details class="advanced-settings"><summary>高级设置</summary><p class="helper">仅用于数据迁移和故障排查，不建议日常修改。</p><hr><form id="mergeDbForm" class="stack-form"><label>导入旧版数据<input id="oldDbFile" type="file" accept=".db,.sqlite,.sqlite3" /></label><button class="ghost-btn" type="submit">合并旧数据</button></form><p class="technical-detail">API 状态与数据库路径仅在此处显示。</p></details></section>
+        <section class="panel sync-panel"><div class="section-title"><div><p class="eyebrow">PRIVATE CLOUD SYNC</p><h2>私有仓库同步</h2><p class="helper">远端只保存加密快照。请使用私有 GitHub 仓库，并先在电脑上配置好 GitHub 登录凭据。</p></div><span id="syncStateBadge" class="private-badge">未配置</span></div><form id="syncConfigForm" class="form-grid-2"><label class="full-span">私有 GitHub 仓库地址<input id="syncRemoteUrl" placeholder="https://github.com/你的账号/careeros-data.git" /></label><label>分支<input id="syncBranch" value="main" /></label><label>同步口令<input id="syncPassphrase" type="password" minlength="8" placeholder="两台电脑必须一致，至少 8 位" /></label><label class="checkbox-label"><input id="syncAutoStart" type="checkbox" checked /> 启动时后台检查更新</label><label class="checkbox-label"><input id="syncAutoClose" type="checkbox" checked /> 关闭时自动提交</label><div class="full-span toolbar-actions"><button class="primary-btn" type="submit">保存同步配置</button><button id="syncCheckBtn" class="ghost-btn" type="button">检查远程更新</button><button id="syncAcceptBtn" class="ghost-btn" type="button" disabled>接受远程更新</button><button id="syncCommitBtn" class="ghost-btn" type="button">提交当前数据</button><button id="syncRollbackBtn" class="ghost-btn" type="button" disabled>回滚上次接受</button></div></form><p id="syncStateText" class="helper">读取中…</p></section>
         <section class="panel"><p class="eyebrow">PRIVACY</p><h2>你的数据留在本地</h2><p>岗位、经历和简历数据默认保存在本机。系统只使用你确认的经历来进行岗位匹配和简历生成。</p></section>
       </div>
     </section>
@@ -275,6 +276,6 @@
 </dialog>
 
   <script src="/static/ui-text.js?v=040"></script>
-<script src="/static/app.js?v=20260823-1"></script>
+<script src="/static/app.js?v=20260824-1"></script>
 </body>
 </html>

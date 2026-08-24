@@ -26,6 +26,8 @@ if ($null -eq $health) {
 
 $runningVersion = [string]$health.version
 Write-Host "Stopping JobPilot $runningVersion (PID $ownerPid)..." -ForegroundColor Yellow
+# 若用户开启了关闭自动同步，接口会在这里执行加密提交；未配置或失败不会阻止退出。
+try { Invoke-RestMethod -Method Post -Uri "$BaseUrl/api/sync/commit?reason=shutdown" -TimeoutSec 20 -ErrorAction SilentlyContinue | Out-Null } catch {}
 Stop-Process -Id $ownerPid -Force -ErrorAction SilentlyContinue
 Start-Sleep -Milliseconds 500
 

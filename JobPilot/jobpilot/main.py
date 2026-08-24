@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import asyncio
 import sqlite3
 import tempfile
 from urllib.parse import quote
@@ -38,6 +39,7 @@ from .resume import (
     generate_tailored_resume,
 )
 from .security import UnsafeUrlError
+from . import sync
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = Path(__file__).resolve().parent / "static"
@@ -55,6 +57,12 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 app.mount("/static", StaticFiles(directory=STATIC), name="static")
+
+
+@app.on_event("startup")
+async def startup_sync_check() -> None:
+    if sync.status().get("configured") and sync.status().get("auto_start_check"):
+        asyncio.create_task(asyncio.to_thread(sync.check))
 
 ALLOWED_STATUSES = {"inbox", "interested", "preparing", "applied", "interview", "offer", "rejected", "ignored"}
 ALLOWED_CATEGORIES = {"education", "work", "internship", "project", "campus", "research", "award", "certificate", "skill", "other"}
@@ -75,6 +83,14 @@ class PageImport(BaseModel):
 class TextImport(BaseModel):
     text: str = Field(min_length=10, max_length=200_000)
     title: str = Field(default="招聘备忘", max_length=500)
+
+
+class SyncConfigPayload(BaseModel):
+    remote_url: str = Field(min_length=8, max_length=4096)
+    branch: str = Field(default="main", max_length=120)
+    passphrase: str = Field(min_length=8, max_length=500)
+    auto_start_check: bool = True
+    auto_close_sync: bool = True
 
 
 class StatusPatch(BaseModel):
@@ -739,6 +755,48 @@ async def import_resume(file: UploadFile = File(...)):
 
 
 # --- data safety / recovery ---
+@app.get("/api/sync/status")
+async def sync_status():
+    return sync.status()
+
+
+@app.post("/api/sync/config")
+async def sync_config(payload: SyncConfigPayload):
+    try:
+        return await asyncio.to_thread(sync.configure, payload.remote_url, payload.branch, payload.passphrase, payload.auto_start_check, payload.auto_close_sync)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@app.post("/api/sync/check")
+async def sync_check():
+    return await asyncio.to_thread(sync.check)
+
+
+@app.post("/api/sync/commit")
+async def sync_commit(reason: str = "manual"):
+    try:
+        return await asyncio.to_thread(sync.commit, reason)
+    except Exception as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@app.post("/api/sync/accept")
+async def sync_accept():
+    try:
+        return await asyncio.to_thread(sync.accept)
+    except Exception as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@app.post("/api/sync/rollback")
+async def sync_rollback():
+    try:
+        return await asyncio.to_thread(sync.rollback)
+    except Exception as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
 @app.get("/api/data/status")
 async def data_status():
     return db.data_status()
