@@ -51,9 +51,19 @@ Each module keeps its existing Git history and service boundary. `JobPilot\caree
 
 ## Quick start on Windows
 
+推荐从仓库根目录统一安装和启动，不要分别安装两个模块：
+
+```bat
+cd ..
+install.bat
+start.bat
+```
+
+以下独立命令仅用于开发和故障排查。
+
 ```bat
 git clone https://github.com/AHui-Lab/CareerOS.git
-cd CareerOS\JobPilot
+cd CareerOS
 install.bat
 start.bat
 ```
@@ -68,9 +78,9 @@ http://127.0.0.1:8766
 
 ### Launcher shortcuts
 
-- `start.bat`: opens the current version; replaces an older JobPilot process on port 8765.
-- `restart.bat`: force a clean restart after pull/update.
-- `stop.bat`: stop only the JobPilot service on port 8765.
+- 根目录 `start.bat`: 统一启动两个模块。
+- 根目录 `stop.bat`: 统一停止两个模块。
+- `JobPilot\restart.bat`: 仅用于开发时重启 JobPilot。
 
 ## CareerVault behavior
 

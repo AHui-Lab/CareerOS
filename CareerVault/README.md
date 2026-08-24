@@ -18,6 +18,16 @@ It is intentionally not another resume editor. CareerVault stores **facts**: pro
 
 ## Quick start on Windows
 
+推荐从 CareerOS 仓库根目录统一安装和启动：
+
+```bat
+cd ..
+install.bat
+start.bat
+```
+
+正常使用不需要单独安装或打开 CareerVault。以下独立命令仅用于开发和故障排查。
+
 ```bat
 git clone https://github.com/AHui-Lab/CareerVault_system.git
 cd CareerVault_system
