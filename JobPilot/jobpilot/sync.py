@@ -133,6 +133,16 @@ def _unpack_archive(payload: bytes, target: Path) -> dict[str, Any]:
     return manifest
 
 
+def _make_accept_backup() -> str:
+    backup = db.BACKUP_DIR / f"sync-accept-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    backup.mkdir(parents=True, exist_ok=True)
+    db.backup_database(keep=20)
+    shutil.copy2(db.DB_PATH, backup / "jobpilot.db")
+    for source, name in ((VAULT_ROOT, "careervault-vault"), (VAULT_PRIVATE, "careervault-private"), (db.DATA_DIR / "private", "jobpilot-private")):
+        if source.exists(): shutil.copytree(source, backup / name, dirs_exist_ok=True)
+    return str(backup)
+
+
 def _remote_head() -> str:
     _ensure_repo()
     branch = str(_read_config().get("branch") or "main")
@@ -188,8 +198,7 @@ def accept() -> dict[str, Any]:
     payload = (SYNC_DIR / ARCHIVE_NAME).read_bytes()
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp); manifest = _unpack_archive(payload, root)
-        backup = db.backup_database(keep=20)
-        if not backup: raise ValueError("接受前备份本地数据失败，未执行覆盖。")
+        backup = _make_accept_backup()
         private = db.DATA_DIR / "private"
         restore_private = root / "content" / "private"
         if restore_private.exists():
@@ -212,6 +221,17 @@ def accept() -> dict[str, Any]:
 def rollback() -> dict[str, Any]:
     config = _read_config(); backup = Path(str(config.get("rollback_backup") or ""))
     if not backup.exists(): raise ValueError("没有可回滚的上次接受版本。")
-    db.backup_database(keep=20); shutil.copy2(backup, db.DB_PATH); db.init_db()
+    db.backup_database(keep=20); shutil.copy2(backup / "jobpilot.db", db.DB_PATH)
+    for source, target in ((backup / "careervault-vault", VAULT_ROOT), (backup / "careervault-private", VAULT_PRIVATE)):
+        if source.exists(): shutil.copytree(source, target, dirs_exist_ok=True)
+    private = backup / "jobpilot-private"
+    if private.exists():
+        (db.DATA_DIR / "private").mkdir(parents=True, exist_ok=True)
+        for item in private.iterdir():
+            if item.name not in {"sync-config.json", "sync-passphrase"}:
+                destination = db.DATA_DIR / "private" / item.name
+                if item.is_dir(): shutil.copytree(item, destination, dirs_exist_ok=True)
+                else: shutil.copy2(item, destination)
+    db.init_db()
     config["rollback_backup"] = ""; _write_config(config)
     return status()
