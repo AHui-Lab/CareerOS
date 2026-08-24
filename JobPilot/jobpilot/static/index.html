@@ -6,6 +6,15 @@
   <title>CareerOS · 个人求职工作台</title>
   <link rel="stylesheet" href="/static/styles.css" />
   <link rel="stylesheet" href="/static/v031.css" />
+  <style>
+    .sync-panel{grid-column:1/-1}
+    .sync-panel .form-grid-2{align-items:end}
+    .sync-panel .checkbox-label{display:flex;align-items:center;gap:8px;min-height:44px;font-weight:600}
+    .sync-panel .checkbox-label input{width:auto;margin:0}
+    .sync-panel .toolbar-actions{grid-column:1/-1;flex-wrap:wrap;align-items:stretch}
+    .sync-panel .toolbar-actions button{white-space:nowrap;min-width:120px}
+    @media(max-width:720px){.sync-panel .toolbar-actions button{flex:1 1 150px}}
+  </style>
 </head>
 <body>
 <div class="shell">
