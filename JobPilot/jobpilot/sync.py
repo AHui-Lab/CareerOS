@@ -12,9 +12,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from cryptography.fernet import Fernet, InvalidToken
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+try:
+    from cryptography.fernet import Fernet, InvalidToken
+    from cryptography.hazmat.primitives import hashes
+    from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+    CRYPTO_AVAILABLE = True
+except ImportError:  # 同步依赖缺失时不应阻止主程序启动
+    Fernet = None
+    InvalidToken = Exception
+    hashes = None
+    PBKDF2HMAC = None
+    CRYPTO_AVAILABLE = False
 
 from . import db
 
@@ -40,6 +48,8 @@ def _write_config(config: dict[str, Any]) -> None:
 
 
 def configure(remote_url: str, branch: str = "main", passphrase: str = "", auto_start_check: bool = True, auto_close_sync: bool = True) -> dict[str, Any]:
+    if not CRYPTO_AVAILABLE:
+        raise ValueError("同步加密依赖未安装，请在 JobPilot 目录运行 install.bat，或执行 .venv\\Scripts\\python.exe -m pip install -r requirements.txt。")
     remote_url = remote_url.strip()
     if not remote_url or len(passphrase) < 8:
         raise ValueError("请填写私有 Git 仓库地址，并设置至少 8 位同步口令。")
@@ -90,6 +100,8 @@ def _ensure_repo() -> None:
 
 
 def _derive(passphrase: str, salt: bytes) -> bytes:
+    if not CRYPTO_AVAILABLE:
+        raise ValueError("同步加密依赖未安装。")
     kdf = PBKDF2HMAC(algorithm=hashes.SHA256(), length=32, salt=salt, iterations=390000)
     return base64.urlsafe_b64encode(kdf.derive(passphrase.encode("utf-8")))
 
@@ -159,12 +171,12 @@ def _remote_head() -> str:
 
 def status() -> dict[str, Any]:
     config = _read_config()
-    return {"configured": bool(config.get("remote_url") and _passphrase()), "remote_url": config.get("remote_url", ""), "branch": config.get("branch", "main"), "auto_start_check": bool(config.get("auto_start_check", True)), "auto_close_sync": bool(config.get("auto_close_sync", True)), "last_checked_at": config.get("last_checked_at", ""), "last_sync_at": config.get("last_sync_at", ""), "pending_remote": bool(config.get("pending_remote")), "pending_head": config.get("pending_head", ""), "last_error": config.get("last_error", ""), "rollback_available": bool(config.get("rollback_backup")) and Path(str(config.get("rollback_backup"))).exists()}
+    return {"configured": bool(CRYPTO_AVAILABLE and config.get("remote_url") and _passphrase()), "encryption_available": CRYPTO_AVAILABLE, "remote_url": config.get("remote_url", ""), "branch": config.get("branch", "main"), "auto_start_check": bool(config.get("auto_start_check", True)), "auto_close_sync": bool(config.get("auto_close_sync", True)), "last_checked_at": config.get("last_checked_at", ""), "last_sync_at": config.get("last_sync_at", ""), "pending_remote": bool(config.get("pending_remote")), "pending_head": config.get("pending_head", ""), "last_error": config.get("last_error", ""), "rollback_available": bool(config.get("rollback_backup")) and Path(str(config.get("rollback_backup"))).exists()}
 
 
 def check() -> dict[str, Any]:
     config = _read_config()
-    if not config.get("remote_url") or not _passphrase():
+    if not CRYPTO_AVAILABLE or not config.get("remote_url") or not _passphrase():
         return status()
     try:
         head = _remote_head()
