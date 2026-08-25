@@ -106,6 +106,7 @@ class OpportunityEdit(BaseModel):
     role: str | None = Field(default=None, max_length=160)
     location: str | None = Field(default=None, max_length=120)
     deadline: str | None = Field(default=None, max_length=80)
+    applied_at: str | None = Field(default=None, max_length=20)
     referral_code: str | None = Field(default=None, max_length=300)
     jd_text: str | None = Field(default=None, max_length=60_000)
     note: str | None = Field(default=None, max_length=4000)
@@ -459,6 +460,7 @@ async def delete_opportunity(opportunity_id: int):
 # --- application calendar ---
 @app.get("/api/schedule-events")
 async def schedule_events(start: str = "", end: str = ""):
+    db.sync_opportunity_calendar()
     return {"items": db.list_schedule_events(start=start, end=end)}
 
 

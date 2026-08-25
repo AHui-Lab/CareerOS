@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shutil
 import sqlite3
 from contextlib import contextmanager
@@ -45,6 +46,7 @@ CREATE TABLE IF NOT EXISTS opportunities (
     raw_text TEXT NOT NULL DEFAULT '',
     jd_text TEXT NOT NULL DEFAULT '',
     referral_code TEXT NOT NULL DEFAULT '',
+    applied_at TEXT NOT NULL DEFAULT '',
     note TEXT NOT NULL DEFAULT '',
     match_score INTEGER NOT NULL DEFAULT 0,
     match_reasons TEXT NOT NULL DEFAULT '[]',
@@ -68,6 +70,8 @@ CREATE TABLE IF NOT EXISTS schedule_events (
     location TEXT NOT NULL DEFAULT '',
     notes TEXT NOT NULL DEFAULT '',
     opportunity_id INTEGER,
+    source TEXT NOT NULL DEFAULT 'manual',
+    source_key TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
     FOREIGN KEY(opportunity_id) REFERENCES opportunities(id) ON DELETE SET NULL
@@ -283,6 +287,12 @@ def init_db() -> None:
             "note": "ALTER TABLE opportunities ADD COLUMN note TEXT NOT NULL DEFAULT ''",
             "jd_text": "ALTER TABLE opportunities ADD COLUMN jd_text TEXT NOT NULL DEFAULT ''",
             "referral_code": "ALTER TABLE opportunities ADD COLUMN referral_code TEXT NOT NULL DEFAULT ''",
+            "applied_at": "ALTER TABLE opportunities ADD COLUMN applied_at TEXT NOT NULL DEFAULT ''",
+        }
+        schedule_columns = {row[1] for row in conn.execute("PRAGMA table_info(schedule_events)").fetchall()}
+        schedule_migrations = {
+            "source": "ALTER TABLE schedule_events ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'",
+            "source_key": "ALTER TABLE schedule_events ADD COLUMN source_key TEXT NOT NULL DEFAULT ''",
         }
         profile_columns = {row[1] for row in conn.execute("PRAGMA table_info(profile)").fetchall()}
         profile_migrations = {
@@ -302,6 +312,9 @@ def init_db() -> None:
         }
         for column, sql in opportunity_migrations.items():
             if column not in columns:
+                conn.execute(sql)
+        for column, sql in schedule_migrations.items():
+            if column not in schedule_columns:
                 conn.execute(sql)
         for column, sql in profile_migrations.items():
             if column not in profile_columns:
@@ -461,7 +474,7 @@ def _serialized_opportunity(item: dict[str, Any]) -> dict[str, Any]:
 def insert_opportunity(item: dict[str, Any]) -> dict[str, Any]:
     fields = (
         "source_url", "source_type", "title", "company", "role", "location", "deadline",
-        "description", "raw_text", "jd_text", "referral_code", "note", "match_score", "match_reasons", "risks", "status",
+        "description", "raw_text", "jd_text", "referral_code", "applied_at", "note", "match_score", "match_reasons", "risks", "status",
         "page_kind", "adapter_name", "page_context"
     )
     payload = _serialized_opportunity(item)
@@ -497,7 +510,7 @@ def refresh_opportunity(opportunity_id: int, item: dict[str, Any], *, preserve_s
 
 
 def edit_opportunity(opportunity_id: int, fields: dict[str, Any]) -> dict[str, Any] | None:
-    allowed = {"company", "role", "location", "deadline", "note", "jd_text", "referral_code"}
+    allowed = {"company", "role", "location", "deadline", "applied_at", "note", "jd_text", "referral_code"}
     clean = {key: str(value or "").strip() for key, value in fields.items() if key in allowed}
     if not clean:
         return get_opportunity(opportunity_id)
@@ -511,10 +524,11 @@ def edit_opportunity(opportunity_id: int, fields: dict[str, Any]) -> dict[str, A
 
 def update_status(opportunity_id: int, status: str) -> dict[str, Any] | None:
     with connect() as conn:
-        conn.execute(
-            "UPDATE opportunities SET status = ?, updated_at = datetime('now', 'localtime') WHERE id = ?",
-            (status, opportunity_id),
-        )
+        current = conn.execute("SELECT applied_at FROM opportunities WHERE id = ?", (opportunity_id,)).fetchone()
+        applied_at = current[0] if current else ""
+        if status == "applied" and not applied_at:
+            applied_at = datetime.now().strftime("%Y-%m-%d")
+        conn.execute("UPDATE opportunities SET status = ?, applied_at = ?, updated_at = datetime('now', 'localtime') WHERE id = ?", (status, applied_at, opportunity_id))
     return get_opportunity(opportunity_id)
 
 
@@ -548,15 +562,54 @@ def list_schedule_events(*, start: str = "", end: str = "") -> list[dict[str, An
     return [_schedule_event_row(row) for row in rows]
 
 
+def _calendar_date(value: Any) -> str:
+    text = str(value or "").strip()
+    chinese = re.search(r"(\d{4})[年./-](\d{1,2})[月./-](\d{1,2})日?", text)
+    if chinese:
+        text = f"{chinese.group(1)}-{int(chinese.group(2)):02d}-{int(chinese.group(3)):02d}"
+    else:
+        text = text[:10]
+    try:
+        return datetime.strptime(text, "%Y-%m-%d").strftime("%Y-%m-%d")
+    except ValueError:
+        return ""
+
+
+def sync_opportunity_calendar() -> None:
+    """Keep automatic application/deadline events in sync with opportunity fields."""
+    with connect() as conn:
+        opportunities = conn.execute("SELECT id, company, role, title, status, applied_at, deadline FROM opportunities").fetchall()
+        desired: dict[str, dict[str, Any]] = {}
+        for row in opportunities:
+            oid = int(row["id"]); label = str(row["company"] or row["role"] or row["title"] or "岗位").strip()
+            applied = _calendar_date(row["applied_at"])
+            if applied:
+                desired[f"application:{oid}"] = {"event_type": "application", "title": f"已投递 · {label}", "event_date": applied, "event_time": "", "location": "", "notes": "由岗位投递时间自动生成，可在岗位详情中修改。", "opportunity_id": oid}
+            deadline = _calendar_date(row["deadline"])
+            if deadline:
+                desired[f"deadline:{oid}"] = {"event_type": "deadline", "title": f"截止 · {label}", "event_date": deadline, "event_time": "", "location": "", "notes": "由岗位截止时间自动生成，可在岗位详情中修改。", "opportunity_id": oid}
+        existing = {str(row["source_key"]): row for row in conn.execute("SELECT * FROM schedule_events WHERE source = 'opportunity'").fetchall()}
+        for key, item in desired.items():
+            if key in existing:
+                conn.execute("UPDATE schedule_events SET event_type=?, title=?, event_date=?, event_time=?, location=?, notes=?, opportunity_id=?, updated_at=datetime('now','localtime') WHERE id=?", (*[item[x] for x in ("event_type", "title", "event_date", "event_time", "location", "notes", "opportunity_id")], existing[key]["id"]))
+            else:
+                conn.execute("INSERT INTO schedule_events(event_type,title,event_date,event_time,location,notes,opportunity_id,source,source_key) VALUES(?,?,?,?,?,?,?,?,?)", (*[item[x] for x in ("event_type", "title", "event_date", "event_time", "location", "notes", "opportunity_id")], "opportunity", key))
+        for key, row in existing.items():
+            if key not in desired:
+                conn.execute("DELETE FROM schedule_events WHERE id=?", (row["id"],))
+
+
 def get_schedule_event(event_id: int) -> dict[str, Any] | None:
     rows = list_schedule_events()
     return next((row for row in rows if int(row["id"]) == event_id), None)
 
 
 def insert_schedule_event(item: dict[str, Any]) -> dict[str, Any]:
-    fields = ["event_type", "title", "event_date", "event_time", "location", "notes", "opportunity_id"]
+    fields = ["event_type", "title", "event_date", "event_time", "location", "notes", "opportunity_id", "source", "source_key"]
     payload = {field: item.get(field, "") for field in fields}
     payload["opportunity_id"] = int(payload["opportunity_id"]) if payload["opportunity_id"] else None
+    payload["source"] = "manual"
+    payload["source_key"] = ""
     with connect() as conn:
         cursor = conn.execute(
             f"INSERT INTO schedule_events ({','.join(fields)}) VALUES ({','.join('?' for _ in fields)})",
