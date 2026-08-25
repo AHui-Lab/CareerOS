@@ -7,23 +7,22 @@
   <link rel="stylesheet" href="/static/styles.css" />
   <style>
     /* CareerVault 作为 CareerOS 的数据工作区嵌入时，不再显示第二套页面壳。 */
-    .embedded-mode .topbar:first-child{display:none}
+    .embedded-mode main>.view>.topbar:first-child{display:none}
   </style>
 </head>
 <body>
   <aside class="sidebar">
-    <div class="brand">CareerVault <span>v0.1.1</span></div>
-    <button data-view="dashboard" class="nav active">首页</button>
-    <button data-view="experiences" class="nav">经历库</button>
+    <div class="brand">CareerVault <span>v0.2.1</span></div>
+    <button data-view="experiences" class="nav active">经历项目</button>
     <button data-view="profile" class="nav">个人资料</button>
-    <button data-view="settings" class="nav">配置</button>
+    <button data-view="inbox" class="nav">草稿箱</button>
     <div class="sidebar-spacer"></div>
     <button id="gitSnapshot" class="secondary">创建 Git 快照</button>
     <div id="saveState" class="save-state">就绪</div>
   </aside>
   <main>
-    <section id="dashboard" class="view active"></section>
-    <section id="experiences" class="view"></section>
+    <section id="dashboard" class="view"></section>
+    <section id="experiences" class="view active"></section>
     <section id="profile" class="view"></section>
     <section id="settings" class="view"></section>
     <section id="files" class="view"></section>
@@ -32,7 +31,6 @@
   </main>
   <div id="modal" class="modal hidden"><div class="modal-card" id="modalCard"></div></div>
   <script>if(new URLSearchParams(location.search).get('embedded')==='1')document.body.classList.add('embedded-mode');</script>
-  <script src="/static/app.js?v=20260825-3"></script>
-  <script src="/static/migration-review.js?v=20260822-1"></script>
+  <script src="/static/app.js?v=20260825-4"></script>
 </body>
 </html>

@@ -4,8 +4,21 @@ let experiences = [];
 let currentExperience = null;
 let saveTimer = null;
 let editorSession = 0;
-const TYPE_LABELS = {project:'项目', internship:'实习', research:'科研', competition:'竞赛', award:'获奖', patent:'专利', paper:'论文', book:'专著', certificate:'软著/证书', education:'教育', work:'工作', volunteer:'志愿/社会实践', campus:'校园经历', other:'其他'};
-const TYPE_OPTIONS = Object.entries(TYPE_LABELS).map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
+let experienceCategories = [];
+const TYPE_LABELS = {project:'项目', internship:'实习', research:'科研', competition:'竞赛', award:'获奖', patent:'专利', paper:'论文', book:'专著', certificate:'软著', education:'教育', work:'工作', volunteer:'志愿/社会实践', campus:'校园经历', other:'其他'};
+
+async function loadExperienceCategories(){
+  const data=await api('/api/experience-categories');
+  experienceCategories=data.items||[];
+  experienceCategories.forEach(category=>{if(category.types?.length===1)TYPE_LABELS[category.types[0]]=category.label});
+  return experienceCategories;
+}
+function typeOptions(current=''){
+  const special={patent:'专利',certificate:'软著'};
+  const values=experienceCategories.flatMap(category=>(category.types||[category.id]).map(value=>[value,special[value]||(category.types?.length===1?category.label:`${category.label} · ${TYPE_LABELS[value]||value}`)]));
+  if(current&&!values.some(([value])=>value===current))values.push([current,TYPE_LABELS[current]||`历史分类（${current}）`]);
+  return values.map(([value,label])=>`<option value="${esc(value)}">${esc(label)}</option>`).join('');
+}
 
 async function api(url, options={}) {
   const res = await fetch(url, {headers:{'Content-Type':'application/json', ...(options.headers||{})}, ...options});
@@ -47,19 +60,11 @@ async function renderDashboard(){
 
 function expCard(x){return `<div class="card experience-card" data-id="${esc(x.id)}"><div class="row"><strong>${esc(x.title)}</strong><span class="status">${esc(TYPE_LABELS[x.type]||x.type||'其他')}</span><span class="status">${esc(x.status||'')}</span>${x.resume_ready?'<span class="tag">Resume Ready</span>':''}</div><div class="muted">${esc(x.organization||'')}${x.role?' · '+esc(x.role):''} ${x.start?' · '+esc(x.start):''}${x.end?' ~ '+esc(x.end):''}</div><div class="tags">${(x.skills||[]).slice(0,6).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div></div>`}
 
-async function renderExperiences(){
-  experiences=await api('/api/experiences');
-  const options=Object.entries(TYPE_LABELS).map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
-  $('#experiences').innerHTML=`<div class="topbar"><div><h1>经历库</h1><div class="muted">按网申常见材料分类；项目、获奖、专利和论文可互相建立关联。</div></div><button class="btn" id="newExp">+ 新增记录</button></div><div class="card filterbar"><label>分类筛选<select id="typeFilter"><option value="">全部分类</option>${options}</select></label><label>关键词<input id="experienceSearch" placeholder="名称、单位、技能…"></label></div><br><div id="experienceList" class="list"></div>`;
-  const draw=()=>{const type=$('#typeFilter').value;const q=$('#experienceSearch').value.trim().toLowerCase();const items=experiences.filter(x=>(!type||x.type===type)&&(!q||[x.title,x.organization,x.role,...(x.skills||[]),...(x.domains||[])].join(' ').toLowerCase().includes(q)));$('#experienceList').innerHTML=items.map(expCard).join('')||'<div class="card muted">没有符合条件的记录。</div>';$$('.experience-card').forEach(x=>x.onclick=()=>openExperience(x.dataset.id))};
-  $('#typeFilter').onchange=draw; $('#experienceSearch').oninput=draw; draw();
-  $('#newExp').onclick=()=>openExperience();
-}
-window.addEventListener('message',event=>{if(event.data?.type==='careeros-vault-view'&&['dashboard','experiences','profile','settings'].includes(event.data.view))showView(event.data.view);if(event.data?.type==='careeros-vault-new-experience'){showView('experiences').then(()=>setTimeout(()=>openExperience(),50))}});
+window.addEventListener('message',event=>{if(event.data?.type==='careeros-vault-view'&&['experiences','profile','inbox'].includes(event.data.view))showView(event.data.view);if(event.data?.type==='careeros-vault-new-experience'){showView('experiences').then(()=>setTimeout(()=>openExperience(),50))}if(event.data?.type==='careeros-vault-open-experience'&&event.data.id){showView('experiences').then(()=>openExperience(event.data.id))}});
 
 function experienceForm(x={}){
   return `<div class="topbar"><h2>${x.id?'编辑经历':'新增经历'}</h2><button class="btn ghost" id="closeModal">关闭</button></div><div class="form form-grid">
-  <label>类型<select id="f-type">${TYPE_OPTIONS}</select></label>
+  <label>类型<select id="f-type">${typeOptions(x.type||'')}</select></label>
   <label>状态<select id="f-status"><option value="idea">想法</option><option value="draft">草稿</option><option value="active">进行中</option><option value="verified">已验证</option><option value="archived">归档</option></select></label>
   <label class="full">名称<input id="f-title" value="${esc(x.title||'')}"></label>
   <label>组织/单位<input id="f-org" value="${esc(x.organization||'')}"></label><label>角色<input id="f-role" value="${esc(x.role||'')}"></label>
@@ -77,9 +82,10 @@ function experienceForm(x={}){
   </div>`;
 }
 
-async function openExperience(id){
+async function openExperience(id, seed={}){
   const session=++editorSession;
-  const x=id?await api('/api/experiences/'+id):{}; currentExperience=x.id||null;
+  if(!experienceCategories.length)await loadExperienceCategories();
+  const x=id?await api('/api/experiences/'+id):seed; currentExperience=x.id||null;
   $('#modalCard').innerHTML=experienceForm(x); $('#modal').classList.remove('hidden');
   $('#f-type').value=x.type||'project'; $('#f-status').value=x.status||'active'; renderTypeDetails(x);
   $('#closeModal').onclick=closeModal; $('#saveExp').onclick=()=>saveExperience(!x.id);
@@ -111,29 +117,54 @@ function renderSettings(){
 async function renderFiles(){const data=await api('/api/files');const items=data.items||[];$('#files').innerHTML=`<div class="topbar"><div><h1>文件</h1><div class="muted">Markdown / YAML / TXT / JSON 可直接编辑；PDF、DOCX、图片等保留原文件。</div></div><div class="row"><button class="btn" id="uploadGeneral">+ 添加文件</button><input type="file" id="generalFileInput" hidden></div></div><div class="list">${items.map(f=>`<div class="card file-card" data-path="${esc(f.path)}" data-editable="${f.text_editable?'1':'0'}"><div class="row"><strong>${esc(f.name)}</strong><span class="status">${esc(f.extension||'file')}</span></div><div class="muted">${esc(f.path)} · ${Math.max(1,Math.ceil(f.size/1024))} KB</div></div>`).join('')||'<div class="card muted">还没有文件。你可以把 PDF / DOCX / Markdown 等先丢进 Inbox 文件区。</div>'}</div>`;$('#uploadGeneral').onclick=()=>$('#generalFileInput').click();$('#generalFileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;const fd=new FormData();fd.append('file',f);fd.append('directory','inbox/files');state('上传中…');const r=await fetch('/api/files/upload',{method:'POST',body:fd});if(!r.ok)return alert(await r.text());state('✓ 已上传');renderFiles()};$$('.file-card').forEach(card=>card.onclick=()=>card.dataset.editable==='1'?openTextFile(card.dataset.path):window.open('/api/files/raw?path='+encodeURIComponent(card.dataset.path),'_blank'))}
 async function openTextFile(path){const f=await api('/api/files/read?path='+encodeURIComponent(path));$('#modalCard').innerHTML=`<div class="topbar"><div><h2>${esc(path)}</h2><div class="muted">停止输入 700ms 后自动保存</div></div><button class="btn ghost" id="closeModal">关闭</button></div><div class="form"><textarea id="rawFileEditor" style="min-height:65vh;font-family:ui-monospace,SFMono-Regular,Consolas,monospace">${esc(f.content||'')}</textarea></div>`;$('#modal').classList.remove('hidden');$('#closeModal').onclick=closeModal;const editor=$('#rawFileEditor');editor.addEventListener('input',()=>{state('未保存…');clearTimeout(saveTimer);saveTimer=setTimeout(async()=>{state('保存中…');await api('/api/files/write',{method:'PUT',body:JSON.stringify({path,content:editor.value})});state('✓ 已保存 '+new Date().toLocaleTimeString())},700)})}
 
-async function renderInbox(){const xs=await api('/api/inbox');$('#inbox').innerHTML=`<div class="topbar"><div><h1>Inbox</h1><div class="muted">先记下来，之后再决定是否升级成正式经历。</div></div><button class="btn" id="quickAdd2">+ 快速记录</button></div><div class="list">${xs.map(x=>`<div class="card"><div class="row"><strong>${esc(x.title)}</strong><span class="status">${esc(x.kind)}</span></div><p>${esc(x.content)}</p><div class="row"><span class="muted">${esc(x.created_at)}</span><button class="btn ghost delete-inbox" data-id="${esc(x.id)}">删除</button></div></div>`).join('')||'<div class="card muted">Inbox 是空的。</div>'}</div>`;$('#quickAdd2').onclick=openQuickAdd;$$('.delete-inbox').forEach(b=>b.onclick=async()=>{await api('/api/inbox/'+b.dataset.id,{method:'DELETE'});renderInbox()})}
-async function openQuickAdd(){if(!experiences.length)experiences=await api('/api/experiences');const options=experiences.map(x=>`<option value="${esc(x.id)}">${esc(x.title)}</option>`).join('');$('#modalCard').innerHTML=`<div class="topbar"><h2>快速记录</h2><button class="btn ghost" id="closeModal">关闭</button></div><div class="form"><label>类型<select id="q-kind"><option value="note">记录</option><option value="idea">想法</option><option value="log">进展日志</option></select></label><label>关联经历<select id="q-rel"><option value="">暂不关联</option>${options}</select></label><label>内容<textarea class="quick" id="q-content" autofocus></textarea></label><button class="btn" id="q-save">记录</button></div>`;$('#modal').classList.remove('hidden');$('#closeModal').onclick=closeModal;$('#q-save').onclick=async()=>{const content=$('#q-content').value.trim();if(!content)return;await api('/api/inbox',{method:'POST',body:JSON.stringify({content,kind:$('#q-kind').value,related_experience_id:$('#q-rel').value})});closeModal();showView('inbox')}}
+async function renderInbox(){const xs=await api('/api/inbox');$('#inbox').innerHTML=`<div class="topbar"><div><h1>草稿箱</h1><div class="muted">记录尚未整理的修改想法，需要时可转成正式经历继续完善。</div></div><button class="btn" id="quickAdd2">+ 新建草稿</button></div><div class="list">${xs.map(x=>`<div class="card draft-card"><div class="row"><strong>${esc(x.title)}</strong><span class="status">${esc(x.kind)}</span></div><p>${esc(x.content)}</p><div class="row wrap"><span class="muted">${esc(x.created_at)}</span><button class="btn promote-draft" data-id="${esc(x.id)}">转为经历</button><button class="btn ghost delete-inbox" data-id="${esc(x.id)}">删除</button></div></div>`).join('')||'<div class="card muted">草稿箱是空的。可以先写下待补充的事实、成果或修改想法。</div>'}</div>`;$('#quickAdd2').onclick=openQuickAdd;$$('.delete-inbox').forEach(b=>b.onclick=async()=>{if(confirm('确定删除这条草稿？')){await api('/api/inbox/'+b.dataset.id,{method:'DELETE'});renderInbox()}});$$('.promote-draft').forEach(b=>b.onclick=async()=>{const draft=xs.find(x=>x.id===b.dataset.id);if(!draft)return;b.disabled=true;try{const created=await api('/api/experiences',{method:'POST',body:JSON.stringify({type:'project',title:draft.title||'未命名草稿',summary:draft.content||'',notes:'由草稿箱转入',status:'draft',resume_ready:false})});await api('/api/inbox/'+draft.id,{method:'DELETE'});await showView('experiences');await openExperience(created.id)}catch(error){alert(`转换失败：${error.message}`);b.disabled=false}})}
+async function openQuickAdd(){if(!experiences.length)experiences=await api('/api/experiences');const options=experiences.map(x=>`<option value="${esc(x.id)}">${esc(x.title)}</option>`).join('');$('#modalCard').innerHTML=`<div class="topbar"><h2>新建草稿</h2><button class="btn ghost" id="closeModal">关闭</button></div><div class="form"><label>标题<input id="q-title" placeholder="例如：补充项目量化成果"></label><label>类型<select id="q-kind"><option value="idea">修改想法</option><option value="note">记录</option><option value="log">进展日志</option></select></label><label>关联经历<select id="q-rel"><option value="">暂不关联</option>${options}</select></label><label>内容<textarea class="quick" id="q-content" autofocus></textarea></label><button class="btn" id="q-save">保存草稿</button></div>`;$('#modal').classList.remove('hidden');$('#closeModal').onclick=closeModal;$('#q-save').onclick=async()=>{const content=$('#q-content').value.trim();if(!content)return alert('请填写草稿内容');await api('/api/inbox',{method:'POST',body:JSON.stringify({title:$('#q-title').value.trim(),content,kind:$('#q-kind').value,related_experience_id:$('#q-rel').value})});closeModal();showView('inbox')}}
 
 function renderIntegration(){$('#integration').innerHTML=`<div class="topbar"><div><h1>JobPilot 集成</h1><div class="muted">CareerVault = 事实库，JobPilot = JD 匹配 / 简历生成 / 网申填写。</div></div></div><div class="card"><h3>本地 API</h3><div class="code">GET  http://127.0.0.1:8766/api/jobpilot/profile\nGET  http://127.0.0.1:8766/api/jobpilot/experiences?resume_ready=true\nPOST http://127.0.0.1:8766/api/jobpilot/context</div><p>JobPilot 对每个 JD 调用 context 接口，即可拿到基础资料和排序后的 Resume Ready 经历。</p></div>`}
 
 $('#gitSnapshot').onclick=async()=>{const msg=prompt('Git 提交说明','Update CareerVault');if(msg===null)return;const r=await api('/api/git/snapshot',{method:'POST',body:JSON.stringify({message:msg})});alert(r.ok?(r.commit?'已创建快照 '+r.commit:r.message):'失败：'+r.message)};
 $('#modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
 function renderTypeDetails(x={}){const type=typeof x==='string'?x:(x.type||$('#f-type')?.value||'project');const details=typeof x==='string'?{}:(x.details||{});const labels={award:[['award_level','奖项级别/等级'],['rank','名次/排名'],['issuer','颁发单位']],competition:[['award_level','竞赛级别/等级'],['rank','名次/排名'],['issuer','主办单位']],patent:[['patent_type','专利类型'],['patent_status','申请/授权状态'],['patent_number','申请号/公开号']],certificate:[['certificate_type','证书/软著类型'],['certificate_number','证书号/登记号'],['issuer','颁发/登记单位']],paper:[['publication','期刊/会议'],['paper_status','投稿/发表状态'],['authorship','作者顺序/贡献']],book:[['publication','出版社'],['paper_status','出版状态'],['authorship','作者顺序/贡献']],project:[['project_role','项目中负责模块']],internship:[['department','部门/业务线'],['internship_type','实习类型']],research:[['research_role','研究方向/承担工作']]}[type]||[];const root=$('#typeDetails');if(!root)return;root.innerHTML=labels.length?`<strong>${TYPE_LABELS[type]||'记录'}专属字段</strong><div class="form-grid" style="margin-top:10px">${labels.map(([key,label])=>`<label>${label}<input data-detail="${key}" value="${esc(details[key]||'')}"></label>`).join('')}</div>`:'<span class="muted">该分类使用通用字段；如需补充，可写入事实记录和量化成果。</span>';$$('[data-detail]',root).forEach(el=>el.addEventListener('input',scheduleAutosave))}
-function experienceTabMatches(item, tab){
-  if(tab==='all') return true;
-  if(tab==='project') return item.type==='project';
-  if(tab==='internship') return item.type==='internship';
-  if(tab==='research') return ['research','paper','book'].includes(item.type);
-  if(tab==='recognition') return ['award','competition','patent','certificate','paper','book'].includes(item.type);
-  return true;
+function categoryForTab(tab){return experienceCategories.find(category=>category.id===tab)}
+function matchesCategory(item, category){return Boolean(category?.types?.includes(item.type))}
+function experienceMatchesSearch(item, query){return !query||[item.title,item.organization,item.role,...(item.skills||[]),...(item.domains||[])].join(' ').toLowerCase().includes(query)}
+function wireExperienceCards(){$$('.experience-card').forEach(card=>card.onclick=()=>openExperience(card.dataset.id))}
+function categorySection(category, items){return `<section class="experience-category-section"><div class="category-heading"><h2>${esc(category.label)}</h2><span>${items.length} 条</span></div><div class="list">${items.map(expCard).join('')||'<div class="card muted">这个分类还没有记录。</div>'}</div></section>`}
+
+async function openCategoryManager(){
+  if(!experienceCategories.length)await loadExperienceCategories();
+  let working=experienceCategories.map(category=>({...category,types:[...(category.types||[])]}));
+  const syncLabels=()=>{$$('[data-category-label]').forEach((input,index)=>{if(working[index])working[index].label=input.value.trim()})};
+  const draw=()=>{
+    $('#categoryRows').innerHTML=working.map((category,index)=>`<div class="category-row" data-index="${index}"><label>分类名称<input data-category-label value="${esc(category.label)}"></label><div class="category-key"><span class="muted">${esc((category.types||[]).join('、'))}</span><button class="btn ghost remove-category" type="button">删除</button></div></div>`).join('')||'<div class="card muted">当前没有分类，可以点击“添加分类”。</div>';
+    $$('.remove-category').forEach(button=>button.onclick=()=>{syncLabels();const index=Number(button.closest('[data-index]').dataset.index);working.splice(index,1);draw()});
+  };
+  $('#modalCard').innerHTML=`<div class="topbar"><div><h2>管理分类</h2><div class="muted">可以改名、增加或隐藏分类；已有经历数据不会被删除。</div></div><button class="btn ghost" id="closeModal">关闭</button></div><div id="categoryRows" class="category-manager"></div><div class="row wrap category-manager-actions"><button class="btn ghost" id="addCategory" type="button">+ 添加分类</button><button class="btn" id="saveCategories" type="button">保存分类</button></div>`;
+  $('#modal').classList.remove('hidden');draw();$('#closeModal').onclick=closeModal;
+  $('#addCategory').onclick=()=>{syncLabels();const id=`custom_${Date.now()}`;working.push({id,label:'新分类',types:[id]});draw()};
+  $('#saveCategories').onclick=async()=>{syncLabels();if(!working.length)return alert('请至少保留一个分类');if(working.some(category=>!category.label))return alert('分类名称不能为空');try{const data=await api('/api/experience-categories',{method:'PUT',body:JSON.stringify({items:working})});experienceCategories=data.items||[];closeModal();await renderExperiences()}catch(error){alert(`保存分类失败：${error.message}`)}};
 }
+
 async function renderExperiences(){
-  experiences=await api('/api/experiences');
-  const options=Object.entries(TYPE_LABELS).map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
-  $('#experiences').innerHTML=`<div class="topbar"><div><h1>经历库</h1><div class="muted">项目、实习、科研和成果资料分开管理；每条记录都可以上传佐证文件。</div></div></div><div class="row wrap experience-tabs"><button class="btn" id="innerNewExp">+ 新增记录</button><button class="btn ghost" data-exp-tab="all">全部</button><button class="btn ghost" data-exp-tab="project">项目经历</button><button class="btn ghost" data-exp-tab="internship">实习经历</button><button class="btn ghost" data-exp-tab="research">科研/论文/专著</button><button class="btn ghost" data-exp-tab="recognition">奖项与知识产权</button></div><div class="card filterbar"><label>分类筛选<select id="typeFilter"><option value="">全部分类</option>${options}</select></label><label>关键词<input id="experienceSearch" placeholder="名称、单位、技能…"></label></div><br><div id="experienceList" class="list"></div>`;
+  [experiences]=await Promise.all([api('/api/experiences'),loadExperienceCategories()]);
+  $('#experiences').innerHTML=`<div class="topbar"><div><h1>经历和项目</h1><div class="muted">按分类直接查看和维护经历；每条记录都可以上传佐证文件。</div></div></div><div class="experience-toolbar"><div class="row wrap"><button class="btn" id="innerNewExp">+ 新增记录</button><button class="btn ghost" id="manageCategories">管理分类</button></div><label class="experience-search">搜索<input id="experienceSearch" placeholder="名称、单位、技能…"></label></div><div class="row wrap experience-tabs"><button class="btn" data-exp-tab="all">全部</button>${experienceCategories.map(category=>`<button class="btn ghost" data-exp-tab="${esc(category.id)}">${esc(category.label)}</button>`).join('')}</div><div id="experienceList"></div>`;
   let tab='all';
-  const draw=()=>{const type=$('#typeFilter').value;const q=$('#experienceSearch').value.trim().toLowerCase();const items=experiences.filter(x=>experienceTabMatches(x,tab)&&(!type||x.type===type)&&(!q||[x.title,x.organization,x.role,...(x.skills||[]),...(x.domains||[])].join(' ').toLowerCase().includes(q)));$('#experienceList').innerHTML=items.map(expCard).join('')||'<div class="card muted">没有符合条件的记录，可以点击右上角新增记录。</div>';$$('.experience-card').forEach(x=>x.onclick=()=>openExperience(x.dataset.id))};
-  $$('[data-exp-tab]').forEach(button=>button.onclick=()=>{$$('[data-exp-tab]').forEach(x=>x.classList.toggle('ghost',x!==button));tab=button.dataset.expTab;$('#typeFilter').value='';draw()});
-  $('#typeFilter').onchange=draw;$('#experienceSearch').oninput=draw;$('#innerNewExp').onclick=()=>openExperience();$('#newExp')?.addEventListener('click',()=>openExperience());draw();
+  const draw=()=>{
+    const query=$('#experienceSearch').value.trim().toLowerCase();
+    const searched=experiences.filter(item=>experienceMatchesSearch(item,query));
+    if(tab==='all'){
+      const categorizedTypes=new Set(experienceCategories.flatMap(category=>category.types||[]));
+      const sections=experienceCategories.map(category=>categorySection(category,searched.filter(item=>matchesCategory(item,category))));
+      const historical=searched.filter(item=>!categorizedTypes.has(item.type));
+      if(historical.length)sections.push(categorySection({label:'其他历史记录'},historical));
+      $('#experienceList').innerHTML=sections.join('')||'<div class="card muted">还没有经历记录。</div>';
+    }else{
+      const category=categoryForTab(tab);const items=searched.filter(item=>matchesCategory(item,category));
+      $('#experienceList').innerHTML=`<div class="list">${items.map(expCard).join('')||'<div class="card muted">这个分类还没有记录，可以点击“新增记录”。</div>'}</div>`;
+    }
+    wireExperienceCards();
+  };
+  $$('[data-exp-tab]').forEach(button=>button.onclick=()=>{$$('[data-exp-tab]').forEach(item=>item.classList.toggle('ghost',item!==button));tab=button.dataset.expTab;draw()});
+  $('#experienceSearch').oninput=draw;$('#innerNewExp').onclick=()=>openExperience();$('#manageCategories').onclick=openCategoryManager;draw();
 }
-showView('dashboard');
+showView('experiences');

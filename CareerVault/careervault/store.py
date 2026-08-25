@@ -21,11 +21,21 @@ INBOX = VAULT / "inbox"
 PROFILE = VAULT / "profile"
 APPLICATIONS = VAULT / "applications"
 GENERATED = VAULT / "generated"
+CATEGORIES = VAULT / "experience-categories.json"
 SETTINGS = ROOT / "config" / "settings.yaml"
 TEXT_EXTS = {".md", ".txt", ".yaml", ".yml", ".json"}
 
 for path in (VAULT, PRIVATE, EXPERIENCES, INBOX, PROFILE, APPLICATIONS, GENERATED):
     path.mkdir(parents=True, exist_ok=True)
+
+
+DEFAULT_EXPERIENCE_CATEGORIES = [
+    {"id": "project", "label": "项目", "types": ["project"]},
+    {"id": "internship", "label": "实习", "types": ["internship"]},
+    {"id": "award", "label": "获奖", "types": ["award"]},
+    {"id": "intellectual_property", "label": "专利和软著", "types": ["patent", "certificate"]},
+    {"id": "campus", "label": "校园经历", "types": ["campus"]},
+]
 
 
 def now_iso() -> str:
@@ -129,6 +139,47 @@ def list_experiences() -> list[dict[str, Any]]:
         except Exception as exc:
             items.append({"id": path.parent.name, "title": path.parent.name, "error": str(exc)})
     return sorted(items, key=lambda x: x.get("updated_at", ""), reverse=True)
+
+
+def normalize_experience_categories(items: Any) -> list[dict[str, Any]]:
+    if not isinstance(items, list):
+        raise ValueError("categories must be a list")
+    result: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for raw in items:
+        if not isinstance(raw, dict):
+            raise ValueError("each category must be an object")
+        category_id = str(raw.get("id") or "").strip().lower()
+        label = str(raw.get("label") or "").strip()
+        raw_types = raw.get("types") or [category_id]
+        types = [str(value).strip().lower() for value in raw_types if str(value).strip()]
+        if not re.fullmatch(r"[a-z0-9_-]{1,80}", category_id):
+            raise ValueError("category id must contain only letters, numbers, _ or -")
+        if not label or len(label) > 40:
+            raise ValueError("category label must be 1-40 characters")
+        if category_id in seen:
+            raise ValueError(f"duplicate category id: {category_id}")
+        if not types or any(not re.fullmatch(r"[a-z0-9_-]{1,80}", value) for value in types):
+            raise ValueError("invalid category types")
+        seen.add(category_id)
+        result.append({"id": category_id, "label": label, "types": list(dict.fromkeys(types))})
+    return result
+
+
+def list_experience_categories() -> list[dict[str, Any]]:
+    if not CATEGORIES.exists():
+        return [dict(item) for item in DEFAULT_EXPERIENCE_CATEGORIES]
+    try:
+        data = json.loads(CATEGORIES.read_text(encoding="utf-8"))
+        return normalize_experience_categories(data)
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return [dict(item) for item in DEFAULT_EXPERIENCE_CATEGORIES]
+
+
+def save_experience_categories(items: Any) -> list[dict[str, Any]]:
+    categories = normalize_experience_categories(items)
+    atomic_write(CATEGORIES, json.dumps(categories, ensure_ascii=False, indent=2) + "\n")
+    return categories
 
 
 def get_experience(experience_id: str) -> dict[str, Any]:

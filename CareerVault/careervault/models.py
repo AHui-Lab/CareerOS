@@ -3,15 +3,11 @@ from __future__ import annotations
 from typing import Any, Literal
 from pydantic import BaseModel, Field
 
-ExperienceType = Literal[
-    "project", "internship", "research", "competition", "award", "patent", "paper", "book",
-    "certificate", "education", "work", "volunteer", "campus", "other",
-]
 ExperienceStatus = Literal["idea", "draft", "active", "verified", "archived"]
 
 
 class ExperienceCreate(BaseModel):
-    type: ExperienceType = "project"
+    type: str = Field(default="project", min_length=1, max_length=80, pattern=r"^[a-z0-9_-]+$")
     title: str = Field(min_length=1, max_length=200)
     organization: str = ""
     role: str = ""
@@ -30,7 +26,7 @@ class ExperienceCreate(BaseModel):
 
 
 class ExperienceUpdate(BaseModel):
-    type: ExperienceType | None = None
+    type: str | None = Field(default=None, min_length=1, max_length=80, pattern=r"^[a-z0-9_-]+$")
     title: str | None = None
     organization: str | None = None
     role: str | None = None

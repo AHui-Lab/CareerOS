@@ -22,11 +22,13 @@ from .store import (
     git_snapshot,
     git_status,
     list_experiences,
+    list_experience_categories,
     list_inbox,
     list_files,
     rank_experiences,
     read_text_file,
     save_attachment,
+    save_experience_categories,
     save_vault_upload,
     safe_vault_path,
     update_experience,
@@ -83,6 +85,19 @@ def api_update_profile(payload: ProfileUpdate):
 @app.get("/api/experiences")
 def api_experiences():
     return list_experiences()
+
+
+@app.get("/api/experience-categories")
+def api_experience_categories():
+    return {"items": list_experience_categories()}
+
+
+@app.put("/api/experience-categories")
+def api_update_experience_categories(payload: dict):
+    try:
+        return {"items": save_experience_categories(payload.get("items"))}
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
 
 
 @app.post("/api/experiences")

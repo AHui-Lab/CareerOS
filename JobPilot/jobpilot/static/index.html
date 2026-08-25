@@ -141,7 +141,7 @@
     </section>
 
     <section id="view-vault" class="view">
-      <div class="vault-frame-tabs" role="tablist" aria-label="经历和项目导航"><button class="mode active" type="button" data-vault-view="dashboard">概览</button><button class="mode" type="button" data-vault-view="experiences">经历库</button><button class="mode" type="button" data-vault-view="profile">个人资料</button><button class="mode" type="button" data-vault-view="fields">岗位常用字段</button><button class="mode" type="button" data-vault-view="settings">配置</button><button id="vaultQuickAdd" class="primary-btn vault-quick-add" type="button">+ 新增记录</button></div>
+      <div class="vault-frame-tabs" role="tablist" aria-label="经历和项目导航"><button class="mode active" type="button" data-vault-view="experiences">经历项目</button><button class="mode" type="button" data-vault-view="profile">个人资料</button><button class="mode" type="button" data-vault-view="fields">岗位常用字段</button><button class="mode" type="button" data-vault-view="inbox">草稿箱</button><button id="vaultQuickAdd" class="primary-btn vault-quick-add" type="button">+ 新增记录</button></div>
       <iframe id="careerVaultFrame" class="career-vault-frame" src="http://127.0.0.1:8766/?embedded=1" title="经历和项目" loading="lazy"></iframe>
       <section id="commonFieldsPanel" class="panel common-fields-panel hidden"><div class="section-title"><div><p class="eyebrow">ROLE FIELD SETS</p><h2>岗位常用字段</h2><p class="helper">按岗位类别保存自我评价、个人优势、技能和常见问答，后续简历生成与网申可以复用。</p></div><button id="addRoleFieldSetBtn" class="primary-btn" type="button">+ 新建岗位字段</button></div><div id="roleFieldSetList" class="role-field-set-list"></div></section>
     </section>
@@ -291,13 +291,13 @@
 <dialog id="careerAssetCreateDialog" class="dialog">
   <form id="careerAssetCreateForm" class="stack-form">
     <div class="dialog-head"><div><p class="eyebrow">CAREER ASSET</p><h2>新增经历记录</h2></div><button id="careerAssetCreateClose" class="icon-btn" type="button">×</button></div>
-    <div class="form-grid-2"><label>记录类型<select id="careerAssetType"><option value="project">项目经历</option><option value="internship">实习经历</option><option value="research">科研经历</option><option value="award">奖项</option><option value="certificate">软著 / 证书</option><option value="patent">专利</option><option value="paper">论文</option><option value="book">专著</option></select></label><label>名称<input id="careerAssetTitle" required placeholder="例如：AI 项目 / 国家奖学金 / 软件著作权" /></label><label>组织 / 单位<input id="careerAssetOrganization" /></label><label>角色 / 贡献<input id="careerAssetRole" /></label><label>开始时间<input id="careerAssetStart" /></label><label>结束时间<input id="careerAssetEnd" placeholder="至今" /></label></div>
+    <div class="form-grid-2"><label>记录类型<select id="careerAssetType"><option value="project">项目</option><option value="internship">实习</option><option value="award">获奖</option><option value="patent">专利</option><option value="certificate">软著</option><option value="campus">校园经历</option></select></label><label>名称<input id="careerAssetTitle" required placeholder="例如：AI 项目 / 国家奖学金 / 软件著作权" /></label><label>组织 / 单位<input id="careerAssetOrganization" /></label><label>角色 / 贡献<input id="careerAssetRole" /></label><label>开始时间<input id="careerAssetStart" /></label><label>结束时间<input id="careerAssetEnd" placeholder="至今" /></label></div>
     <label>概述<textarea id="careerAssetSummary" rows="5" placeholder="先填写核心事实，保存后可在经历库继续补充量化成果和上传佐证文件。"></textarea></label>
     <div class="dialog-actions"><button id="careerAssetCreateCancel" class="ghost-btn" type="button">取消</button><button class="primary-btn" type="submit">创建记录</button></div>
   </form>
 </dialog>
 
   <script src="/static/ui-text.js?v=040"></script>
-<script src="/static/app.js?v=20260825-6"></script>
+<script src="/static/app.js?v=20260825-7"></script>
 </body>
 </html>
