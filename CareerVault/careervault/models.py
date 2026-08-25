@@ -4,7 +4,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 ExperienceType = Literal[
-    "project", "internship", "research", "competition", "award", "patent", "paper",
+    "project", "internship", "research", "competition", "award", "patent", "paper", "book",
     "certificate", "education", "work", "volunteer", "campus", "other",
 ]
 ExperienceStatus = Literal["idea", "draft", "active", "verified", "archived"]

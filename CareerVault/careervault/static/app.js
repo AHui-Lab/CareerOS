@@ -4,7 +4,7 @@ let experiences = [];
 let currentExperience = null;
 let saveTimer = null;
 let editorSession = 0;
-const TYPE_LABELS = {project:'项目', internship:'实习', research:'科研', competition:'竞赛', award:'获奖', patent:'专利', paper:'论文', certificate:'证书', education:'教育', work:'工作', volunteer:'志愿/社会实践', campus:'校园经历', other:'其他'};
+const TYPE_LABELS = {project:'项目', internship:'实习', research:'科研', competition:'竞赛', award:'获奖', patent:'专利', paper:'论文', book:'专著', certificate:'软著/证书', education:'教育', work:'工作', volunteer:'志愿/社会实践', campus:'校园经历', other:'其他'};
 const TYPE_OPTIONS = Object.entries(TYPE_LABELS).map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
 
 async function api(url, options={}) {
@@ -118,4 +118,22 @@ function renderIntegration(){$('#integration').innerHTML=`<div class="topbar"><d
 
 $('#gitSnapshot').onclick=async()=>{const msg=prompt('Git 提交说明','Update CareerVault');if(msg===null)return;const r=await api('/api/git/snapshot',{method:'POST',body:JSON.stringify({message:msg})});alert(r.ok?(r.commit?'已创建快照 '+r.commit:r.message):'失败：'+r.message)};
 $('#modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
+function renderTypeDetails(x={}){const type=typeof x==='string'?x:(x.type||$('#f-type')?.value||'project');const details=typeof x==='string'?{}:(x.details||{});const labels={award:[['award_level','奖项级别/等级'],['rank','名次/排名'],['issuer','颁发单位']],competition:[['award_level','竞赛级别/等级'],['rank','名次/排名'],['issuer','主办单位']],patent:[['patent_type','专利类型'],['patent_status','申请/授权状态'],['patent_number','申请号/公开号']],certificate:[['certificate_type','证书/软著类型'],['certificate_number','证书号/登记号'],['issuer','颁发/登记单位']],paper:[['publication','期刊/会议'],['paper_status','投稿/发表状态'],['authorship','作者顺序/贡献']],book:[['publication','出版社'],['paper_status','出版状态'],['authorship','作者顺序/贡献']],project:[['project_role','项目中负责模块']],internship:[['department','部门/业务线'],['internship_type','实习类型']],research:[['research_role','研究方向/承担工作']]}[type]||[];const root=$('#typeDetails');if(!root)return;root.innerHTML=labels.length?`<strong>${TYPE_LABELS[type]||'记录'}专属字段</strong><div class="form-grid" style="margin-top:10px">${labels.map(([key,label])=>`<label>${label}<input data-detail="${key}" value="${esc(details[key]||'')}"></label>`).join('')}</div>`:'<span class="muted">该分类使用通用字段；如需补充，可写入事实记录和量化成果。</span>';$$('[data-detail]',root).forEach(el=>el.addEventListener('input',scheduleAutosave))}
+function experienceTabMatches(item, tab){
+  if(tab==='all') return true;
+  if(tab==='project') return item.type==='project';
+  if(tab==='internship') return item.type==='internship';
+  if(tab==='research') return ['research','paper','book'].includes(item.type);
+  if(tab==='recognition') return ['award','competition','patent','certificate','paper','book'].includes(item.type);
+  return true;
+}
+async function renderExperiences(){
+  experiences=await api('/api/experiences');
+  const options=Object.entries(TYPE_LABELS).map(([value,label])=>`<option value="${value}">${label}</option>`).join('');
+  $('#experiences').innerHTML=`<div class="topbar"><div><h1>经历库</h1><div class="muted">项目、实习、科研和成果资料分开管理；每条记录都可以上传佐证文件。</div></div><button class="btn" id="newExp">+ 新增记录</button></div><div class="row wrap experience-tabs"><button class="btn" data-exp-tab="all">全部</button><button class="btn ghost" data-exp-tab="project">项目经历</button><button class="btn ghost" data-exp-tab="internship">实习经历</button><button class="btn ghost" data-exp-tab="research">科研/论文/专著</button><button class="btn ghost" data-exp-tab="recognition">奖项与知识产权</button></div><div class="card filterbar"><label>分类筛选<select id="typeFilter"><option value="">全部分类</option>${options}</select></label><label>关键词<input id="experienceSearch" placeholder="名称、单位、技能…"></label></div><br><div id="experienceList" class="list"></div>`;
+  let tab='all';
+  const draw=()=>{const type=$('#typeFilter').value;const q=$('#experienceSearch').value.trim().toLowerCase();const items=experiences.filter(x=>experienceTabMatches(x,tab)&&(!type||x.type===type)&&(!q||[x.title,x.organization,x.role,...(x.skills||[]),...(x.domains||[])].join(' ').toLowerCase().includes(q)));$('#experienceList').innerHTML=items.map(expCard).join('')||'<div class="card muted">没有符合条件的记录，可以点击右上角新增记录。</div>';$$('.experience-card').forEach(x=>x.onclick=()=>openExperience(x.dataset.id))};
+  $$('[data-exp-tab]').forEach(button=>button.onclick=()=>{$$('[data-exp-tab]').forEach(x=>x.classList.toggle('ghost',x!==button));tab=button.dataset.expTab;$('#typeFilter').value='';draw()});
+  $('#typeFilter').onchange=draw;$('#experienceSearch').oninput=draw;$('#newExp').onclick=()=>openExperience();draw();
+}
 showView('dashboard');
