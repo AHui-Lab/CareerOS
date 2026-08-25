@@ -55,7 +55,7 @@ async function renderExperiences(){
   $('#typeFilter').onchange=draw; $('#experienceSearch').oninput=draw; draw();
   $('#newExp').onclick=()=>openExperience();
 }
-window.addEventListener('message',event=>{if(event.data?.type==='careeros-vault-view'&&['dashboard','experiences','profile','settings'].includes(event.data.view))showView(event.data.view);if(event.data?.type==='careeros-vault-new-experience'){showView('experiences').then(()=>openExperience())}});
+window.addEventListener('message',event=>{if(event.data?.type==='careeros-vault-view'&&['dashboard','experiences','profile','settings'].includes(event.data.view))showView(event.data.view);if(event.data?.type==='careeros-vault-new-experience'){showView('experiences').then(()=>setTimeout(()=>openExperience(),50))}});
 
 function experienceForm(x={}){
   return `<div class="topbar"><h2>${x.id?'编辑经历':'新增经历'}</h2><button class="btn ghost" id="closeModal">关闭</button></div><div class="form form-grid">

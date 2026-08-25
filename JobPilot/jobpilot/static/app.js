@@ -242,7 +242,7 @@ document.addEventListener('click',e=>{const go=e.target.closest('[data-go-view]'
 $('#refreshBtn').addEventListener('click',loadAll);$('#refreshCareerVault').addEventListener('click',loadAll);
 $('#careerVaultFrame').addEventListener('load',()=>sendVaultView(vaultView));
 $$('[data-vault-view]').forEach(btn=>btn.addEventListener('click',()=>{$$('[data-vault-view]').forEach(x=>x.classList.toggle('active',x===btn));sendVaultView(btn.dataset.vaultView);}));
-$('#vaultQuickAdd').addEventListener('click',()=>$('#careerVaultFrame').contentWindow?.postMessage({type:'careeros-vault-new-experience'},'*'));
+$('#vaultQuickAdd').addEventListener('click',()=>{sendVaultView('experiences');const frame=$('#careerVaultFrame');const open=()=>frame.contentWindow?.postMessage({type:'careeros-vault-new-experience'},'*');open();setTimeout(open,150);setTimeout(open,600);});
 
 // ---------- opportunity events ----------
 $$('.mode[data-mode]').forEach(btn=>btn.addEventListener('click',()=>{$$('.mode[data-mode]').forEach(x=>x.classList.remove('active'));btn.classList.add('active');$('#urlForm').classList.toggle('hidden',btn.dataset.mode!=='url');$('#textForm').classList.toggle('hidden',btn.dataset.mode!=='text');}));
