@@ -26,6 +26,17 @@ function Get-PortOwner([int]$Port) {
     return $null
 }
 
+function Get-ExpectedVersion([string]$Root) {
+    foreach ($relative in @('jobpilot\__init__.py', 'careervault\__init__.py')) {
+        $versionFile = Join-Path $Root $relative
+        if (Test-Path $versionFile) {
+            $text = Get-Content $versionFile -Raw -ErrorAction SilentlyContinue
+            if ($text -match '__version__\s*=\s*["'']([^"'']+)["'']') { return [string]$Matches[1] }
+        }
+    }
+    return ''
+}
+
 function Wait-Health([string]$Url, [string]$Name, [int]$Seconds = 15) {
     $deadline = (Get-Date).AddSeconds($Seconds)
     do {
@@ -44,8 +55,18 @@ function Start-LocalService(
 ) {
     $health = Get-JsonHealth $HealthUrl
     if ($health -and $health.ok) {
-        Write-Host "[OK] $Name already running on $Port (version $($health.version))."
-        return $health
+        $expected = Get-ExpectedVersion $Root
+        if (-not $expected -or [string]$health.version -eq $expected) {
+            Write-Host "[OK] $Name already running on $Port (version $($health.version))."
+            return $health
+        }
+        $oldOwner = Get-PortOwner $Port
+        if (-not $oldOwner) { throw "$Name version mismatch, but its process could not be found." }
+        Write-Host "[UPDATE] Restarting $Name $($health.version) -> $expected (PID $oldOwner)." -ForegroundColor Yellow
+        Stop-Process -Id $oldOwner -Force -ErrorAction Stop
+        $updateDeadline = (Get-Date).AddSeconds(5)
+        while ((Get-PortOwner $Port) -and (Get-Date) -lt $updateDeadline) { Start-Sleep -Milliseconds 200 }
+        if (Get-PortOwner $Port) { throw "$Name could not release port $Port during update." }
     }
 
     $owner = Get-PortOwner $Port
