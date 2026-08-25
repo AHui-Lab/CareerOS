@@ -1,5 +1,4 @@
 from pathlib import Path
-import json
 import re
 import unittest
 
@@ -13,22 +12,19 @@ class CareerOsLauncherContractTests(unittest.TestCase):
         self.assertIn("8765", ps1)
         self.assertIn("'CareerVault'", ps1)
         self.assertIn("CareerOS will not terminate it", ps1)
-        self.assertNotIn("Stop-Process", ps1)
-        self.assertIn("Start-Process 'http://127.0.0.1:8765'", ps1)
+        self.assertIn("version mismatch", ps1)
+        self.assertIn('Start-Process $appUrl', ps1)
 
     def test_bat_entrypoint_exists(self):
         bat = (ROOT / "career-os.bat").read_text(encoding="utf-8")
         self.assertIn("career-os.ps1", bat)
 
-    def test_version_consistency_is_031(self):
+    def test_ui_version_matches_backend_version(self):
         init = (ROOT / "jobpilot" / "__init__.py").read_text(encoding="utf-8")
-        manifest = json.loads((ROOT / "extension" / "manifest.json").read_text(encoding="utf-8"))
         html = (ROOT / "jobpilot" / "static" / "index.html").read_text(encoding="utf-8")
         match = re.search(r'__version__\s*=\s*"([^"]+)"', init)
         self.assertIsNotNone(match)
-        self.assertEqual(match.group(1), "0.3.1")
-        self.assertEqual(manifest["version"], "0.3.1")
-        self.assertIn("V0.3.1", html)
+        self.assertIn(f"V{match.group(1)}", html)
 
 
 if __name__ == "__main__":

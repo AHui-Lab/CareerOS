@@ -111,11 +111,12 @@ Write-Host ''
 
 try {
     $cv = Start-LocalService 'CareerVault' $CareerVaultHome 8766 'http://127.0.0.1:8766/api/health'
-    $jp = Start-LocalService 'CareerOS 求职管理' $JobPilotHome 8765 'http://127.0.0.1:8765/api/health'
+    $jp = Start-LocalService 'CareerOS Job Manager' $JobPilotHome 8765 'http://127.0.0.1:8765/api/health'
     Write-Host ''
-    Write-Host "[READY] CareerOS 已连接：经历资产 $($cv.version) <-> 求职管理 $($jp.version)"
-    Write-Host '[OPEN] http://127.0.0.1:8765'
-    Start-Process 'http://127.0.0.1:8765'
+    Write-Host "[READY] CareerVault $($cv.version) <-> CareerOS $($jp.version)"
+    $appUrl = "http://127.0.0.1:8765/?v=$($jp.version)"
+    Write-Host "[OPEN] $appUrl"
+    Start-Process $appUrl
 } catch {
     Write-Host ''
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
