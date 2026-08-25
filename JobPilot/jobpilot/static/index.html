@@ -288,7 +288,16 @@
   </form>
 </dialog>
 
+<dialog id="careerAssetCreateDialog" class="dialog">
+  <form id="careerAssetCreateForm" class="stack-form">
+    <div class="dialog-head"><div><p class="eyebrow">CAREER ASSET</p><h2>新增经历记录</h2></div><button id="careerAssetCreateClose" class="icon-btn" type="button">×</button></div>
+    <div class="form-grid-2"><label>记录类型<select id="careerAssetType"><option value="project">项目经历</option><option value="internship">实习经历</option><option value="research">科研经历</option><option value="award">奖项</option><option value="certificate">软著 / 证书</option><option value="patent">专利</option><option value="paper">论文</option><option value="book">专著</option></select></label><label>名称<input id="careerAssetTitle" required placeholder="例如：AI 项目 / 国家奖学金 / 软件著作权" /></label><label>组织 / 单位<input id="careerAssetOrganization" /></label><label>角色 / 贡献<input id="careerAssetRole" /></label><label>开始时间<input id="careerAssetStart" /></label><label>结束时间<input id="careerAssetEnd" placeholder="至今" /></label></div>
+    <label>概述<textarea id="careerAssetSummary" rows="5" placeholder="先填写核心事实，保存后可在经历库继续补充量化成果和上传佐证文件。"></textarea></label>
+    <div class="dialog-actions"><button id="careerAssetCreateCancel" class="ghost-btn" type="button">取消</button><button class="primary-btn" type="submit">创建记录</button></div>
+  </form>
+</dialog>
+
   <script src="/static/ui-text.js?v=040"></script>
-<script src="/static/app.js?v=20260825-3"></script>
+<script src="/static/app.js?v=20260825-4"></script>
 </body>
 </html>

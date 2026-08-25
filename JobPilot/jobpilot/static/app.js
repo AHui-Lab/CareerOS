@@ -242,7 +242,10 @@ document.addEventListener('click',e=>{const go=e.target.closest('[data-go-view]'
 $('#refreshBtn').addEventListener('click',loadAll);$('#refreshCareerVault').addEventListener('click',loadAll);
 $('#careerVaultFrame').addEventListener('load',()=>sendVaultView(vaultView));
 $$('[data-vault-view]').forEach(btn=>btn.addEventListener('click',()=>{$$('[data-vault-view]').forEach(x=>x.classList.toggle('active',x===btn));sendVaultView(btn.dataset.vaultView);}));
-$('#vaultQuickAdd').addEventListener('click',()=>{sendVaultView('experiences');const frame=$('#careerVaultFrame');const open=()=>frame.contentWindow?.postMessage({type:'careeros-vault-new-experience'},'*');open();setTimeout(open,150);setTimeout(open,600);});
+$('#vaultQuickAdd').addEventListener('click',()=>$('#careerAssetCreateDialog').showModal());
+$('#careerAssetCreateClose').addEventListener('click',()=>$('#careerAssetCreateDialog').close());
+$('#careerAssetCreateCancel').addEventListener('click',()=>$('#careerAssetCreateDialog').close());
+$('#careerAssetCreateForm').addEventListener('submit',async e=>{e.preventDefault();const b=e.submitter;b.disabled=true;try{const res=await fetch('http://127.0.0.1:8766/api/experiences',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({type:$('#careerAssetType').value,title:$('#careerAssetTitle').value.trim(),organization:$('#careerAssetOrganization').value.trim(),role:$('#careerAssetRole').value.trim(),start:$('#careerAssetStart').value.trim(),end:$('#careerAssetEnd').value.trim(),summary:$('#careerAssetSummary').value.trim(),status:'active',resume_ready:false})});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.detail||'创建经历失败');$('#careerAssetCreateDialog').close();notice('经历记录已创建，可进入经历库继续编辑并上传佐证文件。');sendVaultView('experiences');const frame=$('#careerVaultFrame');frame.contentWindow?.postMessage({type:'careeros-vault-view',view:'experiences'},'*');}catch(err){notice(err.message,true);}finally{b.disabled=false;}});
 
 // ---------- opportunity events ----------
 $$('.mode[data-mode]').forEach(btn=>btn.addEventListener('click',()=>{$$('.mode[data-mode]').forEach(x=>x.classList.remove('active'));btn.classList.add('active');$('#urlForm').classList.toggle('hidden',btn.dataset.mode!=='url');$('#textForm').classList.toggle('hidden',btn.dataset.mode!=='text');}));
