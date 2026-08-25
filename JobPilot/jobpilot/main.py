@@ -358,7 +358,7 @@ async def health():
     return {
         "ok": True,
         "version": __version__,
-        "api_contract": 2,
+        "api_contract": 3,
         "ai_enabled": resume_ai_enabled(),
         "opportunity_ai_enabled": opportunity_ai_enabled(),
         "db": str(db.DB_PATH),
