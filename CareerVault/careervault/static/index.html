@@ -7,7 +7,17 @@
   <link rel="stylesheet" href="/static/styles.css" />
   <style>
     /* CareerVault 作为 CareerOS 的数据工作区嵌入时，不再显示第二套页面壳。 */
+    .embedded-mode{background:#f4f3ee;color:#151512}
+    .embedded-mode main{background:#f4f3ee}
     .embedded-mode main>.view>.topbar:first-child{display:none}
+    .embedded-mode .experience-toolbar{justify-content:flex-end}
+    .embedded-mode .experience-toolbar>.row{display:none}
+    .embedded-mode .card{border-color:#deddd4;border-radius:15px;box-shadow:0 1px 2px rgba(20,20,18,.03)}
+    .embedded-mode .btn{background:#171713;border:1px solid #171713;border-radius:10px;font-weight:700}
+    .embedded-mode .btn.ghost,.embedded-mode .experience-tabs .btn.ghost{background:#fff;color:#151512;border-color:#deddd4}
+    .embedded-mode .muted{color:#74736b}
+    .embedded-mode .status,.embedded-mode .tag{background:#f1f0eb;color:#55544d}
+    .embedded-mode .experience-search input{border-color:#deddd4;border-radius:11px}
   </style>
 </head>
 <body>
@@ -31,6 +41,6 @@
   </main>
   <div id="modal" class="modal hidden"><div class="modal-card" id="modalCard"></div></div>
   <script>if(new URLSearchParams(location.search).get('embedded')==='1')document.body.classList.add('embedded-mode');</script>
-  <script src="/static/app.js?v=20260825-4"></script>
+  <script src="/static/app.js?v=20260827-1"></script>
 </body>
 </html>

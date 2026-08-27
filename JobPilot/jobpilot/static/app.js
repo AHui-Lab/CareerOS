@@ -243,6 +243,7 @@ document.addEventListener('click',e=>{const go=e.target.closest('[data-go-view]'
 $('#refreshBtn').addEventListener('click',()=>{loadAll();reloadCareerVaultFrame()});$('#refreshCareerVault').addEventListener('click',()=>{loadAll();reloadCareerVaultFrame()});
 $('#careerVaultFrame').addEventListener('load',()=>sendVaultView(vaultView));
 $$('[data-vault-view]').forEach(btn=>btn.addEventListener('click',()=>{$$('[data-vault-view]').forEach(x=>x.classList.toggle('active',x===btn));sendVaultView(btn.dataset.vaultView);}));
+$('#vaultManageCategories').addEventListener('click',()=>{$('#careerVaultFrame').contentWindow?.postMessage({type:'careeros-vault-manage-categories'},'*')});
 $('#vaultQuickAdd').addEventListener('click',async()=>{try{const res=await fetch('http://127.0.0.1:8766/api/experience-categories');const data=await res.json();const labels={patent:'专利',certificate:'软著'};const options=(data.items||[]).flatMap(category=>(category.types||[category.id]).map(type=>({type,label:labels[type]||category.label})));$('#careerAssetType').innerHTML=options.map(item=>`<option value="${esc(item.type)}">${esc(item.label)}</option>`).join('')}catch(_error){}$('#careerAssetCreateDialog').showModal();});
 $('#careerAssetCreateClose').addEventListener('click',()=>$('#careerAssetCreateDialog').close());
 $('#careerAssetCreateCancel').addEventListener('click',()=>$('#careerAssetCreateDialog').close());

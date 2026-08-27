@@ -7,8 +7,9 @@
   <link rel="stylesheet" href="/static/styles.css" />
   <link rel="stylesheet" href="/static/v031.css" />
   <style>
-    .vault-quick-add{margin-left:auto;white-space:nowrap}
-    @media(max-width:720px){.vault-quick-add{margin-left:0}}
+    .vault-manage-categories{margin-left:auto;white-space:nowrap}
+    .vault-quick-add{white-space:nowrap}
+    @media(max-width:720px){.vault-manage-categories{margin-left:0}}
   </style>
   <style>
     .sync-panel{grid-column:1/-1}
@@ -35,7 +36,7 @@
       <button class="nav" data-view="vault">经历和项目</button>
       <button class="nav" data-view="settings">设置和帮助</button>
     </nav>
-    <div class="sidebar-note">V0.5.3 · 求职工作台<br><span id="aiBadge">连接检测中…</span></div>
+    <div class="sidebar-note">V0.5.4 · 求职工作台<br><span id="aiBadge">连接检测中…</span></div>
   </aside>
 
   <main class="main">
@@ -140,8 +141,8 @@
     </section>
 
     <section id="view-vault" class="view">
-      <div class="vault-frame-tabs" role="tablist" aria-label="经历和项目导航"><button class="mode active" type="button" data-vault-view="experiences">经历项目</button><button class="mode" type="button" data-vault-view="profile">个人资料</button><button class="mode" type="button" data-vault-view="fields">岗位常用字段</button><button class="mode" type="button" data-vault-view="inbox">草稿箱</button><button id="vaultQuickAdd" class="primary-btn vault-quick-add" type="button">+ 新增记录</button></div>
-      <iframe id="careerVaultFrame" class="career-vault-frame" src="http://127.0.0.1:8766/?embedded=1&amp;v=20260825-5" title="经历和项目" loading="lazy"></iframe>
+      <div class="vault-frame-tabs" role="tablist" aria-label="经历和项目导航"><button class="mode active" type="button" data-vault-view="experiences">经历项目</button><button class="mode" type="button" data-vault-view="profile">个人资料</button><button class="mode" type="button" data-vault-view="fields">岗位常用字段</button><button class="mode" type="button" data-vault-view="inbox">草稿箱</button><button id="vaultManageCategories" class="ghost-btn vault-manage-categories" type="button">管理分类</button><button id="vaultQuickAdd" class="primary-btn vault-quick-add" type="button">+ 新增记录</button></div>
+      <iframe id="careerVaultFrame" class="career-vault-frame" src="http://127.0.0.1:8766/?embedded=1&amp;v=20260827-1" title="经历和项目" loading="lazy"></iframe>
       <section id="commonFieldsPanel" class="panel common-fields-panel hidden"><div class="section-title"><div><p class="eyebrow">ROLE FIELD SETS</p><h2>岗位常用字段</h2><p class="helper">按岗位类别保存自我评价、个人优势、技能和常见问答，后续简历生成与网申可以复用。</p></div><button id="addRoleFieldSetBtn" class="primary-btn" type="button">+ 新建岗位字段</button></div><div id="roleFieldSetList" class="role-field-set-list"></div></section>
     </section>
 
@@ -297,6 +298,6 @@
 </dialog>
 
   <script src="/static/ui-text.js?v=040"></script>
-<script src="/static/app.js?v=20260825-8"></script>
+<script src="/static/app.js?v=20260827-1"></script>
 </body>
 </html>
