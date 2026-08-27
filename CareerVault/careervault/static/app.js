@@ -2,6 +2,7 @@ const $ = (s, r=document) => r.querySelector(s);
 const $$ = (s, r=document) => [...r.querySelectorAll(s)];
 let experiences = [];
 let currentExperience = null;
+let editingExperience = {};
 let saveTimer = null;
 let editorSession = 0;
 let experienceCategories = [];
@@ -58,52 +59,58 @@ async function renderDashboard(){
   $$('.experience-card').forEach(x=>x.onclick=()=>openExperience(x.dataset.id));
 }
 
-function expCard(x){return `<div class="card experience-card" data-id="${esc(x.id)}"><div class="row"><strong>${esc(x.title)}</strong><span class="status">${esc(TYPE_LABELS[x.type]||x.type||'其他')}</span><span class="status">${esc(x.status||'')}</span>${x.resume_ready?'<span class="tag">Resume Ready</span>':''}</div><div class="muted">${esc(x.organization||'')}${x.role?' · '+esc(x.role):''} ${x.start?' · '+esc(x.start):''}${x.end?' ~ '+esc(x.end):''}</div><div class="tags">${(x.skills||[]).slice(0,6).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div></div>`}
+function compactText(value='',limit=150){const text=String(value||'').replace(/\s+/g,' ').trim();return text.length>limit?text.slice(0,limit)+'…':text}
+function experienceDateText(x){return [x.start,x.end].filter(Boolean).join(' ~ ')}
+function expCard(x){const details=x.details||{},type=x.type||'other';let title=x.title||'未命名记录',meta='',description='';
+  if(type==='project'){meta=[experienceDateText(x),x.role].filter(Boolean).join(' · ');description=x.summary||x.facts}
+  else if(type==='internship'){title=x.organization||title;meta=[x.role,experienceDateText(x)].filter(Boolean).join(' · ');description=x.facts||x.summary}
+  else if(type==='award'){meta=[x.start,details.award_level].filter(Boolean).join(' · ');description=x.summary}
+  else if(['patent','certificate'].includes(type)){meta=[x.start,details.registration_number||details.patent_number||details.certificate_number].filter(Boolean).join(' · ')}
+  else if(type==='campus'){description=x.results}
+  else{meta=[x.organization,x.role,experienceDateText(x)].filter(Boolean).join(' · ');description=x.summary}
+  return `<div class="card experience-card" data-id="${esc(x.id)}"><div class="row"><strong>${esc(title)}</strong><span class="status">${esc(TYPE_LABELS[type]||type||'其他')}</span></div>${meta?`<div class="muted">${esc(meta)}</div>`:''}${description?`<div class="experience-brief">${esc(compactText(description))}</div>`:''}</div>`}
 
 window.addEventListener('message',event=>{if(event.data?.type==='careeros-vault-view'&&['experiences','profile','inbox'].includes(event.data.view))showView(event.data.view);if(event.data?.type==='careeros-vault-new-experience'){showView('experiences').then(()=>setTimeout(()=>openExperience(),50))}if(event.data?.type==='careeros-vault-open-experience'&&event.data.id){showView('experiences').then(()=>openExperience(event.data.id))}if(event.data?.type==='careeros-vault-manage-categories'){showView('experiences').then(()=>openCategoryManager())}});
 
-function experienceForm(x={}){
-  return `<div class="topbar"><h2>${x.id?'编辑经历':'新增经历'}</h2><button class="btn ghost" id="closeModal">关闭</button></div><div class="form form-grid">
-  <label>类型<select id="f-type">${typeOptions(x.type||'')}</select></label>
-  <label>状态<select id="f-status"><option value="idea">想法</option><option value="draft">草稿</option><option value="active">进行中</option><option value="verified">已验证</option><option value="archived">归档</option></select></label>
-  <label class="full">名称<input id="f-title" value="${esc(x.title||'')}"></label>
-  <label>组织/单位<input id="f-org" value="${esc(x.organization||'')}"></label><label>角色<input id="f-role" value="${esc(x.role||'')}"></label>
-  <label>开始<input id="f-start" value="${esc(x.start||'')}"></label><label>结束<input id="f-end" value="${esc(x.end||'')}"></label>
-  <label>方向标签（逗号）<input id="f-domains" value="${esc(csv(x.domains))}"></label><label>技能（逗号）<input id="f-skills" value="${esc(csv(x.skills))}"></label>
-  <label class="full">关联记录（可多选）<select id="f-related" multiple size="4">${experiences.filter(item=>item.id!==x.id).map(item=>`<option value="${esc(item.id)}" ${(x.related_experience_ids||[]).includes(item.id)?'selected':''}>${esc(TYPE_LABELS[item.type]||'其他')} · ${esc(item.title)}</option>`).join('')}</select><small class="muted">例如：把获奖、专利、论文关联到对应项目；按住 Ctrl/⌘ 可多选。${(x.related_experiences||[]).length?' 当前已关联：'+x.related_experiences.map(item=>esc(item.title)).join('、'):''}</small></label>
-  <div class="full card type-details" id="typeDetails"></div>
-  <label class="full"><input type="checkbox" id="f-ready" ${x.resume_ready?'checked':''}> 可用于简历生成</label>
-  <label class="full">项目概述<textarea id="f-summary">${esc(x.summary||'')}</textarea></label>
-  <label class="full">事实记录<textarea id="f-facts">${esc(x.facts||'')}</textarea></label>
-  <label class="full">量化成果<textarea id="f-results">${esc(x.results||'')}</textarea></label>
-  <label class="full">Notes<textarea id="f-notes">${esc(x.notes||'')}</textarea></label>
-  <div class="full row"><button class="btn" id="saveExp">${x.id?'立即保存':'创建经历'}</button>${x.id?'<button class="btn ghost" id="uploadBtn">上传附件</button><input type="file" id="fileInput" hidden><button class="btn danger" id="deleteExp">删除</button>':''}</div>
-  ${x.id?`<div class="full muted">文件：${esc(x.path||'')}</div><div class="full">${(x.attachments||[]).map(a=>`<div>📎 ${esc(a.name)} <span class="muted">${Math.ceil(a.size/1024)} KB</span></div>`).join('')}</div>`:''}
-  </div>`;
+function dateRangeFields(x={}){const current=x.end==='至今';return `<label>开始时间<input data-exp-field id="f-start" value="${esc(x.start||'')}" placeholder="例如：2024-09"></label><label>结束时间<input data-exp-field id="f-end" value="${current?'':esc(x.end||'')}" placeholder="例如：2025-06" ${current?'disabled':''}><span class="current-date-option"><input data-exp-field id="f-current" type="checkbox" ${current?'checked':''}> 至今</span></label>`}
+function awardLevelOptions(current=''){const values=['国际级','国家级','省市级','校级','院级'];if(current&&!values.includes(current))values.push(current);return `<option value="">请选择</option>`+values.map(value=>`<option value="${esc(value)}" ${value===current?'selected':''}>${esc(value)}</option>`).join('')}
+function experienceFields(x={}){const type=x.type||'project',details=x.details||{};
+  if(type==='project')return `<label class="full">项目名称<input data-exp-field id="f-title" value="${esc(x.title||'')}" required></label>${dateRangeFields(x)}<label class="full">职责<input data-exp-field id="f-role" value="${esc(x.role||'')}"></label><label class="full">项目描述<textarea data-exp-field id="f-summary">${esc(x.summary||'')}</textarea></label><label class="full">项目中职责<textarea data-exp-field id="f-facts">${esc(x.facts||details.project_role||'')}</textarea></label>`;
+  if(type==='internship')return `<label class="full">实习单位名称<input data-exp-field id="f-org" value="${esc(x.organization||'')}" required></label>${dateRangeFields(x)}<label class="full">职位名称<input data-exp-field id="f-role" value="${esc(x.role||'')}"></label><label class="full">工作职责<textarea data-exp-field id="f-facts">${esc(x.facts||x.summary||'')}</textarea></label>`;
+  if(type==='award')return `<label>获奖时间<input data-exp-field id="f-award-date" value="${esc(x.start||'')}" placeholder="例如：2025-06"></label><label>奖项级别<select data-exp-field id="f-award-level">${awardLevelOptions(details.award_level||'')}</select></label><label class="full">奖项内容<textarea data-exp-field id="f-award-content" required>${esc(x.title||x.summary||'')}</textarea></label>`;
+  if(['patent','certificate'].includes(type)){const number=details.registration_number||details.patent_number||details.certificate_number||'';return `<label class="full">专利或软著名称<input data-exp-field id="f-title" value="${esc(x.title||'')}" required></label><label>取得时间<input data-exp-field id="f-obtained-date" value="${esc(x.start||'')}" placeholder="例如：2025-06"></label><label>登记号<input data-exp-field id="f-registration-number" value="${esc(number)}"></label>`}
+  if(type==='campus')return `<label class="full">经历内容<textarea data-exp-field id="f-campus-content" required>${esc(x.summary||x.title||'')}</textarea></label><label class="full">获得的经验和收获<textarea data-exp-field id="f-campus-gain">${esc(x.results||'')}</textarea></label>`;
+  return `<label class="full">名称<input data-exp-field id="f-title" value="${esc(x.title||'')}" required></label>${dateRangeFields(x)}<label class="full">职责<input data-exp-field id="f-role" value="${esc(x.role||'')}"></label><label class="full">描述<textarea data-exp-field id="f-summary">${esc(x.summary||'')}</textarea></label>`;
 }
+function experienceForm(x={}){return `<div class="topbar"><div><h2>${x.id?'编辑经历':'新增经历'}</h2><div class="muted">选择分类后，填写项会自动切换。</div></div><button class="btn ghost" id="closeModal">关闭</button></div><div class="form form-grid compact-experience-form"><label class="full">分类<select id="f-type">${typeOptions(x.type||'')}</select></label><div class="full form-grid" id="experienceFields">${experienceFields(x)}</div><div class="full row wrap"><button class="btn" id="saveExp">${x.id?'保存':'创建记录'}</button>${x.id?'<button class="btn ghost" id="uploadBtn">上传佐证文件</button><input type="file" id="fileInput" hidden><button class="btn danger" id="deleteExp">删除</button>':''}</div>${x.id?`<div class="full evidence-list">${(x.attachments||[]).map(a=>`<div>📎 ${esc(a.name)} <span class="muted">${Math.ceil(a.size/1024)} KB</span></div>`).join('')||'<span class="muted">暂未上传佐证文件。</span>'}</div>`:''}</div>`}
 
 async function openExperience(id, seed={}){
   const session=++editorSession;
   if(!experienceCategories.length)await loadExperienceCategories();
-  const x=id?await api('/api/experiences/'+id):seed; currentExperience=x.id||null;
+  const x=id?await api('/api/experiences/'+id):seed; currentExperience=x.id||null;editingExperience={...x,details:{...(x.details||{})}};
   $('#modalCard').innerHTML=experienceForm(x); $('#modal').classList.remove('hidden');
-  $('#f-type').value=x.type||'project'; $('#f-status').value=x.status||'active'; renderTypeDetails(x);
+  $('#f-type').value=x.type||'project'; wireExperienceFields();
   $('#closeModal').onclick=closeModal; $('#saveExp').onclick=()=>saveExperience(!x.id);
   if(x.id){
-    ['f-type','f-status','f-title','f-org','f-role','f-start','f-end','f-domains','f-skills','f-related','f-ready','f-summary','f-facts','f-results','f-notes'].forEach(id=>$('#'+id).addEventListener('input',scheduleAutosave));
     $('#deleteExp').onclick=async()=>{if(confirm('确定删除这条经历及其附件？')){await api('/api/experiences/'+x.id,{method:'DELETE'});closeModal();await renderExperiences();}};
     $('#uploadBtn').onclick=()=>$('#fileInput').click();
     $('#fileInput').onchange=async e=>{const f=e.target.files[0];if(!f)return;const fd=new FormData();fd.append('file',f);state('上传中…');try{const res=await fetch(`/api/experiences/${x.id}/attachments`,{method:'POST',body:fd});if(!res.ok)throw new Error(await res.text());state('已上传');await openExperience(x.id)}catch(error){state('上传失败');alert(`上传失败：${error.message}`)}};
   }
-  $('#f-type').addEventListener('change',()=>{renderTypeDetails({type:$('#f-type').value,details:{}});if(currentExperience)scheduleAutosave()});
+  $('#f-type').addEventListener('change',()=>{const type=$('#f-type').value;$('#experienceFields').innerHTML=experienceFields({type,details:{}});wireExperienceFields()});
 }
-function closeModal(){editorSession++;$('#modal').classList.add('hidden');currentExperience=null;clearTimeout(saveTimer)}
-function selectedRelated(){return [...($('#f-related')?.selectedOptions||[])].map(option=>option.value)}
-function readExperienceDetails(){const details={};$$('[data-detail]', $('#typeDetails')||document).forEach(el=>{details[el.dataset.detail]=el.value.trim()});return details}
-function renderTypeDetails(x={}){const type=typeof x==='string'?x:(x.type||$('#f-type')?.value||'project');const details=typeof x==='string'?{}:(x.details||{});const labels={award:[['award_level','奖项级别/等级'],['rank','名次/排名'],['issuer','颁发单位']],patent:[['patent_type','专利类型'],['patent_status','申请/授权状态'],['patent_number','申请号/公开号']],paper:[['publication','期刊/会议'],['paper_status','投稿/发表状态'],['authorship','作者顺序/贡献']],project:[['project_role','项目中负责模块']],internship:[['department','部门/业务线'],['internship_type','实习类型']],research:[['research_role','研究方向/承担工作']]}[type]||[];const root=$('#typeDetails');if(!root)return;root.innerHTML=labels.length?`<strong>${TYPE_LABELS[type]||'记录'}专属字段</strong><div class="form-grid" style="margin-top:10px">${labels.map(([key,label])=>`<label>${label}<input data-detail="${key}" value="${esc(details[key]||'')}"></label>`).join('')}</div>`:'<span class="muted">该分类使用通用字段；如需补充，可写入事实记录和量化成果。</span>';$$('[data-detail]',root).forEach(el=>el.addEventListener('input',scheduleAutosave))}
-function payload(){return {type:$('#f-type').value,status:$('#f-status').value,title:$('#f-title').value.trim(),organization:$('#f-org').value.trim(),role:$('#f-role').value.trim(),start:$('#f-start').value.trim(),end:$('#f-end').value.trim(),domains:parseCsv($('#f-domains').value),skills:parseCsv($('#f-skills').value),related_experience_ids:selectedRelated(),details:readExperienceDetails(),resume_ready:$('#f-ready').checked,summary:$('#f-summary').value,facts:$('#f-facts').value,results:$('#f-results').value,notes:$('#f-notes').value}}
+function closeModal(){editorSession++;$('#modal').classList.add('hidden');currentExperience=null;editingExperience={};clearTimeout(saveTimer)}
+function fieldValue(id){return $('#'+id)?.value.trim()||''}
+function wireExperienceFields(){const current=$('#f-current'),end=$('#f-end');if(current&&end){current.onchange=()=>{end.disabled=current.checked;if(current.checked)end.value='';scheduleAutosave()}};$$('[data-exp-field]').forEach(el=>el.addEventListener('input',scheduleAutosave))}
+function endValue(){return $('#f-current')?.checked?'至今':fieldValue('f-end')}
+function payload(){const type=$('#f-type').value,base=editingExperience;const p={type,status:base.status||'active',title:base.title||'',organization:base.organization||'',role:base.role||'',start:base.start||'',end:base.end||'',domains:base.domains||[],skills:base.skills||[],related_experience_ids:base.related_experience_ids||[],details:{...(base.details||{})},resume_ready:Boolean(base.resume_ready),summary:base.summary||'',facts:base.facts||'',results:base.results||'',notes:base.notes||''};
+  if(type==='project')Object.assign(p,{title:fieldValue('f-title'),start:fieldValue('f-start'),end:endValue(),role:fieldValue('f-role'),summary:fieldValue('f-summary'),facts:fieldValue('f-facts')});
+  else if(type==='internship'){const organization=fieldValue('f-org'),role=fieldValue('f-role');Object.assign(p,{organization,role,start:fieldValue('f-start'),end:endValue(),facts:fieldValue('f-facts'),title:[organization,role].filter(Boolean).join(' · ')})}
+  else if(type==='award'){p.start=fieldValue('f-award-date');p.title=fieldValue('f-award-content');p.details.award_level=fieldValue('f-award-level')}
+  else if(['patent','certificate'].includes(type)){p.title=fieldValue('f-title');p.start=fieldValue('f-obtained-date');const number=fieldValue('f-registration-number');p.details.registration_number=number;if(type==='patent')p.details.patent_number=number;else p.details.certificate_number=number}
+  else if(type==='campus'){p.summary=fieldValue('f-campus-content');p.results=fieldValue('f-campus-gain');p.title=(p.summary.split(/\r?\n/)[0]||'校园经历').slice(0,80)}
+  else Object.assign(p,{title:fieldValue('f-title'),start:fieldValue('f-start'),end:endValue(),role:fieldValue('f-role'),summary:fieldValue('f-summary')});return p}
 async function saveExperience(create=false){const p=payload();if(!p.title)return alert('请填写经历名称');const session=editorSession;const id=currentExperience;state('保存中…');try{const x=await api(create?'/api/experiences':'/api/experiences/'+id,{method:create?'POST':'PATCH',body:JSON.stringify(p)});if(session!==editorSession)return x;currentExperience=x.id;state('✓ 已保存 '+new Date().toLocaleTimeString());if(create)await openExperience(x.id);return x}catch(error){if(session===editorSession){state('保存失败');alert(`保存失败，编辑窗口未关闭：${error.message}`)}throw error}}
-function scheduleAutosave(){if(!currentExperience)return;state('未保存…');clearTimeout(saveTimer);saveTimer=setTimeout(()=>saveExperience(false).catch(()=>{}),700)}
+function scheduleAutosave(){if(!currentExperience)return;state('未保存…');clearTimeout(saveTimer);saveTimer=setTimeout(()=>{if(!payload().title){state('请补充必填项');return}saveExperience(false).catch(()=>{})},700)}
 
 function educationRows(items=[]){const rows=(items.length?items:[{}]);return rows.map((e,i)=>`<div class="card edu-row" data-index="${i}"><div class="row"><strong>教育经历 ${i+1}</strong><button type="button" class="btn ghost remove-edu">删除</button></div><div class="form-grid"><label>学校<input data-k="school" value="${esc(e.school||e.institution||'')}"></label><label>学院<input data-k="college" value="${esc(e.college||'')}"></label><label>专业<input data-k="major" value="${esc(e.major||'')}"></label><label>学历/学位<input data-k="degree" value="${esc(e.degree||'')}"></label><label>开始<input data-k="start" value="${esc(e.start||'')}"></label><label>毕业/结束<input data-k="end" value="${esc(e.end||e.graduation_date||'')}"></label><label>GPA<input data-k="gpa" value="${esc(e.gpa||'')}"></label><label>排名<input data-k="rank" value="${esc(e.rank||'')}"></label></div></div>`).join('')}
 function collectEducation(){return $$('.edu-row').map(row=>{const out={};$$('[data-k]',row).forEach(el=>out[el.dataset.k]=el.value.trim());return out}).filter(x=>Object.values(x).some(Boolean))}
@@ -124,7 +131,6 @@ function renderIntegration(){$('#integration').innerHTML=`<div class="topbar"><d
 
 $('#gitSnapshot').onclick=async()=>{const msg=prompt('Git 提交说明','Update CareerVault');if(msg===null)return;const r=await api('/api/git/snapshot',{method:'POST',body:JSON.stringify({message:msg})});alert(r.ok?(r.commit?'已创建快照 '+r.commit:r.message):'失败：'+r.message)};
 $('#modal').onclick=e=>{if(e.target.id==='modal')closeModal()};
-function renderTypeDetails(x={}){const type=typeof x==='string'?x:(x.type||$('#f-type')?.value||'project');const details=typeof x==='string'?{}:(x.details||{});const labels={award:[['award_level','奖项级别/等级'],['rank','名次/排名'],['issuer','颁发单位']],competition:[['award_level','竞赛级别/等级'],['rank','名次/排名'],['issuer','主办单位']],patent:[['patent_type','专利类型'],['patent_status','申请/授权状态'],['patent_number','申请号/公开号']],certificate:[['certificate_type','证书/软著类型'],['certificate_number','证书号/登记号'],['issuer','颁发/登记单位']],paper:[['publication','期刊/会议'],['paper_status','投稿/发表状态'],['authorship','作者顺序/贡献']],book:[['publication','出版社'],['paper_status','出版状态'],['authorship','作者顺序/贡献']],project:[['project_role','项目中负责模块']],internship:[['department','部门/业务线'],['internship_type','实习类型']],research:[['research_role','研究方向/承担工作']]}[type]||[];const root=$('#typeDetails');if(!root)return;root.innerHTML=labels.length?`<strong>${TYPE_LABELS[type]||'记录'}专属字段</strong><div class="form-grid" style="margin-top:10px">${labels.map(([key,label])=>`<label>${label}<input data-detail="${key}" value="${esc(details[key]||'')}"></label>`).join('')}</div>`:'<span class="muted">该分类使用通用字段；如需补充，可写入事实记录和量化成果。</span>';$$('[data-detail]',root).forEach(el=>el.addEventListener('input',scheduleAutosave))}
 function categoryForTab(tab){return experienceCategories.find(category=>category.id===tab)}
 function matchesCategory(item, category){return Boolean(category?.types?.includes(item.type))}
 function experienceMatchesSearch(item, query){return !query||[item.title,item.organization,item.role,...(item.skills||[]),...(item.domains||[])].join(' ').toLowerCase().includes(query)}
