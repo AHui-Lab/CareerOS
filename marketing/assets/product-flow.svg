@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="700" viewBox="0 0 1600 700">
+  <rect width="1600" height="700" fill="#f4f3ee"/>
+  <text x="80" y="92" fill="#151512" font-family="Microsoft YaHei,sans-serif" font-size="42" font-weight="800">C-Job 的秋招投递流程</text>
+  <text x="82" y="134" fill="#74736b" font-family="Microsoft YaHei,sans-serif" font-size="20">先保存岗位，再整理资料，最后按 JD 生成简历</text>
+  <g font-family="Microsoft YaHei,sans-serif">
+    <g transform="translate(80 220)"><rect width="260" height="250" rx="24" fill="#fff" stroke="#deddd4" stroke-width="2"/><circle cx="42" cy="48" r="22" fill="#191916"/><text x="35" y="56" fill="#fff" font-family="Arial" font-size="18" font-weight="700">1</text><text x="32" y="105" fill="#151512" font-size="26" font-weight="800">先存岗位</text><text x="32" y="150" fill="#74736b" font-size="18">招聘链接 / 招聘文字</text><text x="32" y="188" fill="#74736b" font-size="18">有空再补资料</text></g>
+    <path d="M360 345 H415" stroke="#8c8b82" stroke-width="4"/><path d="M402 330 L420 345 L402 360" fill="none" stroke="#8c8b82" stroke-width="4"/>
+    <g transform="translate(430 220)"><rect width="260" height="250" rx="24" fill="#fff" stroke="#deddd4" stroke-width="2"/><circle cx="42" cy="48" r="22" fill="#191916"/><text x="35" y="56" fill="#fff" font-family="Arial" font-size="18" font-weight="700">2</text><text x="32" y="105" fill="#151512" font-size="26" font-weight="800">存进数据库</text><text x="32" y="150" fill="#74736b" font-size="18">经历 / 项目 / 实习</text><text x="32" y="188" fill="#74736b" font-size="18">常用填表内容</text></g>
+    <path d="M710 345 H765" stroke="#8c8b82" stroke-width="4"/><path d="M752 330 L770 345 L752 360" fill="none" stroke="#8c8b82" stroke-width="4"/>
+    <g transform="translate(780 220)"><rect width="260" height="250" rx="24" fill="#fff" stroke="#deddd4" stroke-width="2"/><circle cx="42" cy="48" r="22" fill="#466d86"/><text x="35" y="56" fill="#fff" font-family="Arial" font-size="18" font-weight="700">3</text><text x="32" y="105" fill="#151512" font-size="26" font-weight="800">匹配 JD</text><text x="32" y="150" fill="#74736b" font-size="18">自动匹配项目经历</text><text x="32" y="188" fill="#74736b" font-size="18">自己确认最终选择</text></g>
+    <path d="M1060 345 H1115" stroke="#8c8b82" stroke-width="4"/><path d="M1102 330 L1120 345 L1102 360" fill="none" stroke="#8c8b82" stroke-width="4"/>
+    <g transform="translate(1130 220)"><rect width="260" height="250" rx="24" fill="#fff" stroke="#deddd4" stroke-width="2"/><circle cx="42" cy="48" r="22" fill="#236b48"/><text x="35" y="56" fill="#fff" font-family="Arial" font-size="18" font-weight="700">4</text><text x="32" y="105" fill="#151512" font-size="26" font-weight="800">生成简历</text><text x="32" y="150" fill="#74736b" font-size="18">不同岗位不同经历</text><text x="32" y="188" fill="#74736b" font-size="18">本地保存 / 多设备同步</text></g>
+  </g>
+  <rect x="80" y="555" width="1310" height="64" rx="16" fill="#191916"/><text x="112" y="596" fill="#fff" font-family="Microsoft YaHei,sans-serif" font-size="20">C-Job：岗位和资料保存在本地，也可以通过 GitHub 私有仓库同步到多台设备。</text>
+</svg>

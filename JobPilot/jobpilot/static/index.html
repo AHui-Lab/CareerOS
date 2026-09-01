@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>CareerOS · 个人求职工作台</title>
-  <link rel="stylesheet" href="/static/styles.css" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260831-7" />
   <link rel="stylesheet" href="/static/v031.css" />
   <style>
     .vault-manage-categories{margin-left:auto;white-space:nowrap}
@@ -34,11 +34,11 @@
       <button class="nav" data-view="email">邮件跟踪</button>
       <button class="nav" data-view="interview">笔面试题库</button>
       <button class="nav" data-view="resume">简历中心</button>
-      <div class="nav-group-label">个人资料</div>
+      <div class="nav-group-label">资料与设置</div>
       <button class="nav" data-view="vault">经历和项目</button>
       <button class="nav" data-view="settings">设置和帮助</button>
     </nav>
-    <div class="sidebar-note">V0.5.6 · 求职工作台<br><span id="aiBadge">连接检测中…</span></div>
+    <div class="sidebar-note">V0.5.8 · 求职工作台<br><span id="aiBadge">连接检测中…</span></div>
   </aside>
 
   <main class="main">
@@ -143,14 +143,18 @@
     </section>
 
     <section id="view-vault" class="view">
-      <div class="vault-frame-tabs" role="tablist" aria-label="经历和项目导航"><button class="mode active" type="button" data-vault-view="experiences">经历项目</button><button class="mode" type="button" data-vault-view="profile">个人资料</button><button class="mode" type="button" data-vault-view="fields">岗位常用字段</button><button class="mode" type="button" data-vault-view="inbox">草稿箱</button><button id="vaultManageCategories" class="ghost-btn vault-manage-categories" type="button">管理分类</button><button id="vaultQuickAdd" class="primary-btn vault-quick-add" type="button">+ 新增记录</button></div>
-      <iframe id="careerVaultFrame" class="career-vault-frame" src="http://127.0.0.1:8766/?embedded=1&amp;v=20260827-3" title="经历和项目" loading="lazy"></iframe>
-      <section id="commonFieldsPanel" class="panel common-fields-panel hidden"><div class="section-title"><div><p class="eyebrow">ROLE FIELD SETS</p><h2>岗位常用字段</h2><p class="helper">按岗位类别保存自我评价、个人优势、技能和常见问答，后续简历生成与网申可以复用。</p></div><button id="addRoleFieldSetBtn" class="primary-btn" type="button">+ 新建岗位字段</button></div><div id="roleFieldSetList" class="role-field-set-list"></div></section>
+      <div class="vault-frame-tabs" role="tablist" aria-label="经历和项目导航"><button class="mode active" type="button" data-vault-view="experiences">经历项目</button><button class="mode" type="button" data-vault-view="evaluations">自我评价</button><button class="mode" type="button" data-vault-view="inbox">草稿箱</button><button id="vaultManageCategories" class="ghost-btn vault-manage-categories" type="button">管理分类</button><button id="vaultQuickAdd" class="primary-btn vault-quick-add" type="button">+ 新增记录</button></div>
+      <iframe id="careerVaultFrame" class="career-vault-frame" src="http://127.0.0.1:8766/?embedded=1&amp;v=20260827-4" title="经历和项目" loading="lazy"></iframe>
+      <section id="selfEvaluationsPanel" class="panel common-fields-panel hidden"><div class="section-title"><div><p class="eyebrow">SELF EVALUATIONS</p><h2>自我评价</h2><p class="helper">按岗位类别保存多条自我评价，生成简历或准备面试时可以分别使用。</p></div><button id="addRoleFieldSetBtn" class="primary-btn" type="button">+ 新增自我评价</button></div><div id="roleFieldSetList" class="role-field-set-list"></div></section>
     </section>
 
     <section id="view-interview" class="view">
-      <section class="panel interview-bank-toolbar"><div><p class="eyebrow">INTERVIEW QUESTION BANK</p><h2>笔面试题库</h2><p class="helper">记录网络题库和自己经历过的笔试、面试题目，整理回答与复盘感受。</p></div><button id="addInterviewQuestionBtn" class="primary-btn" type="button">+ 记录题目</button></section>
-      <section class="list-section"><div class="toolbar-actions interview-filters"><select id="interviewRoleFilter"><option value="">全部岗位类别</option></select><select id="interviewTypeFilter"><option value="">笔试 / 面试</option><option value="written_test">笔试</option><option value="interview">面试</option></select><select id="interviewSourceFilter"><option value="">全部来源</option><option value="personal">亲身经历</option><option value="network">网络题库</option></select></div><div id="interviewQuestionList" class="interview-question-list"></div><div id="interviewQuestionEmpty" class="empty-state hidden"><h3>还没有题目记录</h3><p>可以先记录今天遇到的题目，后续再补充回答和感受。</p></div></section>
+      <section class="panel interview-bank-toolbar"><div><p class="eyebrow">INTERVIEW QUESTION BANK</p><h2>笔面试题库</h2><p class="helper">按试卷浏览题目，先独立思考，再展开答案和解析；也可以按主题分析准备重点。</p></div><button id="addInterviewQuestionBtn" class="primary-btn" type="button">+ 记录题目</button></section>
+      <section class="interview-analysis-grid" aria-label="题库分析">
+        <article class="panel interview-analysis-summary"><div class="section-title"><div><p class="eyebrow">QUESTION ANALYSIS</p><h2>题库概览</h2></div><span id="interviewAnalysisHint" class="helper"></span></div><div class="interview-stat-grid"><div class="interview-stat"><span>总题数</span><strong id="interviewStatTotal">0</strong></div><div class="interview-stat"><span>笔试题</span><strong id="interviewStatWritten">0</strong></div><div class="interview-stat"><span>面试题</span><strong id="interviewStatInterview">0</strong></div><div class="interview-stat"><span>已补充解析</span><strong id="interviewStatAnswered">0</strong></div></div></article>
+        <article class="panel interview-topic-panel"><div class="section-title"><div><p class="eyebrow">TOPICS</p><h2>知识主题分布</h2></div></div><div id="interviewTopicChart" class="interview-topic-chart"></div></article>
+      </section>
+      <section class="list-section"><div id="interviewLibraryView"><div class="list-toolbar"><div><p class="eyebrow">BROWSE PAPERS</p><h2>试卷库 <span id="interviewQuestionCount" class="helper"></span></h2></div><input id="interviewSearch" type="search" placeholder="搜索试卷 / 题目 / 主题" /></div><div class="toolbar-actions interview-filters"><select id="interviewRoleFilter"><option value="">全部岗位类别</option></select><select id="interviewTopicFilter"><option value="">全部主题</option></select><select id="interviewTypeFilter"><option value="">笔试 / 面试</option><option value="written_test">笔试</option><option value="interview">面试</option></select><select id="interviewSourceFilter"><option value="">全部来源</option><option value="personal">亲身经历</option><option value="network">网络题库</option></select><button id="clearInterviewFilters" class="ghost-btn" type="button">清除筛选</button></div><div id="interviewQuestionList" class="interview-paper-list"></div><div id="interviewQuestionEmpty" class="empty-state hidden"><h3>没有匹配试卷</h3><p>可以换一个关键词或清除筛选条件。</p></div></div><div id="interviewPaperDetail" class="hidden"><div class="paper-detail-toolbar"><button id="backToInterviewPapers" class="ghost-btn" type="button">← 返回试卷库</button><span class="helper">先独立完成，再展开答案与解析</span></div><div class="paper-detail-head"><div><p class="eyebrow">PAPER VIEW</p><h2 id="interviewPaperTitle"></h2><p id="interviewPaperMeta" class="helper"></p></div><button id="toggleAllInterviewAnswers" class="ghost-btn" type="button">显示全部答案</button></div><div id="interviewPaperQuestions" class="paper-sheet"></div></div></section>
     </section>
 
     <section id="view-profile" class="view">
@@ -267,11 +271,11 @@
 </dialog>
 
 <dialog id="interviewQuestionDialog" class="dialog">
-  <form id="interviewQuestionForm" class="stack-form"><input id="interviewQuestionId" type="hidden" /><div class="dialog-head"><div><p class="eyebrow">QUESTION BANK</p><h2 id="interviewQuestionDialogTitle">记录笔面试题目</h2></div><button id="interviewQuestionClose" class="icon-btn" type="button">×</button></div><div class="form-grid-2"><label>题目类型<select id="interviewQuestionType"><option value="interview">面试</option><option value="written_test">笔试</option></select></label><label>题目来源<select id="interviewQuestionSource"><option value="personal">亲身经历</option><option value="network">网络题库</option></select></label><label>岗位类别<input id="interviewQuestionRole" placeholder="如：软件开发 / 销售工程师" /></label><label>公司<input id="interviewQuestionCompany" /></label><label>日期<input id="interviewQuestionDate" type="date" /></label><label>关联岗位<select id="interviewQuestionOpportunity"><option value="">不关联岗位</option></select></label></div><label>题目内容<textarea id="interviewQuestionText" rows="4" required></textarea></label><label>我的回答 / 参考答案<textarea id="interviewQuestionAnswer" rows="5"></textarea></label><label>复盘感受<textarea id="interviewQuestionFeeling" rows="3" placeholder="哪里答得好、哪里需要补充、下次如何准备"></textarea></label><label>标签（逗号分隔）<input id="interviewQuestionTags" placeholder="八股、项目、行为面、算法" /></label><div class="dialog-actions"><button id="interviewQuestionCancel" class="ghost-btn" type="button">取消</button><button class="primary-btn" type="submit">保存题目</button></div></form>
+  <form id="interviewQuestionForm" class="stack-form"><input id="interviewQuestionId" type="hidden" /><div class="dialog-head"><div><p class="eyebrow">QUESTION BANK</p><h2 id="interviewQuestionDialogTitle">记录笔面试题目</h2></div><button id="interviewQuestionClose" class="icon-btn" type="button">×</button></div><div class="form-grid-2"><label>题目类型<select id="interviewQuestionType"><option value="interview">面试</option><option value="written_test">笔试</option></select></label><label>题目来源<select id="interviewQuestionSource"><option value="personal">亲身经历</option><option value="network">网络题库</option></select></label><label>试卷名称<input id="interviewQuestionPaper" placeholder="如：顺丰2027校招产品经理笔试题" /></label><label>题号<input id="interviewQuestionNo" type="number" min="0" placeholder="可选" /></label><label>岗位类别<input id="interviewQuestionRole" placeholder="如：产品经理 / 软件开发" /></label><label>知识主题<input id="interviewQuestionTopic" placeholder="如：数据分析 / AI 产品" /></label><label>公司<input id="interviewQuestionCompany" /></label><label>日期<input id="interviewQuestionDate" type="date" /></label><label class="full-span">关联岗位<select id="interviewQuestionOpportunity"><option value="">不关联岗位</option></select></label></div><label>题目内容<textarea id="interviewQuestionText" rows="4" required></textarea></label><label>选项（每行一个，如 A. 选项内容）<textarea id="interviewQuestionOptions" rows="4" placeholder="A. ...&#10;B. ...&#10;C. ...&#10;D. ..."></textarea></label><div class="form-grid-2"><label>正确选项<input id="interviewQuestionCorrect" placeholder="如：B 或 B、C、D" /></label><label>标签（逗号分隔）<input id="interviewQuestionTags" placeholder="数据分析、顺丰2027校招" /></label></div><label>答案 / 参考答案<textarea id="interviewQuestionAnswer" rows="4"></textarea></label><label>解析<textarea id="interviewQuestionAnalysis" rows="3" placeholder="这道题考察什么，为什么选这个答案"></textarea></label><label>复盘感受<textarea id="interviewQuestionFeeling" rows="3" placeholder="哪里答得好、哪里需要补充、下次如何准备"></textarea></label><div class="dialog-actions"><button id="interviewQuestionCancel" class="ghost-btn" type="button">取消</button><button class="primary-btn" type="submit">保存题目</button></div></form>
 </dialog>
 
 <dialog id="roleFieldSetDialog" class="dialog">
-  <form id="roleFieldSetForm" class="stack-form"><input id="roleFieldSetId" type="hidden" /><div class="dialog-head"><div><p class="eyebrow">ROLE FIELD SET</p><h2 id="roleFieldSetDialogTitle">新建岗位常用字段</h2></div><button id="roleFieldSetClose" class="icon-btn" type="button">×</button></div><div class="form-grid-2"><label>岗位类别<input id="roleFieldSetRole" placeholder="如：算法 / 产品 / 销售工程师" required /></label><label>字段名称<input id="roleFieldSetTitle" placeholder="如：算法岗自我介绍" /></label></div><label>自我评价<textarea id="roleFieldSetSelfEvaluation" rows="4"></textarea></label><label>个人优势<textarea id="roleFieldSetStrengths" rows="4"></textarea></label><label>常用技能（每行一项）<textarea id="roleFieldSetSkills" rows="4" placeholder="Python\nSQL\n项目管理"></textarea></label><label>常见问答（每行“问题：答案”）<textarea id="roleFieldSetAnswers" rows="5" placeholder="为什么选择这个岗位：\n三年规划："></textarea></label><label>备注<textarea id="roleFieldSetNotes" rows="3"></textarea></label><div class="dialog-actions"><button id="roleFieldSetCancel" class="ghost-btn" type="button">取消</button><button class="primary-btn" type="submit">保存常用字段</button></div></form>
+  <form id="roleFieldSetForm" class="stack-form"><input id="roleFieldSetId" type="hidden" /><div class="dialog-head"><div><p class="eyebrow">SELF EVALUATION</p><h2 id="roleFieldSetDialogTitle">新增自我评价</h2></div><button id="roleFieldSetClose" class="icon-btn" type="button">×</button></div><div class="form-grid-2"><label>岗位类别<input id="roleFieldSetRole" placeholder="如：算法 / 产品 / 销售工程师" required /></label><label>评价名称（可选）<input id="roleFieldSetTitle" placeholder="如：算法岗自我介绍" /></label></div><label>自我评价<textarea id="roleFieldSetSelfEvaluation" rows="7" placeholder="写下适合该岗位类别的自我介绍、自我评价或优势概述。" required></textarea></label><div class="dialog-actions"><button id="roleFieldSetCancel" class="ghost-btn" type="button">取消</button><button class="primary-btn" type="submit">保存自我评价</button></div></form>
 </dialog>
 
 <dialog id="scheduleDialog" class="dialog">
@@ -300,6 +304,6 @@
 </dialog>
 
   <script src="/static/ui-text.js?v=040"></script>
-<script src="/static/app.js?v=20260827-3"></script>
+<script src="/static/app.js?v=20260831-7"></script>
 </body>
 </html>

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <rect width="1920" height="1080" fill="#191916"/>
+  <circle cx="1660" cy="140" r="330" fill="#2b2b27"/>
+  <circle cx="300" cy="950" r="260" fill="#263b3a" opacity=".75"/>
+  <text x="120" y="160" fill="#bfcfca" font-family="Arial,sans-serif" font-size="26" font-weight="700" letter-spacing="5">PERSONAL CAREER WORKSPACE</text>
+  <text x="120" y="330" fill="#fff" font-family="Microsoft YaHei,sans-serif" font-size="82" font-weight="800">我做了一个</text>
+  <text x="120" y="430" fill="#fff" font-family="Microsoft YaHei,sans-serif" font-size="82" font-weight="800">个人求职工作台</text>
+  <text x="124" y="505" fill="#b7b6ac" font-family="Microsoft YaHei,sans-serif" font-size="30">从 JD 到岗位简历，重新整理我的求职工作流</text>
+  <g transform="translate(1180 158)">
+    <rect width="620" height="700" rx="28" fill="#f4f3ee" stroke="#deddd4" stroke-width="4"/>
+    <rect width="140" height="700" rx="28" fill="#242420"/>
+    <rect x="22" y="28" width="96" height="30" rx="8" fill="#fff"/>
+    <text x="42" y="50" fill="#191916" font-family="Arial" font-size="13" font-weight="700">C-Job</text>
+    <text x="22" y="112" fill="#fff" font-family="Microsoft YaHei,sans-serif" font-size="14">首页</text>
+    <text x="22" y="160" fill="#9c9b91" font-family="Microsoft YaHei,sans-serif" font-size="13">校招岗位</text>
+    <text x="22" y="206" fill="#9c9b91" font-family="Microsoft YaHei,sans-serif" font-size="13">简历中心</text>
+    <text x="22" y="252" fill="#9c9b91" font-family="Microsoft YaHei,sans-serif" font-size="13">经历和项目</text>
+    <text x="22" y="298" fill="#9c9b91" font-family="Microsoft YaHei,sans-serif" font-size="13">面试题库</text>
+    <text x="166" y="62" fill="#807f75" font-family="Arial" font-size="10" font-weight="700" letter-spacing="2">JOB SEARCH WORKSPACE</text>
+    <text x="166" y="102" fill="#151512" font-family="Microsoft YaHei,sans-serif" font-size="26" font-weight="800">求职概览</text>
+    <g transform="translate(166 138)">
+      <rect width="95" height="75" rx="12" fill="#fff" stroke="#deddd4"/><text x="12" y="25" fill="#74736b" font-family="Microsoft YaHei" font-size="11">岗位</text><text x="12" y="59" fill="#151512" font-family="Arial" font-size="25" font-weight="800">12</text>
+      <rect x="105" width="95" height="75" rx="12" fill="#fff" stroke="#deddd4"/><text x="117" y="25" fill="#74736b" font-family="Microsoft YaHei" font-size="11">已投递</text><text x="117" y="59" fill="#315f91" font-family="Arial" font-size="25" font-weight="800">6</text>
+      <rect x="210" width="95" height="75" rx="12" fill="#fff" stroke="#deddd4"/><text x="222" y="25" fill="#74736b" font-family="Microsoft YaHei" font-size="11">面试</text><text x="222" y="59" fill="#604694" font-family="Arial" font-size="25" font-weight="800">2</text>
+      <rect x="315" width="95" height="75" rx="12" fill="#fff" stroke="#deddd4"/><text x="327" y="25" fill="#74736b" font-family="Microsoft YaHei" font-size="11">Offer</text><text x="327" y="59" fill="#236b48" font-family="Arial" font-size="25" font-weight="800">1</text>
+    </g>
+    <rect x="166" y="245" width="410" height="170" rx="17" fill="#fff" stroke="#deddd4"/>
+    <text x="188" y="282" fill="#807f75" font-family="Arial" font-size="10" font-weight="700" letter-spacing="2">RECENT JOBS</text>
+    <text x="188" y="326" fill="#151512" font-family="Microsoft YaHei" font-size="16" font-weight="700">AI 应用开发 · 示例公司</text>
+    <rect x="458" y="307" width="90" height="26" rx="13" fill="#fff0cf"/><text x="476" y="325" fill="#8a5b08" font-family="Microsoft YaHei" font-size="11">准备投递</text>
+    <line x1="188" y1="352" x2="550" y2="352" stroke="#deddd4"/>
+    <text x="188" y="389" fill="#151512" font-family="Microsoft YaHei" font-size="16" font-weight="700">嵌入式开发 · 示例公司</text>
+    <rect x="470" y="370" width="78" height="26" rx="13" fill="#e5f0ff"/><text x="486" y="388" fill="#315f91" font-family="Microsoft YaHei" font-size="11">已投递</text>
+    <rect x="166" y="446" width="410" height="220" rx="17" fill="#fff" stroke="#deddd4"/>
+    <text x="188" y="486" fill="#807f75" font-family="Arial" font-size="10" font-weight="700" letter-spacing="2">NEXT ACTIONS</text>
+    <text x="188" y="534" fill="#151512" font-family="Microsoft YaHei" font-size="16" font-weight="700">准备一版岗位简历</text>
+    <text x="188" y="565" fill="#74736b" font-family="Microsoft YaHei" font-size="12">从经历资产中选择相关项目</text>
+    <text x="188" y="616" fill="#151512" font-family="Microsoft YaHei" font-size="16" font-weight="700">记录面试安排</text>
+    <text x="188" y="647" fill="#74736b" font-family="Microsoft YaHei" font-size="12">下一步更清楚，复盘更容易</text>
+  </g>
+  <rect x="120" y="670" width="900" height="116" rx="22" fill="#242420" stroke="#3a3a34"/>
+  <text x="156" y="716" fill="#fff" font-family="Microsoft YaHei,sans-serif" font-size="28" font-weight="700">岗位 · 经历 · 简历 · 面试</text>
+  <text x="156" y="758" fill="#a9a89f" font-family="Microsoft YaHei,sans-serif" font-size="20">一个工作台，留住每一次求职上下文</text>
+</svg>

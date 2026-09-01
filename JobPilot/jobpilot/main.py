@@ -213,11 +213,18 @@ class ExperiencePatch(BaseModel):
 class InterviewQuestionPayload(BaseModel):
     question_type: str = "interview"
     source_type: str = "personal"
+    source_key: str = Field(default="", max_length=200)
+    paper_name: str = Field(default="", max_length=300)
+    question_no: int = 0
+    topic: str = Field(default="", max_length=120)
     role_category: str = Field(default="", max_length=120)
     company: str = Field(default="", max_length=160)
     opportunity_id: int | None = None
     question: str = Field(default="", max_length=8000)
+    options: list[dict[str, str]] = Field(default_factory=list)
+    correct_answer: str = Field(default="", max_length=200)
     answer: str = Field(default="", max_length=12000)
+    analysis: str = Field(default="", max_length=12000)
     feeling: str = Field(default="", max_length=6000)
     tags: list[str] = Field(default_factory=list)
     event_date: str = Field(default="", max_length=20)
@@ -226,11 +233,18 @@ class InterviewQuestionPayload(BaseModel):
 class InterviewQuestionPatch(InterviewQuestionPayload):
     question_type: str | None = None
     source_type: str | None = None
+    source_key: str | None = None
+    paper_name: str | None = None
+    question_no: int | None = None
+    topic: str | None = None
     role_category: str | None = None
     company: str | None = None
     opportunity_id: int | None = None
     question: str | None = None
+    options: list[dict[str, str]] | None = None
+    correct_answer: str | None = None
     answer: str | None = None
+    analysis: str | None = None
     feeling: str | None = None
     tags: list[str] | None = None
     event_date: str | None = None
@@ -996,8 +1010,13 @@ async def delete_resume_version(version_id: int):
 
 
 @app.get("/api/interview-questions")
-async def interview_questions(role_category: str = "", source_type: str = "", question_type: str = ""):
-    return {"items": db.list_interview_questions(role_category=role_category, source_type=source_type, question_type=question_type)}
+async def interview_questions(role_category: str = "", source_type: str = "", question_type: str = "", topic: str = "", paper_name: str = "", search: str = ""):
+    return {"items": db.list_interview_questions(role_category=role_category, source_type=source_type, question_type=question_type, topic=topic, paper_name=paper_name, search=search)}
+
+
+@app.get("/api/interview-questions/analysis")
+async def interview_question_analysis():
+    return db.analyze_interview_questions()
 
 
 @app.post("/api/interview-questions")

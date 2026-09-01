@@ -2,7 +2,7 @@
 schema_version: 1
 id: compute-empire-game
 type: project
-title: AI 辅助开发的算力经营策略游戏 MVP
+title: AI 辅助开发的算力经营策略游戏
 organization: 个人项目
 role: 独立开发
 start: 2026-08
@@ -22,16 +22,20 @@ skills:
 - 自动化测试
 resume_ready: true
 created_at: 2026-08-21
-updated_at: 2026-08-22T01:31:40+08:00
+updated_at: 2026-08-26T03:35:00+08:00
 migration_source: AHui-Lab/Resume
 migration_review: completed
 source_confidence: medium
 source_paths:
 - Resume.md
 migration_reviewed_at: 2026-08-21T22:58:02+08:00
+related_experience_ids: []
+related_experiences: []
+details:
+  project_role: ''
 ---
 
-# AI 辅助开发的算力经营策略游戏 MVP
+# AI 辅助开发的算力经营策略游戏
 
 ## 项目概述
 使用 AI Agent 辅助需求拆解、游戏设计、任务分解、代码实现、测试和文档维护，基于 Godot 4 + GDScript 独立完成单人经营策略游戏 MVP。

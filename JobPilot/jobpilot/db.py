@@ -6,6 +6,7 @@ import os
 import re
 import shutil
 import sqlite3
+from collections import Counter
 from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
@@ -136,11 +137,18 @@ CREATE TABLE IF NOT EXISTS interview_questions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     question_type TEXT NOT NULL DEFAULT 'interview',
     source_type TEXT NOT NULL DEFAULT 'personal',
+    source_key TEXT NOT NULL DEFAULT '',
+    paper_name TEXT NOT NULL DEFAULT '',
+    question_no INTEGER NOT NULL DEFAULT 0,
+    topic TEXT NOT NULL DEFAULT '',
     role_category TEXT NOT NULL DEFAULT '',
     company TEXT NOT NULL DEFAULT '',
     opportunity_id INTEGER,
     question TEXT NOT NULL DEFAULT '',
+    options TEXT NOT NULL DEFAULT '[]',
+    correct_answer TEXT NOT NULL DEFAULT '',
     answer TEXT NOT NULL DEFAULT '',
+    analysis TEXT NOT NULL DEFAULT '',
     feeling TEXT NOT NULL DEFAULT '',
     tags TEXT NOT NULL DEFAULT '[]',
     event_date TEXT NOT NULL DEFAULT '',
@@ -310,6 +318,16 @@ def init_db() -> None:
             "education_start_date": "ALTER TABLE profile ADD COLUMN education_start_date TEXT NOT NULL DEFAULT ''",
             "degree_type": "ALTER TABLE profile ADD COLUMN degree_type TEXT NOT NULL DEFAULT ''",
         }
+        question_columns = {row[1] for row in conn.execute("PRAGMA table_info(interview_questions)").fetchall()}
+        question_migrations = {
+            "source_key": "ALTER TABLE interview_questions ADD COLUMN source_key TEXT NOT NULL DEFAULT ''",
+            "paper_name": "ALTER TABLE interview_questions ADD COLUMN paper_name TEXT NOT NULL DEFAULT ''",
+            "question_no": "ALTER TABLE interview_questions ADD COLUMN question_no INTEGER NOT NULL DEFAULT 0",
+            "topic": "ALTER TABLE interview_questions ADD COLUMN topic TEXT NOT NULL DEFAULT ''",
+            "options": "ALTER TABLE interview_questions ADD COLUMN options TEXT NOT NULL DEFAULT '[]'",
+            "correct_answer": "ALTER TABLE interview_questions ADD COLUMN correct_answer TEXT NOT NULL DEFAULT ''",
+            "analysis": "ALTER TABLE interview_questions ADD COLUMN analysis TEXT NOT NULL DEFAULT ''",
+        }
         for column, sql in opportunity_migrations.items():
             if column not in columns:
                 conn.execute(sql)
@@ -319,6 +337,10 @@ def init_db() -> None:
         for column, sql in profile_migrations.items():
             if column not in profile_columns:
                 conn.execute(sql)
+        for column, sql in question_migrations.items():
+            if column not in question_columns:
+                conn.execute(sql)
+        seed_interview_question_bank(conn)
     # On version upgrades make a safety snapshot after migrations. Keep this best-effort.
     if existed or migrated:
         backup_database()
@@ -341,6 +363,136 @@ def _loads(value: Any, default: Any) -> Any:
         return json.loads(value or json.dumps(default, ensure_ascii=False))
     except (json.JSONDecodeError, TypeError):
         return default
+
+
+QUESTION_BANK_DIR = ROOT / "data" / "question-bank"
+SHUNFENG_TOPICS = {
+    1: "用户增长", 2: "物流业务", 3: "交互设计", 4: "交互设计", 5: "数据分析",
+    6: "技术基础", 7: "用户研究", 8: "项目管理", 9: "AI 产品", 10: "数据分析",
+    11: "产品策略", 12: "商业模式", 13: "AI 产品", 14: "商业分析", 15: "AI 产品",
+    16: "物流业务", 17: "数据分析", 18: "产品策略", 19: "用户增长", 20: "项目管理",
+    21: "AI 产品", 22: "AI 产品", 23: "数据分析", 24: "AI 产品",
+}
+SHUNFENG_ANALYSIS = {
+    1: "Hooked Model 的闭环是触发、行动、多变的酬赏、投入；投入会提高用户再次进入闭环的可能性。",
+    2: "DDP 要求卖方承担运至指定目的地的费用和风险，并负责进口清关、关税等义务。",
+    3: "菲茨定律中目标越小、距离越远越难点击；屏幕右上角的小图标同时受到距离和尺寸的不利影响。",
+    4: "拇指热区、内容优先和分步降低认知负担，都是移动端常见的体验设计原则。首页堆满功能会增加选择成本。",
+    5: "均值改善伴随波动显著扩大，说明不同用户或场景的体验可能分化；应先查稳定性和风险，再决定是否全量。",
+    6: "REST 强调用 HTTP 方法表达操作、无状态和状态码表达结果；URL 通常表达资源，而不是动作。",
+    7: "问卷应从易到难、保持中立，并尽量让选项互斥且穷尽；题目越多不代表信息质量越高。",
+    8: "识别风险后需要透明沟通、更新 Backlog 和评估范围；是否砍需求应由团队、PO 和 SM 基于影响共同决定。",
+    9: "RAG 先检索可信知识，再把相关上下文交给模型，可约束回答范围并降低凭空编造的概率。",
+    10: "UV 是独立用户数，PV 允许同一用户重复点击；3500 PV 不等于 3500 个用户，重复点击可能提示操作困惑。",
+    11: "规则引擎先覆盖高频、边界相对清晰的 SKU，是在期限内保留智能价值并降低实现复杂度的 MVP。",
+    12: "订阅制评估必须看成本、客户使用频次与客单价分布，以及司机侧接受度和迁移阻力。",
+    13: "迁移学习可以利用其他城市的通用规律，再用少量本地数据校准，适合目标城市样本不足的情况。",
+    14: "行业集中度低且竞争者实力接近时，竞争者之间更容易陷入直接比拼，竞争强度通常更高。",
+    15: "生成式 AI 更适合开放式语言任务，如生成回复、抽取条款和多语言表达；路径优化应优先使用专门算法。",
+    16: "最后一公里的距离未必最长，但配送地址分散、约束复杂且直接影响用户体验，因此成本和服务压力集中。",
+    17: "留存要结合行业和同期群看；曲线变平说明留下来的用户形成了稳定价值，但不代表新增用户质量一定相同。",
+    18: "不能只看转化提升，还要看增量成本、长期价值和可持续性；免运费通常更容易控制补贴外溢和财务风险。",
+    19: "K=0.8 表示平均每个用户带来的新增用户不足 1 个，无法仅靠传播实现持续自增长。",
+    20: "甘特图按时间轴展示任务，PERT 用网络关系展示任务依赖和关键路径，两者的核心表达方式不同。",
+    21: "模型推荐之外还要加属性约束、规则校验和人工兜底，避免模型输出直接突破冷链等硬性业务规则。",
+    22: "对比模式把推荐依据和预期收益可视化，能降低黑盒感，让业务方基于证据理解 AI 建议。",
+    23: "A/B 测试通过对照组隔离同期变化，是估计 AI 功能净影响的优先方案；单纯比较前后数据会混入 KPI 变更影响。",
+    24: "监控既要看输出误差和置信度，也要看输入特征漂移；训练集 Loss 下降不能代表线上效果没有衰退。",
+}
+
+
+def _parse_question_bank_file(path: Path) -> list[dict[str, Any]]:
+    text = path.read_text(encoding="utf-8")
+    title = next((line.lstrip("# ").strip() for line in text.splitlines() if line.startswith("# ")), path.stem)
+    is_shunfeng = "shunfeng" in path.stem.lower()
+    company = "顺丰" if is_shunfeng else "OPPO"
+    role_category = "产品经理" if is_shunfeng else "应用后端开发"
+    items: list[dict[str, Any]] = []
+    question_starts = list(re.finditer(r"^#{2,3}\s*第(\d+)题(?:（([^）]+)）)?\s*$", text, flags=re.MULTILINE))
+    for index, start in enumerate(question_starts):
+        block = text[start.start():question_starts[index + 1].start() if index + 1 < len(question_starts) else len(text)]
+        number = int(start.group(1))
+        type_name = start.group(2) or ""
+        prefix = text[:start.start()]
+        section_types = re.findall(r"^##\s*(单选题|多选题|编程题)\s*$", prefix, flags=re.MULTILINE)
+        type_name = type_name or (section_types[-1] if section_types else "")
+        question_match = re.search(r"\*\*题目：\*\*\s*(.+?)(?=\n\n\*\*选项：\*\*)", block, flags=re.DOTALL)
+        answer_match = re.search(r"\*\*答案：\s*([^*\n]+)\*\*", block)
+        if question_match:
+            question = question_match.group(1).strip()
+        else:
+            lines = block.splitlines()[1:]
+            question_lines = []
+            for line in lines:
+                if re.match(r"^- [A-D]\.\s*", line) or line.strip() == "---":
+                    break
+                if line.strip() and not line.startswith("##"):
+                    question_lines.append(line.strip())
+            question = "\n".join(question_lines).strip()
+        if not question:
+            continue
+        options = [{"key": key, "text": value.strip()} for key, value in re.findall(r"^- ([A-D])\.\s*(.+)$", block, flags=re.MULTILINE)]
+        correct = answer_match.group(1).strip() if answer_match else ""
+        topic = SHUNFENG_TOPICS.get(number, "综合产品能力") if is_shunfeng else "计算机基础"
+        items.append({
+            "source_key": f"{path.stem}:{number}",
+            "paper_name": title,
+            "question_no": number,
+            "topic": topic,
+            "question_type": "written_test",
+            "source_type": "network",
+            "role_category": role_category,
+            "company": company,
+            "question": question,
+            "options": options,
+            "correct_answer": correct,
+            "answer": f"正确选项：{correct}" if correct else "",
+            "analysis": SHUNFENG_ANALYSIS.get(number, "建议结合产品目标、用户价值和业务约束分析。") if is_shunfeng else "",
+            "tags": [topic, "顺丰2027校招" if is_shunfeng else "OPPO2027秋招"],
+            "event_date": "",
+        })
+    programming_match = re.search(r"^#{2,3}\s*编程题\s*$", text, flags=re.MULTILINE)
+    if programming_match:
+        programming_text = text[programming_match.end():]
+        programming_items = list(re.finditer(r"^#{2,3}\s*题目(\d+)：\s*(.+)$", programming_text, flags=re.MULTILINE))
+        offset = max((item["question_no"] for item in items), default=0)
+        for index, start in enumerate(programming_items):
+            end = programming_items[index + 1].start() if index + 1 < len(programming_items) else len(programming_text)
+            question = re.sub(r"^#{2,3}\s*", "", programming_text[start.start():end].strip().strip("-").strip(), count=1)
+            programming_no = offset + int(start.group(1))
+            items.append({
+                "source_key": f"{path.stem}:programming-{start.group(1)}",
+                "paper_name": title,
+                "question_no": programming_no,
+                "topic": "编程题",
+                "question_type": "written_test",
+                "source_type": "network",
+                "role_category": role_category,
+                "company": company,
+                "question": question,
+                "options": [],
+                "correct_answer": "",
+                "answer": "",
+                "analysis": "",
+                "tags": ["编程题", "顺丰2027校招" if is_shunfeng else "OPPO2027秋招"],
+                "event_date": "",
+            })
+    return items
+
+
+def seed_interview_question_bank(conn: sqlite3.Connection) -> None:
+    if not QUESTION_BANK_DIR.exists():
+        return
+    for path in sorted(QUESTION_BANK_DIR.glob("*.md")):
+        for item in _parse_question_bank_file(path):
+            exists = conn.execute("SELECT 1 FROM interview_questions WHERE source_key = ? LIMIT 1", (item["source_key"],)).fetchone()
+            if exists:
+                continue
+            fields = ["source_key", "paper_name", "question_no", "topic", "question_type", "source_type", "role_category", "company", "question", "options", "correct_answer", "answer", "analysis", "tags", "event_date"]
+            values = [item[field] for field in fields]
+            values[9] = json.dumps(values[9], ensure_ascii=False)
+            values[13] = json.dumps(values[13], ensure_ascii=False)
+            conn.execute(f"INSERT INTO interview_questions ({','.join(fields)}) VALUES ({','.join('?' for _ in fields)})", values)
 
 
 def _opportunity_row(row: sqlite3.Row) -> dict[str, Any]:
@@ -731,16 +883,17 @@ def delete_experience(experience_id: int) -> bool:
 
 
 # --- interview / written-test question bank ---
-INTERVIEW_QUESTION_FIELDS = {"question_type", "source_type", "role_category", "company", "opportunity_id", "question", "answer", "feeling", "tags", "event_date"}
+INTERVIEW_QUESTION_FIELDS = {"question_type", "source_type", "source_key", "paper_name", "question_no", "topic", "role_category", "company", "opportunity_id", "question", "options", "correct_answer", "answer", "analysis", "feeling", "tags", "event_date"}
 
 
 def _question_row(row: sqlite3.Row) -> dict[str, Any]:
     result = dict(row)
     result["tags"] = _loads(result.get("tags"), [])
+    result["options"] = _loads(result.get("options"), [])
     return result
 
 
-def list_interview_questions(*, role_category: str = "", source_type: str = "", question_type: str = "") -> list[dict[str, Any]]:
+def list_interview_questions(*, role_category: str = "", source_type: str = "", question_type: str = "", topic: str = "", paper_name: str = "", search: str = "") -> list[dict[str, Any]]:
     where, params = [], []
     if role_category:
         where.append("role_category = ?"); params.append(role_category)
@@ -748,7 +901,15 @@ def list_interview_questions(*, role_category: str = "", source_type: str = "", 
         where.append("source_type = ?"); params.append(source_type)
     if question_type:
         where.append("question_type = ?"); params.append(question_type)
-    sql = "SELECT * FROM interview_questions" + (" WHERE " + " AND ".join(where) if where else "") + " ORDER BY event_date DESC, updated_at DESC, id DESC"
+    if topic:
+        where.append("topic = ?"); params.append(topic)
+    if paper_name:
+        where.append("paper_name = ?"); params.append(paper_name)
+    if search:
+        needle = f"%{search}%"
+        where.append("(question LIKE ? OR answer LIKE ? OR analysis LIKE ? OR paper_name LIKE ? OR topic LIKE ? OR tags LIKE ?)")
+        params.extend([needle] * 6)
+    sql = "SELECT * FROM interview_questions" + (" WHERE " + " AND ".join(where) if where else "") + " ORDER BY CASE WHEN question_no > 0 THEN question_no ELSE 999999 END, event_date DESC, updated_at DESC, id DESC"
     with connect() as conn:
         rows = conn.execute(sql, params).fetchall()
     return [_question_row(row) for row in rows]
@@ -762,7 +923,10 @@ def get_interview_question(question_id: int) -> dict[str, Any] | None:
 
 def save_interview_question(item: dict[str, Any], question_id: int | None = None) -> dict[str, Any]:
     clean = {key: item.get(key) for key in INTERVIEW_QUESTION_FIELDS if key in item}
-    clean["tags"] = json.dumps(clean.get("tags") or [], ensure_ascii=False)
+    if "tags" in clean:
+        clean["tags"] = json.dumps(clean.get("tags") or [], ensure_ascii=False)
+    if "options" in clean:
+        clean["options"] = json.dumps(clean.get("options") or [], ensure_ascii=False)
     clean["opportunity_id"] = int(clean["opportunity_id"]) if clean.get("opportunity_id") else None
     if question_id:
         sets = ", ".join(f"{key} = ?" for key in clean)
@@ -780,6 +944,22 @@ def delete_interview_question(question_id: int) -> bool:
     with connect() as conn:
         cursor = conn.execute("DELETE FROM interview_questions WHERE id = ?", (question_id,))
     return cursor.rowcount > 0
+
+
+def analyze_interview_questions() -> dict[str, Any]:
+    items = list_interview_questions()
+    topics = Counter(item.get("topic") or "未分类" for item in items)
+    papers = Counter(item.get("paper_name") or "未命名试卷" for item in items)
+    types = Counter(item.get("question_type") or "interview" for item in items)
+    answered = sum(1 for item in items if item.get("answer") or item.get("analysis") or item.get("correct_answer"))
+    return {
+        "total": len(items),
+        "written_test": types.get("written_test", 0),
+        "interview": types.get("interview", 0),
+        "answered": answered,
+        "topics": [{"name": name, "count": count} for name, count in topics.most_common()],
+        "papers": [{"name": name, "count": count} for name, count in papers.most_common()],
+    }
 
 
 # --- reusable role-specific application fields ---
