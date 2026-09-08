@@ -25,7 +25,7 @@ skills:
 - SSE
 resume_ready: true
 created_at: 2026-08-21
-updated_at: 2026-08-22T01:28:04+08:00
+updated_at: 2026-09-07T16:38:42+08:00
 migration_source: AHui-Lab/Resume
 migration_review: completed
 source_confidence: high
@@ -33,21 +33,18 @@ source_paths:
 - 基于Langchain/基于LangChain的本地知识库智能问答系统.md
 - Resume.md
 migration_reviewed_at: 2026-08-22T01:23:24+08:00
+related_experience_ids: []
+related_experiences: []
+details: {}
 ---
 
 # 本地知识库RAG对话obsdian插件
 
 ## 项目概述
-独立设计并实现端到端本地 RAG 知识库系统，支持多格式文档导入、索引、检索、带来源引用的问答和流式输出；Web 应用与 Obsidian 桌面插件共用同一 FastAPI 后端。
+独立设计并交付本地优先的知识库问答产品 OPSB（Obsidian 插件为主、Web 版为辅）：笔记向量化存于本地 IndexedDB，问答时检索 TopK 片段由 LLM 流式生成带出处、可跳转原文的回答，数据不出本机。
 
 ## 事实记录
-- 支持 PDF、DOCX、Markdown、TXT、HTML 等文档导入，并完成递归分块、Embedding、ChromaDB 检索和 LLM 生成链路。
-- 基于 LangChain LCEL 组织 ChatPromptTemplate、RunnableParallel、StrOutputParser 等组件，并针对中文文本配置语义分隔符。
-- 设计“扩大召回 + 相似度阈值过滤 + 来源去重”的检索策略，默认相似度阈值记录为 0.3。
-- 使用工厂模式统一 LLM 与 Embedding 接口，支持 OpenAI 兼容 API 与本地 Ollama 模型切换；Embedding 变更时可重建向量索引。
-- 使用 FastAPI 实现异步 REST API，覆盖文档管理、检索、SSE 流式对话和模型配置更新，使用 Pydantic 做数据校验并以 YAML 持久化配置。
-- 使用原生 JavaScript 开发 Web 客户端；使用 TypeScript 开发 Obsidian 插件，支持笔记、文件夹和 Vault 级索引、侧边栏对话及保存同步。
-- 系统具备完全本地部署路径，记录的默认中文 Embedding 模型为 bge-small-zh-v1.5，并可配合 Ollama 本地 LLM 使用。
+个人独立完成（产品+研发+测试一体）：需求来自自己的真实痛点（Obsidian 笔记记了用不上）；独立完成方案设计、交互界面、核心代码（AI 辅助开发，我负责架构与取舍决策、review 与整合）及上线后自测迭代。迭代来自真实使用：专有名词答非所问 → 定位纯向量弱点 → 落地混合检索；不敢信 AI 回答 → 做来源跳原文与检索明细；调参没底气 → 建评测集让调参有据。全程留痕，每个功能对应真实 commit 与文档。
 
 ## 量化成果
 - 支持 5 类常用文档格式：PDF / DOCX / Markdown / TXT / HTML。

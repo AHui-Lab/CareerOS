@@ -400,66 +400,146 @@ SHUNFENG_ANALYSIS = {
     24: "监控既要看输出误差和置信度，也要看输入特征漂移；训练集 Loss 下降不能代表线上效果没有衰退。",
 }
 
+ALGORITHM_TOPICS = {
+    1: "排序算法", 2: "机器学习", 3: "机器学习", 4: "数据结构",
+    5: "Python", 6: "Python", 7: "数学", 8: "深度学习",
+    9: "数据结构", 10: "深度学习", 11: "算法复杂度", 12: "机器学习",
+    13: "数据库", 14: "Python", 15: "深度学习", 16: "机器学习",
+    17: "数学", 18: "机器学习", 19: "C++", 20: "设计模式",
+    21: "深度学习", 22: "深度学习", 23: "C++",
+}
+
 
 def _parse_question_bank_file(path: Path) -> list[dict[str, Any]]:
     text = path.read_text(encoding="utf-8")
     title = next((line.lstrip("# ").strip() for line in text.splitlines() if line.startswith("# ")), path.stem)
     is_shunfeng = "shunfeng" in path.stem.lower()
-    company = "顺丰" if is_shunfeng else "OPPO"
-    role_category = "产品经理" if is_shunfeng else "应用后端开发"
+    is_algo = "algorithm" in path.stem.lower() or "算法" in title
+    is_interview = "面试" in title or "面经" in title or "round" in path.stem.lower()
+    if is_shunfeng:
+        company, role_category = "顺丰", "产品经理"
+    elif is_algo:
+        company, role_category = "综合", "算法工程师"
+    else:
+        company, role_category = "OPPO", "应用后端开发"
     items: list[dict[str, Any]] = []
-    question_starts = list(re.finditer(r"^#{2,3}\s*第(\d+)题(?:（([^）]+)）)?\s*$", text, flags=re.MULTILINE))
+    # Support multiple heading formats:
+    #   ### 第1题（单选题）   — Shunfeng
+    #   ### 第1题             — OPPO
+    #   ### 1. 冒泡排序       — Algorithm bank
+    question_starts = list(re.finditer(
+        r"^#{2,3}\s*(?:第(\d+)题(?:（([^）]+)）)?|(\d+)\.\s*(.+?))\s*$",
+        text, flags=re.MULTILINE
+    ))
     for index, start in enumerate(question_starts):
         block = text[start.start():question_starts[index + 1].start() if index + 1 < len(question_starts) else len(text)]
-        number = int(start.group(1))
-        type_name = start.group(2) or ""
+        if start.group(1):                       # 第N题 format
+            number = int(start.group(1))
+            type_name = start.group(2) or ""
+        else:                                    # N. title format
+            number = int(start.group(3))
+            type_name = ""
+        # Derive type from preceding section header when heading itself lacks it
         prefix = text[:start.start()]
-        section_types = re.findall(r"^##\s*(单选题|多选题|编程题)\s*$", prefix, flags=re.MULTILINE)
-        type_name = type_name or (section_types[-1] if section_types else "")
-        question_match = re.search(r"\*\*题目：\*\*\s*(.+?)(?=\n\n\*\*选项：\*\*)", block, flags=re.DOTALL)
-        answer_match = re.search(r"\*\*答案：\s*([^*\n]+)\*\*", block)
+        section_types = re.findall(r"^##\s*(单选题|多选题|编程题|选择题)\s*$", prefix, flags=re.MULTILINE)
+        if not type_name and section_types:
+            last = section_types[-1]
+            type_name = "单选题" if last == "选择题" else last
+        # Extract question text
+        question_match = re.search(r"\*\*题目：\*\*\s*(.+?)(?=\n\n\*\*(?:考察点|回答建议|HR/面试官视角评价|选项|答案|解析)[^\n]*\*\*|\n\n---|\Z)", block, flags=re.DOTALL)
         if question_match:
             question = question_match.group(1).strip()
         else:
             lines = block.splitlines()[1:]
             question_lines = []
             for line in lines:
-                if re.match(r"^- [A-D]\.\s*", line) or line.strip() == "---":
+                if re.match(r"^- [A-D]\.\s*", line) or line.strip() == "---" or re.match(r"^\*\*(?:题目|考察点|回答建议|HR/面试官视角评价|选项|答案|解析)[^\n]*\*\*", line.strip()):
                     break
                 if line.strip() and not line.startswith("##"):
                     question_lines.append(line.strip())
             question = "\n".join(question_lines).strip()
+            if not question and start.group(4):
+                question = start.group(4).strip()
         if not question:
             continue
         options = [{"key": key, "text": value.strip()} for key, value in re.findall(r"^- ([A-D])\.\s*(.+)$", block, flags=re.MULTILINE)]
+        # Extract correct answer
+        answer_match = re.search(r"\*\*答案：\s*([^*\n]+?)\*\*", block)
         correct = answer_match.group(1).strip() if answer_match else ""
-        topic = SHUNFENG_TOPICS.get(number, "综合产品能力") if is_shunfeng else "计算机基础"
+        if not correct:
+            # Fallback 1: multi-line option with ✅ marker
+            for key in re.findall(r"^- ([A-D])\.\s*(?:\*\*)?.*?(?:\*\*)?\s*✅", block, flags=re.MULTILINE):
+                correct = key
+                break
+        if not correct:
+            # Fallback 2: inline option with ✅ marker (e.g. "A. xx B. xx C. xx D. **yy** ✅")
+            m = re.search(r"([A-D])\.(?:(?![A-D]\.)[\s\S])*?✅", block)
+            if m:
+                correct = m.group(1)
+        # Extract the distinct interview sections so the UI can show them separately.
+        analysis_match = re.search(r"\*\*解析：\*\*\s*(.+?)(?=\n\n---|\n\n## |\Z)", block, flags=re.DOTALL)
+        analysis = analysis_match.group(1).strip() if analysis_match else ""
+        focus_match = re.search(r"\*\*考察点：\*\*\s*(.+?)(?=\n\n\*\*回答建议[^\n]*\*\*|\n\n\*\*HR/面试官视角评价：\*\*|\n\n---|\Z)", block, flags=re.DOTALL)
+        suggestion_match = re.search(r"\*\*回答建议[^\n]*\*\*\s*(.+?)(?=\n\n\*\*HR/面试官视角评价：\*\*|\n\n---|\Z)", block, flags=re.DOTALL)
+        hr_match = re.search(r"\*\*HR/面试官视角评价：\*\*\s*(.+?)(?=\n\n---|\n\n## |\Z)", block, flags=re.DOTALL)
+        if is_interview:
+            interview_notes = []
+            if focus_match:
+                interview_notes.append(f"考察重点：\n{focus_match.group(1).strip()}")
+            if hr_match:
+                interview_notes.append(f"面试官关注：\n{hr_match.group(1).strip()}")
+            analysis = "\n\n".join(interview_notes) or analysis
+            answer = suggestion_match.group(1).strip() if suggestion_match else ""
+        else:
+            answer = f"正确选项：{correct}" if correct else ""
+            if is_shunfeng and not analysis:
+                analysis = SHUNFENG_ANALYSIS.get(number, "建议结合产品目标、用户价值和业务约束分析。")
+        # Topic & tags
+        if is_interview:
+            topic = type_name.split("·")[-1].strip() if type_name else "综合面试"
+            tags = [topic, "顺丰面经" if is_shunfeng else "面试记录"]
+        elif is_algo:
+            topic = ALGORITHM_TOPICS.get(number, "计算机基础")
+            tags = [topic, "算法笔试"]
+        else:
+            topic = "计算机基础"
+            tags = [topic, "OPPO2027秋招"]
         items.append({
             "source_key": f"{path.stem}:{number}",
             "paper_name": title,
             "question_no": number,
             "topic": topic,
-            "question_type": "written_test",
-            "source_type": "network",
+            "question_type": "interview" if is_interview else "written_test",
+            "source_type": "personal" if is_interview else "network",
             "role_category": role_category,
             "company": company,
             "question": question,
             "options": options,
             "correct_answer": correct,
-            "answer": f"正确选项：{correct}" if correct else "",
-            "analysis": SHUNFENG_ANALYSIS.get(number, "建议结合产品目标、用户价值和业务约束分析。") if is_shunfeng else "",
-            "tags": [topic, "顺丰2027校招" if is_shunfeng else "OPPO2027秋招"],
-            "event_date": "",
+            "answer": answer,
+            "analysis": analysis,
+            "tags": tags,
+            "event_date": (re.search(r"面试日期：\*\*\s*([^\n]+)", text).group(1).strip() if re.search(r"面试日期：\*\*\s*([^\n]+)", text) else ""),
         })
-    programming_match = re.search(r"^#{2,3}\s*编程题\s*$", text, flags=re.MULTILINE)
+    # Programming questions — support both "题目1：title" and "编程题1：title"
+    programming_match = re.search(r"^#{2,3}\s*(?:编程题|二、编程题)\s*$", text, flags=re.MULTILINE)
     if programming_match:
         programming_text = text[programming_match.end():]
-        programming_items = list(re.finditer(r"^#{2,3}\s*题目(\d+)：\s*(.+)$", programming_text, flags=re.MULTILINE))
+        programming_items = list(re.finditer(
+            r"^#{2,3}\s*(?:编程题|题目)(\d+)：\s*(.+)$",
+            programming_text, flags=re.MULTILINE
+        ))
         offset = max((item["question_no"] for item in items), default=0)
         for index, start in enumerate(programming_items):
             end = programming_items[index + 1].start() if index + 1 < len(programming_items) else len(programming_text)
             question = re.sub(r"^#{2,3}\s*", "", programming_text[start.start():end].strip().strip("-").strip(), count=1)
             programming_no = offset + int(start.group(1))
+            if is_shunfeng:
+                tags = ["编程题", "顺丰2027校招"]
+            elif is_algo:
+                tags = ["编程题", "算法笔试"]
+            else:
+                tags = ["编程题", "OPPO2027秋招"]
             items.append({
                 "source_key": f"{path.stem}:programming-{start.group(1)}",
                 "paper_name": title,
@@ -474,7 +554,7 @@ def _parse_question_bank_file(path: Path) -> list[dict[str, Any]]:
                 "correct_answer": "",
                 "answer": "",
                 "analysis": "",
-                "tags": ["编程题", "顺丰2027校招" if is_shunfeng else "OPPO2027秋招"],
+                "tags": tags,
                 "event_date": "",
             })
     return items
@@ -486,12 +566,18 @@ def seed_interview_question_bank(conn: sqlite3.Connection) -> None:
     for path in sorted(QUESTION_BANK_DIR.glob("*.md")):
         for item in _parse_question_bank_file(path):
             exists = conn.execute("SELECT 1 FROM interview_questions WHERE source_key = ? LIMIT 1", (item["source_key"],)).fetchone()
-            if exists:
-                continue
             fields = ["source_key", "paper_name", "question_no", "topic", "question_type", "source_type", "role_category", "company", "question", "options", "correct_answer", "answer", "analysis", "tags", "event_date"]
             values = [item[field] for field in fields]
             values[9] = json.dumps(values[9], ensure_ascii=False)
             values[13] = json.dumps(values[13], ensure_ascii=False)
+            if exists:
+                # Interview markdown is structured source content. Refresh already-seeded
+                # interview rows once the parser learns their sections, while leaving
+                # manually-created and written-test rows untouched.
+                if item["question_type"] == "interview":
+                    sets = ", ".join(f"{field} = ?" for field in fields[1:])
+                    conn.execute(f"UPDATE interview_questions SET {sets}, updated_at = datetime('now', 'localtime') WHERE source_key = ?", [*values[1:], values[0]])
+                continue
             conn.execute(f"INSERT INTO interview_questions ({','.join(fields)}) VALUES ({','.join('?' for _ in fields)})", values)
 
 

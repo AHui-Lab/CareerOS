@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>CareerOS · 个人求职工作台</title>
-  <link rel="stylesheet" href="/static/styles.css?v=20260831-7" />
+  <link rel="stylesheet" href="/static/styles.css?v=20260908-1" />
   <link rel="stylesheet" href="/static/v031.css" />
   <style>
     .vault-manage-categories{margin-left:auto;white-space:nowrap}
@@ -32,13 +32,15 @@
       <div class="nav-group-label">求职管理</div>
       <button class="nav" data-view="memo">校招岗位</button>
       <button class="nav" data-view="email">邮件跟踪</button>
-      <button class="nav" data-view="interview">笔面试题库</button>
+      <div class="nav-group-label">笔面试</div>
+      <button class="nav" data-view="interview">面试准备</button>
+      <button class="nav" data-view="written_test">笔试题库</button>
       <button class="nav" data-view="resume">简历中心</button>
       <div class="nav-group-label">资料与设置</div>
       <button class="nav" data-view="vault">经历和项目</button>
       <button class="nav" data-view="settings">设置和帮助</button>
     </nav>
-    <div class="sidebar-note">V0.5.8 · 求职工作台<br><span id="aiBadge">连接检测中…</span></div>
+    <div class="sidebar-note">V0.5.9 · 求职工作台<br><span id="aiBadge">连接检测中…</span></div>
   </aside>
 
   <main class="main">
@@ -149,12 +151,21 @@
     </section>
 
     <section id="view-interview" class="view">
-      <section class="panel interview-bank-toolbar"><div><p class="eyebrow">INTERVIEW QUESTION BANK</p><h2>笔面试题库</h2><p class="helper">按试卷浏览题目，先独立思考，再展开答案和解析；也可以按主题分析准备重点。</p></div><button id="addInterviewQuestionBtn" class="primary-btn" type="button">+ 记录题目</button></section>
-      <section class="interview-analysis-grid" aria-label="题库分析">
-        <article class="panel interview-analysis-summary"><div class="section-title"><div><p class="eyebrow">QUESTION ANALYSIS</p><h2>题库概览</h2></div><span id="interviewAnalysisHint" class="helper"></span></div><div class="interview-stat-grid"><div class="interview-stat"><span>总题数</span><strong id="interviewStatTotal">0</strong></div><div class="interview-stat"><span>笔试题</span><strong id="interviewStatWritten">0</strong></div><div class="interview-stat"><span>面试题</span><strong id="interviewStatInterview">0</strong></div><div class="interview-stat"><span>已补充解析</span><strong id="interviewStatAnswered">0</strong></div></div></article>
-        <article class="panel interview-topic-panel"><div class="section-title"><div><p class="eyebrow">TOPICS</p><h2>知识主题分布</h2></div></div><div id="interviewTopicChart" class="interview-topic-chart"></div></article>
+      <section class="panel interview-hero interview-hero-personal"><div><p class="eyebrow">INTERVIEW PREP</p><h2>面试准备</h2><p class="helper">按面试场次整理真实经历。先回忆自己的回答，再展开回答建议、考察重点和复盘。</p></div><button id="addInterviewQuestionBtn" class="primary-btn" type="button">+ 记录面试题</button></section>
+      <section class="interview-overview-grid" aria-label="面试准备概览">
+        <article class="panel interview-focus-panel"><p class="eyebrow">PREPARE WITH CONTEXT</p><h2>把每次面试变成下一次的准备材料</h2><p>面试题不再和选择题混在一起：先看面试场次和题目，再按需要展开参考回答。</p><div class="interview-focus-steps"><span><b>01</b> 回忆现场</span><span><b>02</b> 对照建议</span><span><b>03</b> 补上复盘</span></div></article>
+        <article class="panel interview-stats-panel"><div class="section-title"><div><p class="eyebrow">YOUR INTERVIEWS</p><h2>准备进度</h2></div><span id="interviewAnalysisHint" class="helper"></span></div><div class="interview-stat-grid"><div class="interview-stat"><span>面试场次</span><strong id="interviewStatSessions">0</strong></div><div class="interview-stat"><span>问题总数</span><strong id="interviewStatTotal">0</strong></div><div class="interview-stat"><span>已整理回答</span><strong id="interviewStatAnswered">0</strong></div></div></article>
       </section>
-      <section class="list-section"><div id="interviewLibraryView"><div class="list-toolbar"><div><p class="eyebrow">BROWSE PAPERS</p><h2>试卷库 <span id="interviewQuestionCount" class="helper"></span></h2></div><input id="interviewSearch" type="search" placeholder="搜索试卷 / 题目 / 主题" /></div><div class="toolbar-actions interview-filters"><select id="interviewRoleFilter"><option value="">全部岗位类别</option></select><select id="interviewTopicFilter"><option value="">全部主题</option></select><select id="interviewTypeFilter"><option value="">笔试 / 面试</option><option value="written_test">笔试</option><option value="interview">面试</option></select><select id="interviewSourceFilter"><option value="">全部来源</option><option value="personal">亲身经历</option><option value="network">网络题库</option></select><button id="clearInterviewFilters" class="ghost-btn" type="button">清除筛选</button></div><div id="interviewQuestionList" class="interview-paper-list"></div><div id="interviewQuestionEmpty" class="empty-state hidden"><h3>没有匹配试卷</h3><p>可以换一个关键词或清除筛选条件。</p></div></div><div id="interviewPaperDetail" class="hidden"><div class="paper-detail-toolbar"><button id="backToInterviewPapers" class="ghost-btn" type="button">← 返回试卷库</button><span class="helper">先独立完成，再展开答案与解析</span></div><div class="paper-detail-head"><div><p class="eyebrow">PAPER VIEW</p><h2 id="interviewPaperTitle"></h2><p id="interviewPaperMeta" class="helper"></p></div><button id="toggleAllInterviewAnswers" class="ghost-btn" type="button">显示全部答案</button></div><div id="interviewPaperQuestions" class="paper-sheet"></div></div></section>
+      <section class="list-section"><div id="interviewLibraryView"><div class="list-toolbar"><div><p class="eyebrow">INTERVIEW LOG</p><h2>面试记录 <span id="interviewQuestionCount" class="helper"></span></h2></div><input id="interviewSearch" type="search" placeholder="搜索公司 / 场次 / 题目 / 主题" /></div><div class="toolbar-actions interview-filters"><select id="interviewRoleFilter"><option value="">全部岗位类别</option></select><select id="interviewTopicFilter"><option value="">全部主题</option></select><select id="interviewSourceFilter"><option value="">全部来源</option><option value="personal">亲身经历</option><option value="network">网络题库</option></select><button id="clearInterviewFilters" class="ghost-btn" type="button">清除筛选</button></div><div id="interviewSessionList" class="interview-session-list"></div><div id="interviewQuestionEmpty" class="empty-state hidden"><h3>还没有面试记录</h3><p>可以点击“记录面试题”，把刚结束的面试按场次整理下来。</p></div></div><div id="interviewSessionDetail" class="hidden"><div class="paper-detail-toolbar"><button id="backToInterviewSessions" class="ghost-btn" type="button">← 返回面试记录</button><span class="helper">先独立回忆，再展开准备提示</span></div><div class="paper-detail-head interview-detail-head"><div><p class="eyebrow">INTERVIEW SESSION</p><h2 id="interviewSessionTitle"></h2><p id="interviewSessionMeta" class="helper"></p></div><button id="toggleAllInterviewAnswers" class="ghost-btn" type="button">显示全部准备提示</button></div><div id="interviewSessionQuestions" class="interview-session-sheet"></div></div></section>
+    </section>
+
+    <section id="view-written-test" class="view">
+      <section class="panel interview-hero interview-hero-written"><div><p class="eyebrow">WRITTEN TEST BANK</p><h2>笔试题库</h2><p class="helper">按试卷刷题。先独立作答，再展开正确答案和解析，适合集中复习知识点。</p></div><button id="addWrittenQuestionBtn" class="primary-btn" type="button">+ 记录笔试题</button></section>
+      <section class="interview-overview-grid written-overview-grid" aria-label="笔试题库概览">
+        <article class="panel written-focus-panel"><p class="eyebrow">PRACTICE MODE</p><h2>一套试卷，一次完整练习</h2><p>笔试题保留选项、编程题和解析结构，不与面试记录互相干扰。</p><div class="written-quick-facts"><span><b>先答题</b> 隐藏答案</span><span><b>再复盘</b> 按主题回看</span></div></article>
+        <article class="panel interview-stats-panel"><div class="section-title"><div><p class="eyebrow">QUESTION BANK</p><h2>题库概览</h2></div><span id="writtenAnalysisHint" class="helper"></span></div><div class="interview-stat-grid"><div class="interview-stat"><span>试卷数</span><strong id="writtenStatPapers">0</strong></div><div class="interview-stat"><span>题目总数</span><strong id="writtenStatTotal">0</strong></div><div class="interview-stat"><span>已补充解析</span><strong id="writtenStatAnswered">0</strong></div></div></article>
+      </section>
+      <section class="list-section"><div id="writtenLibraryView"><div class="list-toolbar"><div><p class="eyebrow">BROWSE PAPERS</p><h2>试卷库 <span id="writtenQuestionCount" class="helper"></span></h2></div><input id="writtenSearch" type="search" placeholder="搜索试卷 / 题目 / 主题" /></div><div class="toolbar-actions interview-filters"><select id="writtenRoleFilter"><option value="">全部岗位类别</option></select><select id="writtenTopicFilter"><option value="">全部主题</option></select><select id="writtenSourceFilter"><option value="">全部来源</option><option value="personal">亲身经历</option><option value="network">网络题库</option></select><button id="clearWrittenFilters" class="ghost-btn" type="button">清除筛选</button></div><div id="writtenQuestionList" class="interview-paper-list"></div><div id="writtenQuestionEmpty" class="empty-state hidden"><h3>没有匹配试卷</h3><p>可以换一个关键词或清除筛选条件。</p></div></div><div id="writtenPaperDetail" class="hidden"><div class="paper-detail-toolbar"><button id="backToWrittenPapers" class="ghost-btn" type="button">← 返回试卷库</button><span class="helper">先独立完成，再展开答案与解析</span></div><div class="paper-detail-head"><div><p class="eyebrow">PAPER VIEW</p><h2 id="writtenPaperTitle"></h2><p id="writtenPaperMeta" class="helper"></p></div><button id="toggleAllWrittenAnswers" class="ghost-btn" type="button">显示全部答案</button></div><div id="writtenPaperQuestions" class="paper-sheet"></div></div></section>
     </section>
 
     <section id="view-profile" class="view">
@@ -271,7 +282,7 @@
 </dialog>
 
 <dialog id="interviewQuestionDialog" class="dialog">
-  <form id="interviewQuestionForm" class="stack-form"><input id="interviewQuestionId" type="hidden" /><div class="dialog-head"><div><p class="eyebrow">QUESTION BANK</p><h2 id="interviewQuestionDialogTitle">记录笔面试题目</h2></div><button id="interviewQuestionClose" class="icon-btn" type="button">×</button></div><div class="form-grid-2"><label>题目类型<select id="interviewQuestionType"><option value="interview">面试</option><option value="written_test">笔试</option></select></label><label>题目来源<select id="interviewQuestionSource"><option value="personal">亲身经历</option><option value="network">网络题库</option></select></label><label>试卷名称<input id="interviewQuestionPaper" placeholder="如：顺丰2027校招产品经理笔试题" /></label><label>题号<input id="interviewQuestionNo" type="number" min="0" placeholder="可选" /></label><label>岗位类别<input id="interviewQuestionRole" placeholder="如：产品经理 / 软件开发" /></label><label>知识主题<input id="interviewQuestionTopic" placeholder="如：数据分析 / AI 产品" /></label><label>公司<input id="interviewQuestionCompany" /></label><label>日期<input id="interviewQuestionDate" type="date" /></label><label class="full-span">关联岗位<select id="interviewQuestionOpportunity"><option value="">不关联岗位</option></select></label></div><label>题目内容<textarea id="interviewQuestionText" rows="4" required></textarea></label><label>选项（每行一个，如 A. 选项内容）<textarea id="interviewQuestionOptions" rows="4" placeholder="A. ...&#10;B. ...&#10;C. ...&#10;D. ..."></textarea></label><div class="form-grid-2"><label>正确选项<input id="interviewQuestionCorrect" placeholder="如：B 或 B、C、D" /></label><label>标签（逗号分隔）<input id="interviewQuestionTags" placeholder="数据分析、顺丰2027校招" /></label></div><label>答案 / 参考答案<textarea id="interviewQuestionAnswer" rows="4"></textarea></label><label>解析<textarea id="interviewQuestionAnalysis" rows="3" placeholder="这道题考察什么，为什么选这个答案"></textarea></label><label>复盘感受<textarea id="interviewQuestionFeeling" rows="3" placeholder="哪里答得好、哪里需要补充、下次如何准备"></textarea></label><div class="dialog-actions"><button id="interviewQuestionCancel" class="ghost-btn" type="button">取消</button><button class="primary-btn" type="submit">保存题目</button></div></form>
+  <form id="interviewQuestionForm" class="stack-form"><input id="interviewQuestionId" type="hidden" /><div class="dialog-head"><div><p class="eyebrow">QUESTION BANK</p><h2 id="interviewQuestionDialogTitle">记录题目</h2><p id="interviewQuestionFormHint" class="helper">先把题目放进对应的题库，再补充答案。</p></div><button id="interviewQuestionClose" class="icon-btn" type="button">×</button></div><div class="form-grid-2"><label>题目类型<select id="interviewQuestionType"><option value="interview">面试</option><option value="written_test">笔试</option></select></label><label>题目来源<select id="interviewQuestionSource"><option value="personal">亲身经历</option><option value="network">网络题库</option></select></label><label>场次 / 试卷名称<input id="interviewQuestionPaper" placeholder="如：顺丰 AI 产品经理 · 一面" /></label><label>题号<input id="interviewQuestionNo" type="number" min="0" placeholder="可选" /></label><label>岗位类别<input id="interviewQuestionRole" placeholder="如：产品经理 / 软件开发" /></label><label>知识主题<input id="interviewQuestionTopic" placeholder="如：项目深挖 / AI 产品" /></label><label>公司<input id="interviewQuestionCompany" /></label><label>日期<input id="interviewQuestionDate" type="date" /></label><label class="full-span">关联岗位<select id="interviewQuestionOpportunity"><option value="">不关联岗位</option></select></label></div><label>题目内容<textarea id="interviewQuestionText" rows="4" required placeholder="把面试官的问题或笔试题干写完整。"></textarea></label><div id="writtenQuestionFields" class="question-form-section hidden"><div class="form-section-label">选择题设置</div><label>选项（每行一个，如 A. 选项内容）<textarea id="interviewQuestionOptions" rows="4" placeholder="A. ...&#10;B. ...&#10;C. ...&#10;D. ..."></textarea></label><label>正确选项<input id="interviewQuestionCorrect" placeholder="如：B 或 B、C、D" /></label></div><label id="interviewAnswerFieldLabel"><span>回答建议 / 参考答案</span><textarea id="interviewQuestionAnswer" rows="4"></textarea></label><label id="interviewAnalysisFieldLabel"><span>考察点 / 解析</span><textarea id="interviewQuestionAnalysis" rows="3" placeholder="这道题考察什么，回答时要覆盖哪些关键点"></textarea></label><label>标签（逗号分隔）<input id="interviewQuestionTags" placeholder="项目深挖、AI 产品" /></label><label><span>复盘感受</span><textarea id="interviewQuestionFeeling" rows="3" placeholder="哪里答得好、哪里需要补充、下次如何准备"></textarea></label><div class="dialog-actions"><button id="interviewQuestionCancel" class="ghost-btn" type="button">取消</button><button class="primary-btn" type="submit">保存题目</button></div></form>
 </dialog>
 
 <dialog id="roleFieldSetDialog" class="dialog">
@@ -303,7 +314,7 @@
   </form>
 </dialog>
 
-  <script src="/static/ui-text.js?v=040"></script>
-<script src="/static/app.js?v=20260831-7"></script>
+  <script src="/static/ui-text.js?v=20260908-1"></script>
+<script src="/static/app.js?v=20260908-2"></script>
 </body>
 </html>
