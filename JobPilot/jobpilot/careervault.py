@@ -99,6 +99,15 @@ def normalize_experience(item: dict[str, Any]) -> dict[str, Any]:
     facts = str(item.get("facts") or "")
     results = str(item.get("results") or "")
     summary = str(item.get("summary") or "")
+    details = item.get("details") if isinstance(item.get("details"), dict) else {}
+    project_brief = {key: str(details.get(key) or "").strip() for key in
+                     ("project_pitch", "personal_contribution", "project_outcome")}
+    # A curated brief is the resume source. Keep the long archive in CareerVault;
+    # mixing it back in can reintroduce superseded claims and planned work.
+    if item.get("type") == "project" and any(project_brief.values()):
+        summary = project_brief["project_pitch"]
+        facts = project_brief["personal_contribution"]
+        results = project_brief["project_outcome"]
     highlights = _bullet_lines(facts) + _bullet_lines(results)
     description = "\n".join(x for x in [summary, facts, results] if x.strip())
     tags: list[str] = []
@@ -116,6 +125,7 @@ def normalize_experience(item: dict[str, Any]) -> dict[str, Any]:
         "end_date": str(item.get("end") or ""),
         "location": str(item.get("location") or ""),
         "description": description,
+        "project_brief": project_brief if item.get("type") == "project" else {},
         "highlights": highlights[:12],
         "tags": tags,
         "domains": [str(x).strip() for x in (item.get("domains") or []) if str(x).strip()],

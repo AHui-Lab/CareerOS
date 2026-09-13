@@ -208,7 +208,7 @@ function renderVersions(){
 function renderResumePreview(version){
   state.latestVersion=version;const r=version.resume||{};const p=r.profile_snapshot||state.profile||{};
   const ids=r.selected_careervault_ids||[];
-  const sourceNote=`<div class="resume-source-note"><b>本次使用：</b>${r.source==='careervault'?'已确认的经历与项目':'本地经历资料'}${r.selection_mode?` · ${esc(r.selection_mode)}`:''}${ids.length?`<br><b>已选经历：</b>${ids.map(esc).join('、')}`:''}</div>`;
+  const sourceNote=`<div class="resume-source-note"><b>本次使用：</b>${r.source==='careervault'?'已确认的经历与项目':'本地经历资料'}${r.selection_mode?` · ${esc(r.selection_mode)}`:''}${ids.length?`<br><b>已选经历：</b>${ids.map(esc).join('、')}`:''}${(r.review_notes||[]).map(note=>`<br>${esc(note)}`).join('')}</div>`;
   const sections=(r.sections||[]).map(sec=>`<section class="resume-section"><h3>${esc(sec.title||'')}</h3>${(sec.items||[]).map(item=>`<div class="resume-item"><div class="resume-item-head"><b>${esc([item.organization,item.title].filter(Boolean).join(' · '))}</b><span>${esc([item.date,item.location].filter(Boolean).join(' · '))}</span></div>${(item.bullets||[]).length?`<ul>${item.bullets.map(b=>`<li>${esc(b)}</li>`).join('')}</ul>`:''}</div>`).join('')}</section>`).join('');
   const contact=[p.phone,p.email,p.current_city,p.portfolio_url||p.website].filter(Boolean).join(' | ');
   const headline=version.target_role||r.headline||'';

@@ -29,6 +29,20 @@ class StoreTests(unittest.TestCase):
         self.assertIn("python", tokens)
         self.assertTrue(any("传感" in x or "感器" in x for x in tokens))
 
+    def test_project_brief_roundtrip_preserves_archive(self):
+        with TemporaryDirectory() as tmp:
+            with patch.object(store, "EXPERIENCES", Path(tmp) / "experiences"), patch.object(store, "ROOT", Path(tmp)):
+                item = store.create_experience({
+                    "title": "项目短版", "facts": "原始过程与限制", "results": "测试记录",
+                    "details": {"project_pitch": "用途", "personal_contribution": "本人动作",
+                                "project_outcome": "有限结果", "hr_intro": "口述稿", "other": "保留字段"}})
+                details = {**item["details"], "personal_contribution": "修改后的本人动作"}
+                store.update_experience(item["id"], {"details": details})
+                saved = store.get_experience(item["id"])
+                self.assertEqual(saved["details"], details)
+                self.assertEqual(saved["facts"], "原始过程与限制")
+                self.assertEqual(saved["results"], "测试记录")
+
     def test_typed_record_and_links_roundtrip(self):
         with TemporaryDirectory() as tmp:
             experiences = Path(tmp) / "experiences"

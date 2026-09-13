@@ -69,7 +69,7 @@ RESUME_GENERATE_PROMPT = """你是 JobPilot 的定制简历生成器。你会收
 只输出 JSON，不要 markdown，结构必须是：
 {
   "headline":"一句话求职定位",
-  "summary":"2-4句职业摘要",
+  "summary":"最多2句职业摘要，避免重复项目内容",
   "selected_experience_ids":[1,2],
   "selected_document_ids":[10,11],
   "sections":[
@@ -97,6 +97,12 @@ RESUME_GENERATE_PROMPT = """你是 JobPilot 的定制简历生成器。你会收
 - 可以重写措辞和调整顺序，但所有事实必须来自资料库。
 - 优先选择与 JD 相关的经历，不相关的经历可省略。
 - bullets 使用“动作 + 方法/任务 + 结果/影响”表达；没有量化结果时不要编造数字。
+- 项目经历面向 HR 快速阅读：每个项目最多3条、通常2条，每条建议35–70字，一条只讲一个重点。
+- 首条用普通语言交代项目用途和本人具体动作；其余写最相关的贡献、已完成结果或验证范围。不要连续铺陈背景、功能清单和技术栈。
+- 如有 project_brief，优先使用其中的项目用途、个人贡献和当前结果；字段缺失就省略，不从旧档案补回未经确认的职责。
+- 区分本人提出需求、方案选择、试用反馈与 AI/他人实现，不将系统已有功能写成本人独立设计；保留原型、未实施、观察验证等必要边界。
+- 没有量化收益可以写实际交付或观察到的结果，不写笼统的“显著提升效率”。HR 口述练习、后续计划不放进简历要点。
+- autofill.project_experience 必须沿用简历项目要点，不另写长版。
 - 如果 JD 为空，生成一版通用但精炼的简历。
 - selected_experience_ids 只能引用提供的 experience id。
 - selected_document_ids 只能引用提供的 knowledge_documents id。
@@ -283,7 +289,7 @@ def _build_autofill(profile: dict[str, Any], resume: dict[str, Any]) -> dict[str
     }
     for section in resume.get("sections", []) if isinstance(resume.get("sections"), list) else []:
         key = section_map.get(str(section.get("title") or ""))
-        if not key or result.get(key):
+        if not key or (result.get(key) and key != "project_experience"):
             continue
         texts = []
         for item in section.get("items", []) if isinstance(section.get("items"), list) else []:
@@ -295,6 +301,17 @@ def _build_autofill(profile: dict[str, Any], resume: dict[str, Any]) -> dict[str
         skills = resume.get("skills") if isinstance(resume.get("skills"), list) else []
         result["skills"] = "、".join(str(x) for x in skills if str(x).strip())
     return {k: str(v or "") for k, v in result.items()}
+
+
+def _project_review_notes(resume: dict[str, Any]) -> list[str]:
+    notes = []
+    for section in resume.get("sections", []):
+        if section.get("title") not in SECTION_ALIASES["project"]:
+            continue
+        for item in section.get("items", []):
+            if any(len(str(b)) > 90 for b in item.get("bullets", [])):
+                notes.append(f"{item.get('title') or '项目'}：存在较长要点，建议在经历中整理精简版，保留个人动作和必要边界。")
+    return notes
 
 
 def local_generate_resume(profile: dict[str, Any], experiences: list[dict[str, Any]], target: dict[str, Any], knowledge_docs: list[dict[str, Any]] | None = None) -> dict[str, Any]:
@@ -326,11 +343,16 @@ def local_generate_resume(profile: dict[str, Any], experiences: list[dict[str, A
         items = []
         for exp in exps:
             bullets = exp.get("highlights") if isinstance(exp.get("highlights"), list) else []
+            if category == "project" and any((exp.get("project_brief") or {}).values()):
+                brief = exp["project_brief"]
+                bullets = [str(brief.get(key) or "").strip() for key in
+                           ("project_pitch", "personal_contribution", "project_outcome")]
+                bullets = [value for value in bullets if value]
             if not bullets and exp.get("description"):
                 bullets = [x.strip("•- ") for x in str(exp["description"]).splitlines() if x.strip()][:4]
             items.append({
                 "source_id": exp.get("id"), "title": exp.get("title", ""), "organization": exp.get("organization", ""),
-                "date": _experience_date(exp), "location": exp.get("location", ""), "bullets": bullets[:5]
+                "date": _experience_date(exp), "location": exp.get("location", ""), "bullets": list(dict.fromkeys(bullets))[:3 if category == "project" else 5]
             })
         title = CATEGORY_LABELS.get(category, "其他经历")
         if category in {"work", "internship"}:
@@ -348,6 +370,7 @@ def local_generate_resume(profile: dict[str, Any], experiences: list[dict[str, A
         "autofill": {},
     }
     resume["autofill"] = _build_autofill(profile, resume)
+    resume["review_notes"] = _project_review_notes(resume)
     return resume
 
 
@@ -390,7 +413,15 @@ async def generate_tailored_resume(
                 if value in valid_doc_ids:
                     selected_doc_ids.append(value)
             data["selected_document_ids"] = selected_doc_ids
+            project_ids = {str(x.get("id")) for x in experiences if x.get("category") == "project"}
+            for section in data["sections"]:
+                for item in section.get("items", []):
+                    if str(item.get("source_id")) in project_ids or section.get("title") in SECTION_ALIASES["project"]:
+                        bullets = item.get("bullets")
+                        if isinstance(bullets, list):
+                            item["bullets"] = list(dict.fromkeys(str(b).strip() for b in bullets if str(b).strip()))[:3]
             data["autofill"] = _build_autofill(profile, data)
+            data["review_notes"] = _project_review_notes(data)
             data["mode"] = "ai"
             return data
         except Exception:
