@@ -110,7 +110,7 @@ Write-Host "CareerOS:    $JobPilotHome"
 Write-Host ''
 
 try {
-    $cv = Start-LocalService 'CareerVault' $CareerVaultHome 8766 'http://127.0.0.1:8766/api/health'
+    $cv = Start-LocalService 'CareerVault' $CareerVaultHome 8776 'http://127.0.0.1:8776/api/health'
     $jp = Start-LocalService 'CareerOS Job Manager' $JobPilotHome 8765 'http://127.0.0.1:8765/api/health'
     Write-Host ''
     Write-Host "[READY] CareerVault $($cv.version) <-> CareerOS $($jp.version)"

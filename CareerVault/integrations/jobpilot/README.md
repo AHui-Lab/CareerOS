@@ -2,7 +2,7 @@
 
 CareerVault is the source of truth for career facts. JobPilot is the consumer that matches a JD, generates a targeted resume, and fills application forms.
 
-Default local service: `http://127.0.0.1:8766`
+Default local service: `http://127.0.0.1:8776`
 
 ## API contract
 

@@ -4,7 +4,7 @@ V0.2.2 connects JobPilot to CareerVault while keeping the two applications indep
 
 ## Responsibilities
 
-- CareerVault (`127.0.0.1:8766`) is the source of truth for profile and factual experiences.
+- CareerVault (`127.0.0.1:8776`) is the source of truth for profile and factual experiences.
 - JobPilot (`127.0.0.1:8765`) keeps opportunity/application state, creates targeted resume versions, and provides browser autofill.
 - Final application submission is always manual.
 
@@ -25,14 +25,14 @@ Each generated resume stores a profile snapshot so a later CareerVault profile e
 3. Extract `jobpilot-v0.2.2-careervault-patch.zip` into the existing JobPilot root and overwrite same-name files.
 4. Run `start.bat`.
 5. Reload the JobPilot Assistant extension in Edge/Chrome extension management. Version should show `0.2.2`.
-6. Start CareerVault separately on port 8766.
+6. Start CareerVault separately on port 8776.
 
 No database migration and no new Python dependency are required for this upgrade.
 
 Optional `.env` setting:
 
 ```env
-CAREERVAULT_URL=http://127.0.0.1:8766
+CAREERVAULT_URL=http://127.0.0.1:8776
 ```
 
 ## Verification

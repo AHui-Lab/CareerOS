@@ -35,7 +35,7 @@ install.bat
 start.bat
 ```
 
-Then open `http://127.0.0.1:8766`.
+Then open `http://127.0.0.1:8776`.
 
 ## Data model
 

@@ -1,7 +1,7 @@
 Set-Location $PSScriptRoot
 
 $ExpectedVersion = "0.2.0"
-$Port = 8766
+$Port = 8776
 $PythonExe = ".venv\Scripts\python.exe"
 $BaseUrl = "http://127.0.0.1:$Port"
 $ForceRestart = $env:CAREERVAULT_FORCE_RESTART -eq "1"

@@ -1,7 +1,7 @@
 schema_version: 1
 service:
   name: CareerVault
-  base_url: http://127.0.0.1:8766
+  base_url: http://127.0.0.1:8776
 jobpilot:
   profile_endpoint: /api/jobpilot/profile
   experiences_endpoint: /api/jobpilot/experiences

@@ -4,7 +4,7 @@ V0.3.0 changes the resume-source architecture: CareerVault is now the formal sou
 
 ## Before upgrading
 
-1. Make sure CareerVault is installed and can open at `http://127.0.0.1:8766`.
+1. Make sure CareerVault is installed and can open at `http://127.0.0.1:8776`.
 2. Keep your existing JobPilot database. V0.3.0 does not delete old opportunities, resume versions, local experiences, or historical vault tables.
 3. Pull the new code and run `install.bat` if dependencies changed.
 4. Run `restart.bat` so the 0.2.x process on port 8765 is replaced by 0.3.0.

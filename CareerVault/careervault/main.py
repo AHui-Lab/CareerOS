@@ -39,7 +39,7 @@ from .store import (
 app = FastAPI(title="CareerVault", version=__version__)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:8765", "http://localhost:8765", "http://127.0.0.1:8766", "http://localhost:8766"],
+    allow_origins=["http://127.0.0.1:8765", "http://localhost:8765", "http://127.0.0.1:8776", "http://localhost:8776"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

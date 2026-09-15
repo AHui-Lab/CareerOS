@@ -1,6 +1,6 @@
 Set-Location $PSScriptRoot
 
-$Port = 8766
+$Port = 8776
 $BaseUrl = "http://127.0.0.1:$Port"
 
 $oldPreference = $ErrorActionPreference

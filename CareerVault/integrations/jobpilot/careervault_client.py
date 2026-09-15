@@ -5,7 +5,7 @@ from urllib import request
 
 
 class CareerVaultClient:
-    def __init__(self, base_url: str = "http://127.0.0.1:8766", timeout: float = 3.0):
+    def __init__(self, base_url: str = "http://127.0.0.1:8776", timeout: float = 3.0):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 

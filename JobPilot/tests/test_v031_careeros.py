@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 class CareerOsLauncherContractTests(unittest.TestCase):
     def test_unified_launcher_checks_both_services_and_does_not_kill_unknown_ports(self):
         ps1 = (ROOT / "career-os.ps1").read_text(encoding="utf-8")
-        self.assertIn("8766", ps1)
+        self.assertIn("8776", ps1)
         self.assertIn("8765", ps1)
         self.assertIn("'CareerVault'", ps1)
         self.assertIn("CareerOS will not terminate it", ps1)

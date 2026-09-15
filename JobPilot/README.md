@@ -18,7 +18,7 @@ The modules share one CareerOS launcher and one user-facing workspace. Their exi
 ## Architecture
 
 ```text
-CareerVault :8766
+CareerVault :8776
   profile / education / projects / internships / research / awards
   only Resume Ready experiences are exposed to JobPilot
             |
@@ -73,7 +73,7 @@ Open `http://127.0.0.1:8765`.
 CareerVault should also be running at:
 
 ```text
-http://127.0.0.1:8766
+http://127.0.0.1:8776
 ```
 
 ### Launcher shortcuts
@@ -131,7 +131,7 @@ Copy `.env.example` to `.env` and configure an OpenAI-compatible endpoint if des
 AI_BASE_URL=https://api.deepseek.com
 AI_API_KEY=your-key
 AI_MODEL=deepseek-chat
-CAREERVAULT_URL=http://127.0.0.1:8766
+CAREERVAULT_URL=http://127.0.0.1:8776
 ```
 
 Without an AI provider, JobPilot still supports local fallback resume formatting; CareerVault remains the factual source.

@@ -14,7 +14,7 @@ CareerOS 是一个本地优先的个人求职工作台，由两个协作模块�
 系统会自动启动两个本地服务，并打开统一的 CareerOS 页面：
 
 - 求职管理：<http://127.0.0.1:8765>
-- 经历和项目：<http://127.0.0.1:8766>
+- 经历和项目：<http://127.0.0.1:8776>
 
 正常使用时请从 JobPilot 页面左侧进入“经历和项目”，不需要分别打开两个页面。关闭服务时运行根目录的 `stop.bat`，它只会停止 CareerOS 管理的服务。
 
@@ -61,7 +61,7 @@ JobPilot\.venv\Scripts\python.exe -m pip install -r JobPilot\requirements.txt
 依次检查：
 
 1. 是否运行过根目录 `install.bat`。
-2. 是否有其他程序占用 `8765` 或 `8766` 端口。
+2. 是否有其他程序占用 `8765` 或 `8776` 端口。
 3. 查看 `JobPilot\.runtime\careeros_求职管理.err.log` 和 `CareerVault\.runtime\careervault.err.log`。
 4. 运行根目录 `stop.bat` 后再运行 `start.bat`。
 
@@ -86,7 +86,7 @@ git ls-remote https://github.com/AHui-Lab/CareerOS-PrivateData.git
 打开以下地址，两个都返回 `"ok": true` 即正常：
 
 - <http://127.0.0.1:8765/api/health>
-- <http://127.0.0.1:8766/api/health>
+- <http://127.0.0.1:8776/api/health>
 
 ## 数据位置与隐私
 

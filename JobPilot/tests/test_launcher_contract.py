@@ -23,7 +23,7 @@ class LauncherContractTests(unittest.TestCase):
         text = (ROOT / "doctor.ps1").read_text(encoding="utf-8")
         self.assertIn("/api/health", text)
         self.assertIn("8765", text)
-        self.assertIn("8766", text)
+        self.assertIn("8776", text)
         self.assertIn("/api/jobpilot/experiences?resume_ready=true", text)
         self.assertIn("Resume Ready count", text)
 

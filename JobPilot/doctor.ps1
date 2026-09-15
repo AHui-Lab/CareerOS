@@ -1,7 +1,7 @@
 Set-Location $PSScriptRoot
 
 $JobPilotPort = 8765
-$CareerVaultPort = 8766
+$CareerVaultPort = 8776
 $JobPilotUrl = "http://127.0.0.1:$JobPilotPort"
 $CareerVaultUrl = if ($env:CAREERVAULT_URL) { $env:CAREERVAULT_URL.TrimEnd('/') } else { "http://127.0.0.1:$CareerVaultPort" }
 

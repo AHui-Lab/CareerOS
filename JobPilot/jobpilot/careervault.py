@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-DEFAULT_URL = "http://127.0.0.1:8766"
+DEFAULT_URL = "http://127.0.0.1:8776"
 
 
 def base_url() -> str:
