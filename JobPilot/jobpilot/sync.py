@@ -24,7 +24,7 @@ except ImportError:  # 同步依赖缺失时不应阻止主程序启动
     PBKDF2HMAC = None
     CRYPTO_AVAILABLE = False
 
-from . import db
+from . import db, interview_prep
 
 SYNC_DIR = db.DATA_DIR / "sync-repo"
 CONFIG_PATH = db.DATA_DIR / "private" / "sync-config.json"
@@ -106,6 +106,14 @@ def _derive(passphrase: str, salt: bytes) -> bytes:
     return base64.urlsafe_b64encode(kdf.derive(passphrase.encode("utf-8")))
 
 
+def _prep_material_files():
+    for workspace_id, directory in interview_prep.material_directories().items():
+        for item in directory.rglob("*"):
+            if item.is_file() and ".git" not in item.relative_to(directory).parts:
+                relative = Path("interview-prep") / "materials" / workspace_id / item.relative_to(directory)
+                yield item, relative
+
+
 def _make_archive() -> bytes:
     if not db.DB_PATH.exists():
         raise ValueError("本地数据库不存在。")
@@ -120,6 +128,13 @@ def _make_archive() -> bytes:
                 for item in private.rglob("*"):
                     if item.is_file() and item.name not in {"sync-passphrase", "sync-config.json"}:
                         archive.write(item, str(Path("private") / item.relative_to(private)))
+            # Bundled preparation material lives outside DATA_DIR. Include it in
+            # the private tree so a receiving computer can read it without docs/.
+            archived = set(archive.namelist())
+            for item, relative in _prep_material_files():
+                name = (Path("private") / relative).as_posix()
+                if name not in archived:
+                    archive.write(item, name)
             if VAULT_ROOT.exists():
                 for item in VAULT_ROOT.rglob("*"):
                     if item.is_file() and ".git" not in item.parts:
@@ -159,6 +174,10 @@ def _make_accept_backup() -> str:
     shutil.copy2(db.DB_PATH, backup / "jobpilot.db")
     for source, name in ((VAULT_ROOT, "careervault-vault"), (VAULT_PRIVATE, "careervault-private"), (db.DATA_DIR / "private", "jobpilot-private")):
         if source.exists(): shutil.copytree(source, backup / name, dirs_exist_ok=True)
+    for item, relative in _prep_material_files():
+        destination = backup / "jobpilot-private" / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(item, destination)
     return str(backup)
 
 
@@ -246,6 +265,11 @@ def rollback() -> dict[str, Any]:
     private = backup / "jobpilot-private"
     if private.exists():
         (db.DATA_DIR / "private").mkdir(parents=True, exist_ok=True)
+        # Rollback must also remove preparation workspaces introduced by accept.
+        current_prep = db.DATA_DIR / "private" / "interview-prep"
+        if current_prep.exists():
+            current_prep.resolve().relative_to((db.DATA_DIR / "private").resolve())
+            shutil.rmtree(current_prep)
         for item in private.iterdir():
             if item.name not in {"sync-config.json", "sync-passphrase"}:
                 destination = db.DATA_DIR / "private" / item.name

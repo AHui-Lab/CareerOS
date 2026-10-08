@@ -81,6 +81,14 @@
     } finally { $('prepCreateSubmit').disabled = false; }
   });
   $('refreshBtn').addEventListener('click', load);
+  window.addEventListener('careeros-data-restored', () => {
+    load();
+    const frame = $('interviewPrepFrame');
+    if (frame.contentWindow?.interviewPrepDataRestored?.() === false) return;
+    frame.src = 'about:blank';
+    $('prepDetailView').classList.add('hidden');
+    $('prepLibraryView').classList.remove('hidden');
+  });
   document.querySelector('[data-view="interview_prep"]').addEventListener('click', load);
   window.addEventListener('message', event => {
     if (event.origin === location.origin && event.source === $('interviewPrepFrame').contentWindow && event.data?.type === 'interview-prep-saved') load();

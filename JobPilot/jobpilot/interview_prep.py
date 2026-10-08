@@ -26,8 +26,22 @@ def _custom_root() -> Path:
     return db.DATA_DIR / "private" / "interview-prep" / "workspaces"
 
 
+def _synced_materials_root() -> Path:
+    return db.DATA_DIR / "private" / "interview-prep" / "materials"
+
+
+def material_directories() -> dict[str, Path]:
+    """Read restored materials first, with bundled documents as the initial source."""
+    directories = {}
+    for root in (PREP_ROOT, _synced_materials_root()):
+        for manifest in root.glob("*/workspace.json"):
+            if re.fullmatch(r"[a-zA-Z0-9_-]+", manifest.parent.name):
+                directories[manifest.parent.name] = manifest.parent
+    return directories
+
+
 def _workspace_ids() -> list[str]:
-    curated = {p.parent.name for p in PREP_ROOT.glob("*/workspace.json")}
+    curated = set(material_directories())
     custom = {p.stem for p in _custom_root().glob("*.json")}
     return sorted(curated | custom)
 
@@ -35,8 +49,8 @@ def _workspace_ids() -> list[str]:
 def _workspace(workspace_id: str) -> dict:
     if not re.fullmatch(r"[a-zA-Z0-9_-]+", workspace_id):
         raise HTTPException(404, "准备专题不存在")
-    curated = PREP_ROOT / workspace_id / "workspace.json"
-    path = curated if curated.is_file() else _custom_root() / f"{workspace_id}.json"
+    directory = material_directories().get(workspace_id)
+    path = directory / "workspace.json" if directory else _custom_root() / f"{workspace_id}.json"
     if not path.is_file():
         raise HTTPException(404, "准备专题不存在")
     return json.loads(path.read_text(encoding="utf-8"))
@@ -139,7 +153,13 @@ def _document(workspace_id: str, document_id: str) -> tuple[Path, str]:
     document = next((d for d in workspace["documents"] if d["id"] == document_id), None)
     if not document:
         raise HTTPException(404, "资料不存在")
-    return PREP_ROOT / workspace_id / f"{document_id}.md", document["title"]
+    directory = material_directories().get(workspace_id)
+    if not directory:
+        raise HTTPException(404, "资料不存在")
+    path = directory / f"{document_id}.md"
+    if not path.is_file():
+        raise HTTPException(404, "资料不存在")
+    return path, document["title"]
 
 
 @router.get("/{workspace_id}/documents/{document_id}")

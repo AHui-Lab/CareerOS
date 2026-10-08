@@ -5,7 +5,7 @@
   const workspaceId = new URLSearchParams(location.search).get('workspace');
   if (!workspaceId) { location.replace('/?view=interview_prep'); return; }
   const base = `/api/interview-prep/${encodeURIComponent(workspaceId)}`;
-  let workspace, notes, sources = [], dirty = false, generation = 0, saving = false, docRequest = 0;
+  let workspace, notes, sources = [], dirty = false, generation = 0, saving = false, docRequest = 0, invalidated = false;
 
   async function request(url, options = {}) {
     const response = await fetch(url, options);
@@ -118,7 +118,7 @@
     return value ? `上次保存：${new Date(value).toLocaleString('zh-CN', {timeZone:'Asia/Shanghai'})}` : '手动保存 · 可导出备份';
   }
   async function save() {
-    if (saving || !notes) return;
+    if (saving || !notes || invalidated) return;
     saving = true; $('save').disabled = true;
     const capturedGeneration = generation;
     const body = collect();
@@ -136,7 +136,7 @@
     } catch (error) {
       $('saveState').textContent = '保存失败，当前内容仍在页面中';
       notify(error.message, true);
-    } finally { saving = false; $('save').disabled = false; }
+    } finally { saving = false; $('save').disabled = invalidated; }
   }
   function selectTab(tab) {
     document.querySelectorAll('[data-tab]').forEach(button => {
@@ -177,6 +177,12 @@
     if (saving) { notify('正在保存，请保存完成后再返回。'); return false; }
     if (dirty && !window.confirm('当前准备内容尚未保存。确定放弃修改并返回岗位列表？')) return false;
     dirty = false; return true;
+  };
+  window.interviewPrepDataRestored = () => {
+    if (!dirty && !saving) return true;
+    invalidated = true; $('save').disabled = true;
+    notify('面试准备数据已同步更新。请先导出当前未保存内容，再返回岗位列表重新打开，避免覆盖同步结果。', true);
+    return false;
   };
   async function load() {
     try {
