@@ -1,0 +1,52 @@
+{
+  "id": "sany-bms-202610",
+  "title": "三一锂能 · BMS 嵌入式",
+  "team": "BMS 研究所（用户提供）",
+  "date_window": "2026-10-06 / 2026-10-07 · 时间待确认",
+  "summary": "先补 C/RTOS、驱动通信、联调与测试，再结合 BMS 业务讲清已有项目能力。",
+  "documents": [
+    {"id": "README", "title": "准备总览", "label": "先读"},
+    {"id": "00-jd-analysis", "title": "JD 与岗位重点", "label": "岗位"},
+    {"id": "01-company-products", "title": "公司与核心产品", "label": "业务"},
+    {"id": "02-bms-foundations", "title": "BMS 从零入门", "label": "基础"},
+    {"id": "03-embedded-questions", "title": "嵌入式训练问答", "label": "技术"},
+    {"id": "04-personal-pitch", "title": "项目与面试表达", "label": "项目"},
+    {"id": "05-plan-mock", "title": "六天计划与模拟", "label": "计划"},
+    {"id": "06-collection", "title": "收集与复盘模板", "label": "记录"}
+  ],
+  "tasks": [
+    {"id": "company", "date": "2026-09-30", "text": "讲清公司业务，记住两款官网储能产品"},
+    {"id": "architecture", "date": "2026-09-30", "text": "画 BMS 采集、判断、保护、通信链路"},
+    {"id": "jd", "date": "2026-09-30", "text": "读 JD 拆解，确认日期、地点和具体分工"},
+    {"id": "soc", "date": "2026-10-01", "text": "SOC/SOH/SOP、积分单位、误差与 OCV"},
+    {"id": "c", "date": "2026-10-01", "text": "复习指针、volatile、生命周期与越界"},
+    {"id": "rtos", "date": "2026-10-01", "text": "RTOS 调度、ISR、同步、优先级反转"},
+    {"id": "can", "date": "2026-10-02", "text": "CAN 基础、端接、bus-off 与分层排查"},
+    {"id": "driver", "date": "2026-10-02", "text": "UART/SPI/I²C 时序、初始化与错误恢复"},
+    {"id": "testing", "date": "2026-10-02", "text": "给帧解析设计单元与接口测试用例"},
+    {"id": "protection", "date": "2026-10-03", "text": "画保护状态机：滞回、超时、反馈与恢复"},
+    {"id": "debug", "date": "2026-10-03", "text": "练 CPU/栈/缓存/时序问题定位"},
+    {"id": "portable", "date": "2026-10-03", "text": "模块接口、可移植性、Git 与联调文档"},
+    {"id": "pitch", "date": "2026-10-04", "text": "录一遍 90 秒自我介绍与两个项目口述"},
+    {"id": "mock1", "date": "2026-10-04", "text": "完成第一次 45 分钟模拟，记录薄弱点"},
+    {"id": "mock2", "date": "2026-10-05", "text": "第二次模拟，复测薄弱题"},
+    {"id": "logistics", "date": "2026-10-05", "text": "确认面试时间/链接，整理速记与反问"}
+  ],
+  "defaults": {
+    "interview_date": "",
+    "location": "",
+    "jd": "工作职责\n1、负责嵌入式软件需求分析、架构设计、驱动或功能模块开发。\n2、开展代码编写、单元测试、接口测试、版本管理和技术文档编制。\n3、参与硬件平台适配和软硬件联调，定位时序、通信和资源问题。\n4、持续优化软件性能、稳定性、可移植性和开发规范。\n\n任职资格\n1、学历与专业：本科及以上；计算机、软件工程、电子信息、自动化、物联网等相关专业优先。\n2、技能要求：掌握C/C++、嵌入式系统、实时操作系统、驱动和通信接口，具备软硬件联调能力。\n3、软性素质：逻辑思维清晰、学习能力强，具备技术钻研、问题定位、沟通协作和结果意识。\n4、其他补充：有相关科研、竞赛、实习或项目经历者优先；能够根据项目需要配合试制、测试、现场调试或短期出差。",
+    "questions": "具体是储能还是动力 BMS？\n主要负责驱动、通信、应用还是算法？\nMCU/AFE/RTOS 和联调工具是什么？\n面试是 10 月 6 日还是 7 日，具体几点、哪一轮？",
+    "notes": "",
+    "completed": [],
+    "sources": [
+      {"title": "三一官网锂能装备", "url": "https://m.sanygroup.com/product-list/?cate=203&electric=", "note": "官方；检索 2026-09-30；ESG261 与 ESX5016"},
+      {"title": "ESX5016 产品详情", "url": "https://www.sanygroup.com/product/1537.html", "note": "官方；检索 2026-09-30；配置需核对版本"},
+      {"title": "三一国际 2025 年半年业绩", "url": "https://www.sanygroup.com/mediaNews/15488.html", "note": "官方；发布 2025-08-29；动力与新能源布局"},
+      {"title": "电塔/电兔官方展会报道", "url": "https://www.sanygroup.com/industry-news/15202.html", "note": "官方；2025 年历史产品展示"},
+      {"title": "TI BQ76952 学习示例", "url": "https://www.ti.com/product/BQ76952", "note": "芯片官方；不是三一选型确认"},
+      {"title": "ADI SOC/SOH 技术文章", "url": "https://www.analog.com/en/resources/technical-articles/a-closer-look-at-state-of-charge-and-state-health-estimation-tech.html", "note": "技术官方；状态估计基础"},
+      {"title": "FreeRTOS 互斥量", "url": "https://freertos.org/Real-time-embedded-RTOS-mutexes.html", "note": "RTOS 官方；JD 明确要求 RTOS"}
+    ]
+  }
+}

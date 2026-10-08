@@ -4,8 +4,12 @@
   const norm=s=>String(s||'').toLowerCase().replace(/\u00a0/g,' ').replace(/[\s:：*（）()\[\]_{},，。！？!?/\\-]+/g,'');
   const clean=s=>String(s||'').replace(/\u00a0/g,' ').replace(/[ \t]+/g,' ').replace(/\n{3,}/g,'\n\n').trim();
   const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-  const risky=/薪资|工资|期望薪资|调剂|服从|加班|政治|党派|健康|疾病|婚姻|家庭|亲属|民族|宗教|身份证|证件号|是否愿意|是否接受/i;
+  const judgment=/薪资|工资|期望薪资|调剂|服从|加班|健康|疾病|家庭|亲属|宗教|是否愿意|是否接受/i;
+  const sensitive=/政治|党派|婚姻|民族|身份证|证件号|证件号码/i;
+  const blocked=(label,allowSensitive=false)=>judgment.test(label)||(!allowSensitive&&sensitive.test(label));
   const forbiddenButton=/提交|保存并提交|下一步|完成申请|确认投递|立即申请|投递简历|submit|apply now/i;
+  let changes=[];
+  const remember=el=>changes.push({el,value:el.isContentEditable?el.textContent:el.value});
 
   const scalarAliases={
     name:['姓名','名字','name','full name','username'],phone:['手机号','手机号码','联系电话','mobile','phone','tel'],email:['邮箱','电子邮箱','email','e-mail'],
@@ -38,25 +42,28 @@
     for(const a of ['placeholder','name','id','aria-label','title','data-label'])parts.push(el.getAttribute?.(a)||'');
     const prev=el.previousElementSibling;if(prev)parts.push(prev.innerText||prev.textContent||'');
     const labelledBy=el.getAttribute?.('aria-labelledby');if(labelledBy)for(const id of labelledBy.split(/\s+/)){const node=document.getElementById(id);if(node)parts.push(node.innerText||node.textContent||'');}
-    for(const node of [el.closest('[data-label]'),el.closest('[data-field]'),el.closest('[role="group"]')])if(node)parts.push((node.innerText||node.textContent||'').slice(0,220));
-    let ancestor=el.parentElement;let depth=0;while(ancestor&&depth<3){parts.push((ancestor.innerText||ancestor.textContent||'').slice(0,220));ancestor=ancestor.parentElement;depth++;}
+    for(const node of [el.closest('[data-label]'),el.closest('[data-field]'),el.closest('[role="group"]')])if(node&&node.querySelectorAll('input,textarea,select').length<=1)parts.push((node.innerText||node.textContent||'').slice(0,120));
+    let ancestor=el.parentElement;let depth=0;while(ancestor&&depth<3){if(ancestor.querySelectorAll('input,textarea,select').length<=1)parts.push((ancestor.innerText||ancestor.textContent||'').slice(0,120));ancestor=ancestor.parentElement;depth++;}
     return clean(parts.filter(Boolean).join(' '));
   }
 
   function aliasMatch(label,aliases){const n=norm(label);let best=0;for(const a of aliases||[]){const na=norm(a);if(na&&n.includes(na))best=Math.max(best,na.length);}return best;}
-  function classifyScalar(label,pack){if(risky.test(label))return null;let best=null,bestLen=0;for(const [key,list] of Object.entries(scalarAliases)){for(const a of list){const len=aliasMatch(label,[a]);if(len>bestLen&&pack[key]){best=key;bestLen=len;}}}return best;}
+  function classifyScalar(label,pack,allowSensitive=false){if(blocked(label,allowSensitive))return null;let best=null,bestLen=0;for(const [key,list] of Object.entries(scalarAliases)){for(const a of list){const len=aliasMatch(label,[a]);if(len>bestLen&&pack[key]){best=key;bestLen=len;}}}return best;}
 
-  function nativeSet(el,value){
+  function nativeSet(el,value,overwrite=false){
     value=String(value??'').trim();if(!value)return false;
+    if(!overwrite&&String(el.value??el.textContent??'').trim())return false;
     if(el.tagName==='SELECT'){
-      const v=norm(value),opts=[...el.options];const hit=opts.find(o=>norm(o.textContent)===v)||opts.find(o=>norm(o.textContent).includes(v)||v.includes(norm(o.textContent)));if(!hit)return false;el.value=hit.value;el.dispatchEvent(new Event('change',{bubbles:true}));return true;
+      const v=norm(value),opts=[...el.options];const hit=opts.find(o=>norm(o.textContent)===v)||opts.find(o=>norm(o.textContent).includes(v)||v.includes(norm(o.textContent)));if(!hit)return false;remember(el);el.value=hit.value;el.dispatchEvent(new Event('change',{bubbles:true}));return true;
     }
     if(el.isContentEditable||el.getAttribute('contenteditable')==='true'){
-      el.textContent=value;el.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertText',data:value}));el.dispatchEvent(new Event('change',{bubbles:true}));return true;
+      remember(el);el.textContent=value;el.dispatchEvent(new InputEvent('input',{bubbles:true,inputType:'insertText',data:value}));el.dispatchEvent(new Event('change',{bubbles:true}));return true;
     }
     const type=(el.getAttribute('type')||'text').toLowerCase();if(['hidden','file','password','submit','button','radio','checkbox','image','reset'].includes(type))return false;
-    const proto=el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;const d=Object.getOwnPropertyDescriptor(proto,'value');if(d?.set)d.set.call(el,value);else el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));if(el.getAttribute('role')==='combobox'||el.getAttribute('aria-autocomplete')){el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',bubbles:true}));el.dispatchEvent(new KeyboardEvent('keyup',{key:'Enter',code:'Enter',bubbles:true}));}el.dispatchEvent(new Event('blur',{bubbles:true}));return true;
+    remember(el);const proto=el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;const d=Object.getOwnPropertyDescriptor(proto,'value');if(d?.set)d.set.call(el,value);else el.value=value;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));if(el.getAttribute('role')==='combobox'||el.getAttribute('aria-autocomplete')){el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',code:'Enter',bubbles:true}));el.dispatchEvent(new KeyboardEvent('keyup',{key:'Enter',code:'Enter',bubbles:true}));}el.dispatchEvent(new Event('blur',{bubbles:true}));return true;
   }
+
+  function undo(){let restored=0;for(const change of changes.reverse()){const {el,value}=change;if(!el.isConnected)continue;if(el.isContentEditable)el.textContent=value||'';else if(el.tagName==='SELECT')el.value=value||'';else{const proto=el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;const setter=Object.getOwnPropertyDescriptor(proto,'value')?.set;if(setter)setter.call(el,value||'');else el.value=value||'';}el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));restored++;}changes=[];return {restored};}
 
   function formControls(root=document){
     const selector='input,textarea,select,[contenteditable="true"],[role="combobox"]',out=[],seen=new Set();
@@ -64,14 +71,14 @@
     walk(root);return out;
   }
 
-  function fillScalars(pack){
-    let filled=0,skippedFiles=0;const keys=[],used=new Set();
+  function fillScalars(pack,options={}){
+    let filled=0,skippedFiles=0;const keys=[],filledLabels=[],skippedExisting=[],skippedManual=[],used=new Set();
     for(const el of formControls(document)){
-      const type=(el.getAttribute('type')||'text').toLowerCase();if(type==='file'){skippedFiles++;continue;}if(risky.test(labelFor(el)))continue;
-      const key=classifyScalar(labelFor(el),pack);if(!key||used.has(key))continue;
-      const value=String(pack[key]||'').trim();if(value&&nativeSet(el,value)){filled++;keys.push(key);used.add(key);}
+      const type=(el.getAttribute('type')||'text').toLowerCase();if(type==='file'){skippedFiles++;continue;}if(!el.getClientRects().length)continue;const label=labelFor(el);if(blocked(label,options.allowSensitive)){skippedManual.push(label.slice(0,80));continue;}
+      const key=classifyScalar(label,pack,options.allowSensitive);if(!key||used.has(key))continue;
+      const value=String(pack[key]||'').trim();if(!value)continue;if(!options.overwriteFilled&&String(el.value??el.textContent??'').trim()){skippedExisting.push(label.slice(0,80));continue;}if(nativeSet(el,value,options.overwriteFilled)){filled++;keys.push(key);filledLabels.push(label.slice(0,80));used.add(key);}
     }
-    return {filled,skippedFiles,keys:[...new Set(keys)]};
+    return {filled,skippedFiles,keys:[...new Set(keys)],filledLabels,skippedExisting,skippedManual};
   }
 
   function findSection(kind){
@@ -87,7 +94,7 @@
   function controlsByField(root,kind){
     const map={},aliases=repeatedAliases[kind]||{};for(const field of Object.keys(aliases))map[field]=[];
     for(const el of formControls(root)){
-      const label=labelFor(el);if(risky.test(label))continue;let best=null,bestLen=0;
+      const label=labelFor(el);if(blocked(label))continue;let best=null,bestLen=0;
       for(const [field,list] of Object.entries(aliases)){const len=aliasMatch(label,list);if(len>bestLen){best=field;bestLen=len;}}
       if(best)map[best].push(el);
     }
@@ -111,27 +118,26 @@
     return {root,map,added};
   }
 
-  async function fillRepeated(kind,records,adapter){
+  async function fillRepeated(kind,records,adapter,options={}){
     if(!Array.isArray(records)||!records.length)return {kind,rows:0,fields:0,added:0};
-    let root=findSection(kind);const ensured=await ensureRows(kind,records,root,adapter);root=ensured.root;const map=ensured.map;let fields=0;const rowsTouched=new Set();
+    let root=findSection(kind);const ensured=options.addRows?await ensureRows(kind,records,root,adapter):{root,map:controlsByField(root,kind),added:0};root=ensured.root;const map=ensured.map;let fields=0;const rowsTouched=new Set();
     for(const [field,elements] of Object.entries(map)){
       for(let i=0;i<Math.min(records.length,elements.length);i++){
-        const value=valueFor(kind,records[i],field);if(value&&nativeSet(elements[i],value)){fields++;rowsTouched.add(i);}
+        const value=valueFor(kind,records[i],field);if(value&&nativeSet(elements[i],value,options.overwriteFilled)){fields++;rowsTouched.add(i);}
       }
     }
     return {kind,rows:rowsTouched.size,fields,added:ensured.added};
   }
 
   async function run(structured={},pack={},options={}){
-    const adapter=detectAdapter(),previousRisky=risky.test;
-    if(options?.allowSensitive)risky.test=()=>false;
-    const scalar=fillScalars(pack||{}),repeated=[];
-    for(const kind of ['education','internships','projects','research','campus'])repeated.push(await fillRepeated(kind,structured?.[kind]||[],adapter));
+    const adapter=detectAdapter();
+    changes=[];
+    const scalar=fillScalars(pack||{},options),repeated=[];
+    for(const kind of ['education','internships','projects','research','campus'])repeated.push(await fillRepeated(kind,structured?.[kind]||[],adapter,options));
     const repeatedFields=repeated.reduce((n,x)=>n+x.fields,0),rowsAdded=repeated.reduce((n,x)=>n+x.added,0),rowsTouched=repeated.reduce((n,x)=>n+x.rows,0);
-    if(options?.allowSensitive)risky.test=previousRisky;
-    const unmatched=adapter.id==='zhiye'?formControls(document).map(labelFor).filter(label=>label&&!classifyScalar(label,pack)).slice(0,12):[];
-    return {adapter:adapter.label,adapter_id:adapter.id,scalar_filled:scalar.filled,repeated_fields:repeatedFields,repeated_rows:rowsTouched,rows_added:rowsAdded,skipped_files:scalar.skippedFiles,total_filled:scalar.filled+repeatedFields,unmatched_controls:unmatched,warning:'JobPilot 未点击任何提交/下一步按钮，请人工逐项检查。'};
+    const unmatched=adapter.id==='zhiye'?formControls(document).map(labelFor).filter(label=>label&&!classifyScalar(label,pack,options.allowSensitive)).slice(0,12):[];
+    return {adapter:adapter.label,adapter_id:adapter.id,scalar_filled:scalar.filled,repeated_fields:repeatedFields,repeated_rows:rowsTouched,rows_added:rowsAdded,skipped_files:scalar.skippedFiles,total_filled:scalar.filled+repeatedFields,filled_labels:scalar.filledLabels,skipped_existing:scalar.skippedExisting,skipped_manual:scalar.skippedManual,repeated_sections:repeated.filter(x=>x.fields>0),undo_available:changes.length,unmatched_controls:unmatched,warning:'JobPilot 未点击任何提交/下一步按钮，请人工逐项检查。'};
   }
 
-  window.JobPilotAutofill={run,detectAdapter};
+  window.JobPilotAutofill={run,undo,hasUndo:()=>changes.length>0,detectAdapter};
 })();

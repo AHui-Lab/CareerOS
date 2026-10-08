@@ -1,0 +1,89 @@
+{
+  "pdf_version": null,
+  "metadata": {
+    "title": "",
+    "author": "cyh",
+    "producer": "Microsoft® Word 2019",
+    "creator": "Microsoft® Word 2019",
+    "creationDate": "D:20260911003922+08'00'",
+    "modDate": "D:20260911003922+08'00'",
+    "format": "PDF 1.7",
+    "encryption": null
+  },
+  "encrypted": false,
+  "page_count": 1,
+  "toc_entries": [],
+  "pages": [
+    {
+      "page": 1,
+      "rect": [
+        595.3200073242188,
+        841.9199829101562
+      ],
+      "char_count": 1574,
+      "replacement_chars": 0,
+      "cjk_chars": 986,
+      "latin_chars": 214,
+      "fonts": [
+        {
+          "name": "BCDEEE+SimHei",
+          "type": "TrueType",
+          "encoding": "WinAnsiEncoding"
+        },
+        {
+          "name": "BCDFEE+MicrosoftYaHei-Bold",
+          "type": "Type0",
+          "encoding": "Identity-H"
+        },
+        {
+          "name": "BCDGEE+MicrosoftYaHei",
+          "type": "Type0",
+          "encoding": "Identity-H"
+        },
+        {
+          "name": "BCDHEE+MicrosoftYaHei",
+          "type": "TrueType",
+          "encoding": "WinAnsiEncoding"
+        },
+        {
+          "name": "BCDIEE+MicrosoftYaHei-Bold",
+          "type": "TrueType",
+          "encoding": "WinAnsiEncoding"
+        }
+      ],
+      "image_count": 1,
+      "images": [
+        {
+          "w": 303,
+          "h": 314,
+          "alpha": 0,
+          "colorspace": "DeviceRGB"
+        }
+      ],
+      "text_block_count": 45,
+      "side_by_side_block_pairs": 0,
+      "text_directions": [
+        0.0
+      ],
+      "vector_drawing_count": 10,
+      "link_count": 0,
+      "links": []
+    }
+  ],
+  "parse_checks": {
+    "电话(tel regex)": true,
+    "邮箱(email regex)": true,
+    "常见板块词": {
+      "教育": true,
+      "工作": false,
+      "实习": true,
+      "项目": true,
+      "技能": true,
+      "经历": true,
+      "校园": false,
+      "获奖": true,
+      "证书": false,
+      "自我": false
+    }
+  }
+}

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>面试准备</title>
+  <link rel="stylesheet" href="styles.css?v=20261009-prep-list">
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div><span class="eyebrow">岗位面试准备</span><h1 id="title">正在加载准备资料…</h1><p id="summary"></p></div>
+      <div class="date-card"><span>面试安排</span><strong id="dateWindow">时间待确认</strong><small id="team"></small></div>
+    </header>
+    <div id="notice" role="status" aria-live="polite" hidden></div>
+    <section class="overview" aria-label="准备重点">
+      <article><span>01 · 岗位要求</span><h2>JD 与准备重点</h2><p>整理职责和任职要求，记录待确认问题。</p></article>
+      <article><span>02 · 准备资料</span><h2 id="documentTotal">正在加载…</h2><p>集中阅读岗位资料，收集可信来源。</p></article>
+      <article><span>03 · 准备进度</span><h2 id="taskOverview">正在加载…</h2><p>记录学习进度、个人笔记和模拟回答。</p></article>
+    </section>
+    <nav class="tabs" aria-label="准备内容">
+      <button type="button" class="active" data-tab="reading" aria-pressed="true">资料阅读</button>
+      <button type="button" data-tab="notes" aria-pressed="false">进度与笔记</button>
+      <button type="button" data-tab="sources" aria-pressed="false">资料来源</button>
+    </nav>
+    <section id="reading" class="tab-panel reading-layout">
+      <aside><h2>准备资料</h2><div id="documents"></div><p class="muted">先读 JD，再按缺项学习。训练题为准备建议。</p></aside>
+      <article class="document-card"><div class="document-tools"><span id="docLabel">准备总览</span><a id="download" href="#">下载 Markdown</a></div><div id="content" class="markdown"><p>正在加载…</p></div></article>
+    </section>
+    <section id="notes" class="tab-panel" hidden>
+      <div class="notes-grid">
+        <article class="panel"><div class="section-head"><h2>准备任务</h2><span id="progressText">0 / 0</span></div><progress id="progress" max="1" value="0"></progress><div id="tasks"></div></article>
+        <article class="panel"><h2>岗位档案与个人笔记</h2><p class="muted">在这里补充岗位 JD、待确认问题和笔记，更改后点击保存。</p><div class="form-row"><label>已确认面试日期<input id="interview_date" type="date"></label><label>地点 / 轮次 / 时间<input id="location" maxlength="500" placeholder="如：线上技术面，14:00（北京时间）"></label></div><label>岗位 JD<textarea id="jd" rows="12" maxlength="60000"></textarea></label><label>待确认问题<textarea id="questions" rows="5" maxlength="60000"></textarea></label><label>学习笔记 / 模拟回答 / 面试复盘<textarea id="notesText" rows="12" maxlength="120000" placeholder="记录讲不清的题、资料结论、下一次回答和面试追问…"></textarea></label></article>
+      </div>
+    </section>
+    <section id="sources" class="tab-panel" hidden>
+      <article class="panel"><h2>资料收集</h2><p class="muted">保存链接与关键结论，注明官方/转载/面经、发布日期或版本、收集日期。链接仅打开，不自动抓取内容。</p><form id="sourceForm"><div class="form-row"><label>资料标题<input id="sourceTitle" maxlength="300" required></label><label>来源链接<input id="sourceUrl" type="url" maxlength="4096" required placeholder="https://…"></label></div><label>要点 / 可信度 / 日期<textarea id="sourceNote" rows="2" maxlength="2000" placeholder="例如：官方；检索 2026-09-30；仅用于确认产品能量"></textarea></label><button type="submit" class="secondary">添加到收集区</button></form><div id="sourceList"></div></article>
+    </section>
+    <footer class="save-bar"><div><strong id="saveState">正在连接…</strong><small id="savedAt">手动保存 · 可导出备份</small></div><div class="actions"><button id="export" type="button" class="secondary" disabled>导出备份</button><button id="save" type="button" class="primary" disabled>保存进度与笔记</button></div></footer>
+  </main>
+  <script src="app.js?v=20261009-prep-list"></script>
+</body>
+</html>

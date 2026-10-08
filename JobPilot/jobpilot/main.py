@@ -40,6 +40,7 @@ from .resume import (
 )
 from .security import UnsafeUrlError
 from . import sync
+from .interview_prep import register_routes as register_interview_prep
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = Path(__file__).resolve().parent / "static"
@@ -48,6 +49,7 @@ db.init_db()
 init_opportunity_meta()
 
 app = FastAPI(title="JobPilot", version=__version__)
+register_interview_prep(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:8765", "http://localhost:8765"],
@@ -73,16 +75,28 @@ class UrlImport(BaseModel):
     url: str = Field(min_length=8, max_length=4096)
 
 
+class OpportunityReview(BaseModel):
+    company: str = Field(default="", max_length=120)
+    role: str = Field(default="", max_length=160)
+    location: str = Field(default="", max_length=120)
+    deadline: str = Field(default="", max_length=80)
+    jd_text: str = Field(default="", max_length=60_000)
+
+
 class PageImport(BaseModel):
     url: str = Field(default="", max_length=4096)
     title: str = Field(default="", max_length=500)
     text: str = Field(min_length=10, max_length=200_000)
     context: dict[str, Any] = Field(default_factory=dict)
+    review: OpportunityReview | None = None
+    refresh_existing: bool = True
 
 
 class TextImport(BaseModel):
     text: str = Field(min_length=10, max_length=200_000)
     title: str = Field(default="招聘备忘", max_length=500)
+    review: OpportunityReview | None = None
+    refresh_existing: bool = False
 
 
 class SyncConfigPayload(BaseModel):
@@ -110,6 +124,8 @@ class OpportunityEdit(BaseModel):
     referral_code: str | None = Field(default=None, max_length=300)
     jd_text: str | None = Field(default=None, max_length=60_000)
     note: str | None = Field(default=None, max_length=4000)
+    next_action: str | None = Field(default=None, max_length=200)
+    next_action_at: str | None = Field(default=None, max_length=20)
 
 
 class ScheduleEventPayload(BaseModel):
@@ -344,7 +360,7 @@ def _resolve_target(
     }, opportunity
 
 
-async def parse_and_store(*, url: str, title: str, text: str, source_type: str, page_context: dict[str, Any] | None = None, refresh_existing: bool = False):
+async def parse_and_store(*, url: str, title: str, text: str, source_type: str, page_context: dict[str, Any] | None = None, refresh_existing: bool = False, review: OpportunityReview | None = None):
     existing = db.find_by_url(url) if url else None
     if existing and not refresh_existing:
         return {"item": existing, "duplicate": True, "refreshed": False, "ai_enabled": opportunity_ai_enabled()}
@@ -354,8 +370,13 @@ async def parse_and_store(*, url: str, title: str, text: str, source_type: str, 
         parsed = finalize_parsed(base, ai_candidate)
     except Exception:
         parsed = base
+    reviewed = review.model_dump() if review else {}
+    if reviewed:
+        parsed.update({key: value.strip() for key, value in reviewed.items()})
     if existing and refresh_existing:
         item = db.refresh_opportunity(existing["id"], parsed, preserve_status=True)
+        if reviewed:
+            item = db.edit_opportunity(existing["id"], reviewed)
         return {"item": item, "duplicate": True, "refreshed": True, "ai_enabled": opportunity_ai_enabled()}
     item = db.insert_opportunity(parsed)
     return {"item": item, "duplicate": False, "refreshed": False, "ai_enabled": opportunity_ai_enabled()}
@@ -383,6 +404,44 @@ async def health():
 
 
 # --- opportunity memo ---
+def _opportunity_preview(*, url: str, title: str, text: str, source_type: str, context: dict[str, Any] | None = None) -> dict[str, Any]:
+    draft = heuristic_parse(url=url, title=normalize_text(title), text=normalize_text(text), source_type=source_type, page_context=context)
+    existing = db.find_by_url(url) if url else None
+    return {
+        "draft": {key: (draft.get("description", "") if key == "jd_text" else draft.get(key, "")) for key in ("company", "role", "location", "deadline", "jd_text", "page_kind")},
+        "existing": {"id": existing["id"], "company": existing.get("company", ""), "role": existing.get("role", "")} if existing else None,
+        "warning": "当前页面可能不是具体岗位，请核对公司、岗位和 JD。" if draft.get("page_kind") != "job_detail" else "",
+    }
+
+
+def _job_url_from_text(text: str) -> str:
+    match = re.search(r"(?:岗位|职位|招聘|投递|网申)(?:页面)?链接\s*[：:]?\s*(https?://[^\s<>\"']+)", text, re.IGNORECASE)
+    return match.group(1).rstrip("，。；;、)") if match else ""
+
+
+@app.post("/api/opportunities/preview-url")
+async def preview_url(payload: UrlImport):
+    try:
+        title, text, context = await fetch_page(payload.url)
+    except UnsafeUrlError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"网页抓取失败：{exc}") from exc
+    result = _opportunity_preview(url=payload.url.strip(), title=title, text=text, source_type="url", context=context)
+    result["source"] = {"url": payload.url.strip(), "title": title, "text": text[:200_000], "context": context}
+    return result
+
+
+@app.post("/api/opportunities/preview-page")
+async def preview_page(payload: PageImport):
+    return _opportunity_preview(url=payload.url.strip(), title=payload.title, text=payload.text, source_type="browser", context=payload.context)
+
+
+@app.post("/api/opportunities/preview-text")
+async def preview_text(payload: TextImport):
+    return _opportunity_preview(url=_job_url_from_text(payload.text), title=payload.title, text=payload.text, source_type="text")
+
+
 @app.get("/api/opportunities")
 async def opportunities():
     return {"items": _decorate_opportunities(db.list_opportunities()), "job_categories": JOB_CATEGORIES}
@@ -406,13 +465,13 @@ async def import_page(payload: PageImport):
         context.setdefault("page_url", payload.url.strip())
     return await parse_and_store(
         url=payload.url.strip(), title=normalize_text(payload.title), text=normalize_text(payload.text),
-        source_type="browser", page_context=context, refresh_existing=True,
+        source_type="browser", page_context=context, refresh_existing=payload.refresh_existing, review=payload.review,
     )
 
 
 @app.post("/api/opportunities/import-text")
 async def import_text(payload: TextImport):
-    return await parse_and_store(url="", title=normalize_text(payload.title), text=normalize_text(payload.text), source_type="text")
+    return await parse_and_store(url=_job_url_from_text(payload.text), title=normalize_text(payload.title), text=normalize_text(payload.text), source_type="text", review=payload.review, refresh_existing=payload.refresh_existing)
 
 
 @app.patch("/api/opportunities/{opportunity_id}/status")
@@ -633,6 +692,14 @@ async def email_messages():
 @app.post("/api/email/messages/{email_id}/ignore")
 async def ignore_email_message(email_id: int):
     item = db.update_email_message(email_id, status="ignored")
+    if not item:
+        raise HTTPException(status_code=404, detail="邮件不存在")
+    return {"item": item}
+
+
+@app.post("/api/email/messages/{email_id}/restore")
+async def restore_email_message(email_id: int):
+    item = db.update_email_message(email_id, status="pending")
     if not item:
         raise HTTPException(status_code=404, detail="邮件不存在")
     return {"item": item}
@@ -1092,8 +1159,10 @@ def _best_role_field_set(role: str) -> dict[str, Any] | None:
 
 
 @app.get("/api/autofill/package")
-async def autofill_package(opportunity_id: int | None = None):
-    version = db.latest_resume_version(opportunity_id=opportunity_id)
+async def autofill_package(opportunity_id: int | None = None, version_id: int | None = None, base_only: bool = False):
+    version = None if base_only else (db.get_resume_version(version_id) if version_id else db.latest_resume_version(opportunity_id=opportunity_id))
+    if version_id and not version:
+        raise HTTPException(status_code=404, detail="所选简历版本不存在，请重新选择")
     profile = db.get_profile()
     package = build_flat_package(version, profile)
     structured = build_structured_autofill(version, profile)

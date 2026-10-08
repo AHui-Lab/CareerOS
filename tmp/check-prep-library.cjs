@@ -1,0 +1,80 @@
+const {chromium} = require('C:/Users/cyh/AppData/Local/npm-cache/_npx/31e32ef8478fbf80/node_modules/playwright');
+const assert = require('node:assert/strict');
+
+(async () => {
+  const browser = await chromium.launch({headless:true, executablePath:'C:/Users/cyh/AppData/Local/ms-playwright/chromium-1217/chrome-win64/chrome.exe'});
+  const errors = [];
+  try {
+    const page = await browser.newPage({viewport:{width:1440,height:1050}});
+    page.on('pageerror', error => errors.push(error.message));
+    await page.goto('http://127.0.0.1:18765/?view=interview_prep');
+    await page.locator('.prep-workspace-card').waitFor();
+    assert.equal(await page.locator('#viewTitle').textContent(), '面试准备');
+    assert.equal(await page.getByRole('button',{name:'面试经验',exact:true}).count(),1);
+    assert.equal(await page.locator('#interviewPrepFrame').getAttribute('src'),null);
+    await page.getByRole('button',{name:'查看三一锂能 · BMS 嵌入式准备',exact:true}).click();
+    let frame=page.frameLocator('#interviewPrepFrame');
+    await frame.getByRole('heading',{name:'JD 原文与准备重点',exact:true}).waitFor();
+    await frame.getByRole('button',{name:'公司与核心产品',exact:true}).click();
+    await frame.locator('#content table').waitFor();
+    assert.ok((await frame.locator('#content').textContent()).includes('ESG261'));
+    await page.getByRole('button',{name:'返回准备岗位',exact:false}).click();
+
+    for (const [company,role] of [['验证公司甲','算法工程师'],['验证公司乙','软件工程师']]) {
+      await page.getByRole('button',{name:'+ 新增面试准备',exact:true}).click();
+      await page.locator('#prepCreateForm [name="company"]').fill(company);
+      await page.locator('#prepCreateForm [name="role"]').fill(role);
+      await page.locator('#prepCreateForm [name="summary"]').fill('准备项目表达和技术基础');
+      await page.locator('#prepCreateForm [name="jd"]').fill(company+' JD：<script>alert(1)</script> 技术要求');
+      await page.getByRole('button',{name:'创建准备',exact:true}).click();
+      frame=page.frameLocator('#interviewPrepFrame');
+      await frame.getByRole('heading',{name:company+' · '+role,exact:true}).waitFor();
+      assert.ok((await frame.locator('#content').textContent()).includes(company+' JD'));
+      assert.equal(await frame.locator('#content script').count(),0);
+      assert.ok(!(await frame.locator('body').textContent()).includes('BMS'));
+      await frame.getByRole('button',{name:'进度与笔记',exact:true}).click();
+      await frame.locator('#notesText').fill(company+'的独立笔记');
+      await frame.locator('#interview_date').fill('2026-10-20');
+      await frame.getByRole('button',{name:'保存进度与笔记',exact:true}).click();
+      await frame.getByText('已保存到本机',{exact:true}).waitFor();
+      await page.getByRole('button',{name:'返回准备岗位',exact:false}).click();
+    }
+    assert.equal(await page.locator('.prep-workspace-card').count(),3);
+    await page.screenshot({path:'C:/CareerOS/tmp/prep-library-desktop.png',fullPage:true});
+    await page.locator('#prepSearch').fill('验证公司甲');
+    assert.equal(await page.locator('.prep-workspace-card').count(),1);
+    assert.ok((await page.locator('.prep-workspace-card').textContent()).includes('2026-10-20'));
+    await page.locator('#prepSearch').fill('不存在的岗位');
+    assert.equal(await page.locator('#prepEmpty').isVisible(),true);
+    await page.locator('#prepSearch').fill('');
+    await page.reload();
+    await page.locator('.prep-workspace-card').nth(2).waitFor();
+    await page.getByRole('button',{name:'查看验证公司甲 · 算法工程师准备',exact:true}).click();
+    frame=page.frameLocator('#interviewPrepFrame');
+    await frame.getByRole('heading',{name:'验证公司甲 · 算法工程师',exact:true}).waitFor();
+    await frame.getByRole('button',{name:'进度与笔记',exact:true}).click();
+    assert.equal(await frame.locator('#notesText').inputValue(),'验证公司甲的独立笔记');
+    await frame.locator('#notesText').fill('未保存的修改');
+    page.once('dialog', dialog=>dialog.dismiss());
+    await page.getByRole('button',{name:'返回准备岗位',exact:false}).click();
+    assert.equal(await page.locator('#prepDetailView').isVisible(),true);
+    page.once('dialog', dialog=>dialog.accept());
+    await page.getByRole('button',{name:'返回准备岗位',exact:false}).click();
+    assert.equal(await page.locator('#prepLibraryView').isVisible(),true);
+    await page.getByRole('button',{name:'面试经验',exact:true}).click();
+    assert.equal(await page.locator('#viewTitle').textContent(),'面试经验');
+    await page.locator('#view-interview').getByRole('heading',{name:'面试经验',exact:true}).waitFor();
+    await page.getByRole('button',{name:'面试准备',exact:true}).click();
+    await page.setViewportSize({width:390,height:844});
+    await page.screenshot({path:'C:/CareerOS/tmp/prep-library-mobile.png',fullPage:true});
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+    await page.getByRole('button',{name:'查看验证公司乙 · 软件工程师准备',exact:true}).click();
+    frame=page.frameLocator('#interviewPrepFrame');
+    await frame.getByRole('heading',{name:'验证公司乙 · 软件工程师',exact:true}).waitFor();
+    await frame.getByRole('button',{name:'进度与笔记',exact:true}).click();
+    assert.equal(await frame.locator('#notesText').inputValue(),'验证公司乙的独立笔记');
+    assert.ok(await frame.locator('html').evaluate(el=>el.scrollWidth<=innerWidth));
+    assert.deepEqual(errors,[]);
+    console.log('PASS: renamed navigation, list-first entry, existing documents, add multiple roles, save and reload, isolated notes, search, empty state, unsaved changes, desktop/mobile and no script errors.');
+  } finally {await browser.close();}
+})().catch(error=>{console.error(error);process.exitCode=1;});

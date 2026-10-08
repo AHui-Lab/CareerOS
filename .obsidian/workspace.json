@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/嵌入式岗位-自我描述-20260914.md",
+                "file": "docs/嵌入式面试-02-技术基础题库.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "嵌入式岗位-自我描述-20260914"
+              "title": "嵌入式面试-02-技术基础题库"
             }
           }
         ]
@@ -190,16 +190,36 @@
   },
   "active": "3907b2b09b17b52d",
   "lastOpenFiles": [
-    "docs/项目经历-一句话版-v3-20260913.md",
-    "docs/项目精简表达与HR口述-20260910.md",
+    "docs/职业与个人成长规划-大方向-20260917.md",
+    "docs/嵌入式岗位-自我描述-20260914.md",
+    "docs/嵌入式面试-01-项目深挖问答手册.md",
+    "docs/嵌入式面试-03-故障排查场景手册.md",
+    "docs/嵌入式面试-04-AI面试与HR面应对.md",
+    "docs/嵌入式面试-02-技术基础题库.md",
+    "docs/曹宇辉_简历.pdf",
+    "docs/求职咨询-阶段结论与两周计划-20260910.md",
+    "docs/嵌入式面试-05-AI面试真题题库-20260917.md",
+    "docs/AI-PM-证据补齐-执行包-模板.md",
+    "docs/AI产品经理-从做过到测过-提升方案.md",
+    "docs/AI产品经理-简历项目描述草案-20260909.md",
     "docs/项目经历-HR一眼版-v2-20260910.md",
+    "docs/项目经历-一句话版-v3-20260913.md",
     "docs/项目经历-精简表述稿-v1-20260910.md",
     "docs/项目经历-极简表述稿-v2-20260910.md",
+    "docs/AI产品经理-项目诊断与四周行动方案-20260909.md",
+    "docs/ats-check/page1.png",
+    "docs/ats-check/ATS体检报告.md",
+    "docs/ats-check/keyword_test.py",
+    "docs/ats-check/layout_analysis.py",
+    "docs/ats-check/report.json",
+    "docs/ats-check/extracted_raw_order.txt",
+    "docs/ats-check/extracted_ats_order.txt",
+    "docs/ats-check/inspect_resume.py",
+    "docs/ats-check",
+    "JobPilot/data/jobpilot.db",
+    "JobPilot/data/question-bank/embedded-ai-round1-0917.md",
+    "docs/项目精简表达与HR口述-20260910.md",
     "CareerVault/vault/generated/meituan-ai-product-20260910/曹宇辉_美团AI产品经理.docx",
-    "CareerVault/vault/generated/meituan-ai-product-20260910/曹宇辉_美团AI产品经理.md",
-    "CareerVault/vault/generated/meituan-ai-product-20260910/save_version.py",
-    "CareerVault/vault/generated/meituan-ai-product-20260910/build.cjs",
-    "CareerVault/vault/generated/meituan-ai-product-20260910/resume-content.json",
-    "CareerVault/vault/generated/meituan-ai-product-20260910"
+    "CareerVault/vault/generated/meituan-ai-product-20260910/曹宇辉_美团AI产品经理.md"
   ]
 }

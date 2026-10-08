@@ -7,7 +7,7 @@ import re
 import shutil
 import sqlite3
 from collections import Counter
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Iterator
@@ -49,6 +49,8 @@ CREATE TABLE IF NOT EXISTS opportunities (
     referral_code TEXT NOT NULL DEFAULT '',
     applied_at TEXT NOT NULL DEFAULT '',
     note TEXT NOT NULL DEFAULT '',
+    next_action TEXT NOT NULL DEFAULT '',
+    next_action_at TEXT NOT NULL DEFAULT '',
     match_score INTEGER NOT NULL DEFAULT 0,
     match_reasons TEXT NOT NULL DEFAULT '[]',
     risks TEXT NOT NULL DEFAULT '[]',
@@ -285,7 +287,7 @@ def init_db() -> None:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     migrated = _copy_legacy_database_if_needed()
     existed = DB_PATH.exists() and DB_PATH.stat().st_size > 0
-    with sqlite3.connect(DB_PATH) as conn:
+    with closing(sqlite3.connect(DB_PATH)) as conn, conn:
         conn.executescript(SCHEMA)
         columns = {row[1] for row in conn.execute("PRAGMA table_info(opportunities)").fetchall()}
         opportunity_migrations = {
@@ -296,6 +298,8 @@ def init_db() -> None:
             "jd_text": "ALTER TABLE opportunities ADD COLUMN jd_text TEXT NOT NULL DEFAULT ''",
             "referral_code": "ALTER TABLE opportunities ADD COLUMN referral_code TEXT NOT NULL DEFAULT ''",
             "applied_at": "ALTER TABLE opportunities ADD COLUMN applied_at TEXT NOT NULL DEFAULT ''",
+            "next_action": "ALTER TABLE opportunities ADD COLUMN next_action TEXT NOT NULL DEFAULT ''",
+            "next_action_at": "ALTER TABLE opportunities ADD COLUMN next_action_at TEXT NOT NULL DEFAULT ''",
         }
         schedule_columns = {row[1] for row in conn.execute("PRAGMA table_info(schedule_events)").fetchall()}
         schedule_migrations = {
@@ -409,17 +413,44 @@ ALGORITHM_TOPICS = {
     21: "深度学习", 22: "深度学习", 23: "C++",
 }
 
+INDOOR_TOPICS = {
+    1: "楼层判定", 2: "实时信号处理", 3: "统计分析", 4: "多模态时序",
+    5: "多模态融合", 6: "实时信号处理", 7: "时间对齐", 8: "评估方法",
+    9: "时序预处理", 10: "时序预处理", 11: "多模态融合", 12: "多模态融合",
+    13: "鲁棒性评估", 14: "缺失值处理", 15: "多模态融合", 16: "评估指标",
+    17: "深度学习", 19: "因果分析", 20: "缺失值处理", 21: "因果卷积",
+    22: "可微定位", 23: "Wi-Fi指纹", 24: "时序预处理", 27: "评估方法",
+    28: "序列建模", 29: "对比学习", 30: "序列建模", 31: "数据划分", 32: "缺失值处理",
+    33: "模态Dropout", 34: "长距离依赖", 36: "粒子滤波", 37: "深度学习",
+    38: "多模态融合", 39: "多模态融合", 40: "降维",
+}
+
+EMBEDDED2_TOPICS = {
+    1: "Linux IPC", 2: "C语言关键字", 3: "Shell", 4: "裸机实时", 5: "总线调试",
+}
+
 
 def _parse_question_bank_file(path: Path) -> list[dict[str, Any]]:
     text = path.read_text(encoding="utf-8")
     title = next((line.lstrip("# ").strip() for line in text.splitlines() if line.startswith("# ")), path.stem)
     is_shunfeng = "shunfeng" in path.stem.lower()
-    is_algo = "algorithm" in path.stem.lower() or "算法" in title
+    is_indoor = "indoor" in path.stem.lower() or "室内定位" in title
+    is_embedded2 = "embedded2" in path.stem.lower() or "嵌入式2" in title
+    is_algo = (not is_indoor) and (not is_embedded2) and ("algorithm" in path.stem.lower() or "算法" in title)
     is_interview = "面试" in title or "面经" in title or "round" in path.stem.lower()
+    is_embedded = "embedded" in path.stem.lower() or "嵌入式" in title
     if is_shunfeng:
         company, role_category = "顺丰", "产品经理"
+    elif is_indoor:
+        company, role_category = "2027秋招", "室内定位算法工程师"
+    elif is_embedded2:
+        company, role_category = "27届校招", "嵌入式开发"
+    elif is_interview and ("复盘" in title or "interview" in path.stem.lower()):
+        company, role_category = "技术面经", "嵌入式与算法"
     elif is_algo:
         company, role_category = "综合", "算法工程师"
+    elif is_embedded:
+        company, role_category = "AI 面试", "嵌入式软件开发"
     else:
         company, role_category = "OPPO", "应用后端开发"
     items: list[dict[str, Any]] = []
@@ -498,6 +529,12 @@ def _parse_question_bank_file(path: Path) -> list[dict[str, Any]]:
         if is_interview:
             topic = type_name.split("·")[-1].strip() if type_name else "综合面试"
             tags = [topic, "顺丰面经" if is_shunfeng else "面试记录"]
+        elif is_indoor:
+            topic = INDOOR_TOPICS.get(number, "室内定位")
+            tags = [topic, "室内定位", "多模态时序"]
+        elif is_embedded2:
+            topic = EMBEDDED2_TOPICS.get(number, "嵌入式基础")
+            tags = [topic, "嵌入式2", "27届校招"]
         elif is_algo:
             topic = ALGORITHM_TOPICS.get(number, "计算机基础")
             tags = [topic, "算法笔试"]
@@ -536,6 +573,8 @@ def _parse_question_bank_file(path: Path) -> list[dict[str, Any]]:
             programming_no = offset + int(start.group(1))
             if is_shunfeng:
                 tags = ["编程题", "顺丰2027校招"]
+            elif is_indoor:
+                tags = ["编程题", "室内定位"]
             elif is_algo:
                 tags = ["编程题", "算法笔试"]
             else:
@@ -748,7 +787,7 @@ def refresh_opportunity(opportunity_id: int, item: dict[str, Any], *, preserve_s
 
 
 def edit_opportunity(opportunity_id: int, fields: dict[str, Any]) -> dict[str, Any] | None:
-    allowed = {"company", "role", "location", "deadline", "applied_at", "note", "jd_text", "referral_code"}
+    allowed = {"company", "role", "location", "deadline", "applied_at", "note", "jd_text", "referral_code", "next_action", "next_action_at"}
     clean = {key: str(value or "").strip() for key, value in fields.items() if key in allowed}
     if not clean:
         return get_opportunity(opportunity_id)
