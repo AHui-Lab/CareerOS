@@ -386,7 +386,7 @@ def read_text_file(relative_path: str) -> dict[str, Any]:
         raise ValueError("file is not text-editable")
     if path.stat().st_size > 2 * 1024 * 1024:
         raise ValueError("text file is too large to edit in browser")
-    return {"path": str(path.relative_to(VAULT)).replace("\\", "/"), "content": path.read_text(encoding="utf-8")}
+    return {"path": str(path.relative_to(VAULT.resolve())).replace("\\", "/"), "content": path.read_text(encoding="utf-8")}
 
 
 def write_text_file(relative_path: str, content: str) -> dict[str, Any]:
@@ -396,7 +396,7 @@ def write_text_file(relative_path: str, content: str) -> dict[str, Any]:
     if len(content.encode("utf-8")) > 2 * 1024 * 1024:
         raise ValueError("text file is too large to edit in browser")
     atomic_write(path, content)
-    return {"ok": True, "path": str(path.relative_to(VAULT)).replace("\\", "/"), "size": path.stat().st_size}
+    return {"ok": True, "path": str(path.relative_to(VAULT.resolve())).replace("\\", "/"), "size": path.stat().st_size}
 
 
 def save_vault_upload(filename: str, data: bytes, directory: str = "inbox/files") -> dict[str, Any]:

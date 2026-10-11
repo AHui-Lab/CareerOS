@@ -4,7 +4,13 @@ CareerVault is a local-first, file-backed career knowledge base designed to work
 
 It is intentionally not another resume editor. CareerVault stores **facts**: profile, education, projects, internships, research, achievements, evidence, files, and quick notes. JobPilot consumes those facts to generate targeted resumes and fill recruitment forms.
 
-## V0.1 goals
+## CareerOS v0.7.0 integration
+
+CareerVault is the career-assets service behind CareerOS's “资料库”. Use the unified macOS or Windows installer and launcher at the repository root; see the [current CareerOS README](../README.md) for installation, updates, data locations, and all features.
+
+The current capture workflow starts with a name, personal contribution, and result. Additional details open progressively. Drafts and resume-ready facts have separate views; saving returns to the list while preserving long-form content, custom metadata, links, and evidence. Only confirmed `Resume Ready` facts are supplied to JobPilot for formal resume generation. See the [capture and organization guide](../docs/资料库-录入与整理产品化-20261009.md).
+
+## Core capabilities
 
 - Add/edit/delete experiences from a lightweight browser UI.
 - Autosave edits to ordinary Markdown + YAML files.

@@ -55,7 +55,7 @@ def _jobpilot_eligible(item: dict) -> bool:
 
 @app.get("/")
 def index():
-    return FileResponse(STATIC / "index.html")
+    return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-cache, must-revalidate"})
 
 
 @app.get("/api/health")

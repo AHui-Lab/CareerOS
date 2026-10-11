@@ -1,157 +1,43 @@
-# CareerOS
+# JobPilot · CareerOS 求职管理
 
-CareerOS is a local-first personal career workspace with two connected modules: job-search management and career assets.
+**当前版本：v0.7.0 · 2026-10-12**
 
-**Career assets store verified career facts. Job-search management turns those facts into job-specific resumes and application-form data.**
+JobPilot 是 CareerOS 的求职管理服务，默认运行于 `http://127.0.0.1:8765`，通过 CareerVault 获取经过确认的经历事实。安装、更新、数据同步和完整功能介绍见 [CareerOS 主 README](../README.md)。
 
-Current version: **V0.3.0**
+## 功能
 
-## Product structure
+- 总览：八个模块入口、进展、重点行动与近三天日程，完整月历和列表按需打开。
+- 岗位：JD 导入预览与核对、搜索筛选、列表 / 看板 / 紧凑视图、投递进度、关联材料和下一步。
+- 岗位整理：进行中、稍后再看、不考虑、已结束；批量整理、回看日期、恢复和短时撤销，独立于投递状态。
+- Offer：独立录入或关联岗位，六组 94 个细节字段、13 个国内参考来源、自定义维度、附件、2–4 份比较、CSV 导出、归档和日程联动。
+- 国内待遇：固定月薪、固定年现金、平均年收入及区间分别记录；实习、见习、试用、转正分阶段记录，确认基数后折算，已知阶段与首年完整度清楚展示。
+- 简历：目标、经历、核查三步制作，保存不可变资料快照和版本，导出中文 PDF、DOCX 与辅助填表数据。
+- 准备与练习：岗位准备空间、材料和笔记、面试经验、笔试试卷及题组。
+- 邮件：IMAP 招聘邮件检查，人工确认关联、忽略和恢复。
+- 通用体验：本机全局搜索、浅色 / 深色外观、手机导航、未保存编辑提示、数据备份和加密私有仓库同步。
 
-CareerOS contains two user-facing modules:
+## 运行与数据
 
-- **求职管理**：岗位导入、状态跟踪、JD 分析、岗位简历和浏览器辅助填表。
-- **经历资产**：个人资料、教育背景、项目、实习、科研和成果证据。
+在仓库根目录统一安装和启动两个服务：macOS 使用 `install.command` / `start.command`，Windows 使用 `install.bat` / `start.bat`。CareerVault 默认运行于 `http://127.0.0.1:8776`，通过工作台侧栏进入资料库。
 
-The modules share one CareerOS launcher and one user-facing workspace. Their existing service and data boundaries remain intact for compatibility.
+macOS 统一启动器的数据库为 `.local-data/jobpilot/jobpilot.db`；Windows 默认为 `%LOCALAPPDATA%\JobPilot\jobpilot.db`。开发时用 `JOBPILOT_DATA_DIR` 指定独立目录。Offer 附件存储在数据库中，完整数据库备份包含附件。
 
-## Architecture
+正式简历使用 CareerVault 中的 `Resume Ready` 经历。服务已连接但没有可用事实时，会提示先整理资料；历史 JobPilot 资料只保留为恢复和明确的离线兼容入口。从 v0.3.0 起不再直接索引 Obsidian，历史内容需先审核迁入 CareerVault。
 
-```text
-CareerVault :8776
-  profile / education / projects / internships / research / awards
-  only Resume Ready experiences are exposed to JobPilot
-            |
-            | POST /api/jobpilot/context
-            v
-JobPilot    :8765
-  opportunity memo -> JD matching -> tailored resume -> autofill package
+## 浏览器助手与 AI
+
+在 Chrome / Edge 中将 `extension/` 加载为未打包扩展，辅助填写常见文本和选择字段；动态重复行、复杂级联选项及照片需人工检查，插件不会点击最终提交或绕过登录验证。
+
+基础功能不需要 API 密钥。AI 功能使用 `JobPilot/.env` 中配置的兼容接口，字段见 [.env.example](.env.example)。不要提交密钥、Cookie、招聘数据库或个人资料。
+
+## 开发
+
+从仓库根目录执行（macOS / Linux，已安装统一虚拟环境）：
+
+```sh
+JOBPILOT_DATA_DIR="$PWD/.runtime/tests/jobpilot" PYTHONPATH=JobPilot \
+  .venv/bin/python -m unittest discover -s JobPilot/tests -v
+for test in JobPilot/tests/*.cjs; do node "$test"; done
 ```
 
-From V0.3.0 onward, **JobPilot does not import or index Obsidian vaults**. Historical Obsidian/Resume content should first be reviewed, deduplicated, and migrated into CareerVault. This prevents interview notes, learning material, drafts, and unimplemented ideas from contaminating resume facts.
-
-## What JobPilot does
-
-- Keep opportunities as a lightweight memo instead of a heavy CRM.
-- Query CareerVault for JD-relevant `Resume Ready` factual experiences.
-- Generate a targeted resume for a specific company, role, and JD.
-- Save immutable profile snapshots with resume versions.
-- Export DOCX resumes.
-- Provide a Chrome/Edge browser assistant for safe form autofill.
-- Never auto-submit applications or bypass login/CAPTCHA/security controls.
-
-## Unified workspace
-
-The local workspace is organized under `C:\CareerOS`:
-
-- `JobPilot`: job management, JD parsing, application tracking, resume generation, and browser autofill.
-- `CareerVault`: career assets, education, projects, achievements, and resume-ready facts.
-
-Each module keeps its existing Git history and service boundary. `JobPilot\career-os.bat` starts both modules together.
-
-## Quick start on Windows
-
-推荐从仓库根目录统一安装和启动，不要分别安装两个模块：
-
-```bat
-cd ..
-install.bat
-start.bat
-```
-
-以下独立命令仅用于开发和故障排查。
-
-```bat
-git clone https://github.com/AHui-Lab/CareerOS.git
-cd CareerOS
-install.bat
-start.bat
-```
-
-Open `http://127.0.0.1:8765`.
-
-CareerVault should also be running at:
-
-```text
-http://127.0.0.1:8776
-```
-
-### Launcher shortcuts
-
-- 根目录 `start.bat`: 统一启动两个模块。
-- 根目录 `stop.bat`: 统一停止两个模块。
-- `JobPilot\restart.bat`: 仅用于开发时重启 JobPilot。
-
-## CareerVault behavior
-
-Normal resume generation always asks CareerVault for context. If CareerVault is connected but has no `Resume Ready` experiences, JobPilot stops and asks you to review the CareerVault data instead of silently falling back to old data.
-
-The old JobPilot profile/experience bank remains only for:
-
-- recovering historical JobPilot databases;
-- temporary offline fallback when CareerVault is unavailable;
-- compatibility with old generated versions.
-
-Do not maintain new career facts in both systems.
-
-## Browser assistant
-
-Load the `extension/` folder as an unpacked extension in Edge or Chrome developer mode.
-
-The assistant can fill common text/select fields such as name, phone, email, school, major, degree, graduation date, GPA, portfolio, self-introduction, and long-form experience blocks. Complex ATS repeatable rows/custom cascaders still need site-specific adapters.
-
-The assistant never clicks the final submit button for you.
-
-## Data locations and safety
-
-JobPilot runtime data is not stored in this Git repository.
-
-On Windows the default database is:
-
-```text
-%LOCALAPPDATA%\JobPilot\jobpilot.db
-```
-
-Career facts live in the `C:\CareerOS\CareerVault` module.
-
-The following are intentionally ignored by Git:
-
-- `.env`
-- `.venv/`
-- project-local databases and backups
-- caches/bytecode
-
-Never commit API keys, authentication cookies, or local job-application databases.
-
-## Optional AI configuration
-
-Copy `.env.example` to `.env` and configure an OpenAI-compatible endpoint if desired.
-
-```env
-AI_BASE_URL=https://api.deepseek.com
-AI_API_KEY=your-key
-AI_MODEL=deepseek-chat
-CAREERVAULT_URL=http://127.0.0.1:8776
-```
-
-Without an AI provider, JobPilot still supports local fallback resume formatting; CareerVault remains the factual source.
-
-## Development
-
-Run tests:
-
-```bat
-.venv\Scripts\python.exe -m unittest discover -s tests -v
-```
-
-Static checks:
-
-```bat
-.venv\Scripts\python.exe -m compileall jobpilot tests run.py
-node --check jobpilot/static/app.js
-node --check extension/popup.js
-```
-
-GitHub Actions runs these checks automatically on pushes and pull requests.
-
-See `UPGRADE_0.3.0.md` for the migration from V0.2.2.
+Windows 可使用本模块虚拟环境中的 Python，并先设置 `JOBPILOT_DATA_DIR`。版本更新见 [CHANGELOG](CHANGELOG.md)，国内待遇说明见 [Offer 使用说明](../docs/Offer-评估维度与使用说明-20261011.md) 和 [分阶段薪资](../docs/Offer-国内参考与分阶段薪资-20261011.md)。

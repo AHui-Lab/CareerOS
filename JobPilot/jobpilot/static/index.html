@@ -7,6 +7,9 @@
   <link rel="stylesheet" href="/static/styles.css?v=20260908-1" />
   <link rel="stylesheet" href="/static/v031.css" />
   <link rel="stylesheet" href="/static/flow-polish.css" />
+  <link rel="stylesheet" href="/static/workspace.css?v=20261010-schedule-1" />
+  <link rel="stylesheet" href="/static/jobs.css?v=20261011-import-1" />
+  <link rel="stylesheet" href="/static/overview.css?v=20261011-offers-cn-2" />
   <style>
     .vault-manage-categories{margin-left:auto;white-space:nowrap}
     .vault-quick-add{white-space:nowrap}
@@ -23,49 +26,107 @@
     .sync-panel .toolbar-actions button{white-space:nowrap;min-width:120px}
     @media(max-width:720px){.sync-panel .toolbar-actions button{flex:1 1 150px}}
   </style>
+  <link rel="stylesheet" href="/static/offers.css?v=20261011-offers-cn-2" />
 </head>
 <body>
 <div class="shell">
   <aside class="sidebar">
     <div class="brand"><div class="logo">C</div><div><strong>CareerOS</strong><span>个人求职工作台</span></div></div>
-    <nav>
-      <button class="nav active" data-view="dashboard">首页</button>
-      <div class="nav-group-label">求职管理</div>
-      <button class="nav" data-view="memo">校招岗位</button>
-      <button class="nav" data-view="email">邮件跟踪</button>
-      <div class="nav-group-label">笔面试</div>
+    <nav aria-label="主要导航">
+      <button class="nav active" data-view="dashboard"><span class="nav-symbol" aria-hidden="true">◫</span>总览</button>
+      <button class="nav" data-view="memo"><span class="nav-symbol" aria-hidden="true">▤</span>岗位管理</button>
+      <button class="nav" data-view="offers"><span class="nav-symbol" aria-hidden="true">◇</span>Offer 管理<span id="navOfferCount" class="nav-count" hidden></span></button>
+      <button class="nav" data-view="vault"><span class="nav-symbol" aria-hidden="true">▱</span>资料库</button>
+      <button class="nav" data-view="resume"><span class="nav-symbol" aria-hidden="true">▧</span>简历工作室</button>
+      <div class="nav-group-label">准备与练习</div>
       <button class="nav" data-view="interview_prep">面试准备</button>
       <button class="nav" data-view="interview">面试经验</button>
       <button class="nav" data-view="written_test">笔试题库</button>
-      <button class="nav" data-view="resume">简历中心</button>
-      <div class="nav-group-label">资料与设置</div>
-      <button class="nav" data-view="vault">经历和项目</button>
+      <div class="nav-group-label">管理与设置</div>
+      <button class="nav" data-view="email">邮件跟踪<span id="navMailCount" class="nav-count" hidden></span></button>
       <button class="nav" data-view="settings">设置和帮助</button>
     </nav>
-    <div class="sidebar-note">V0.5.9 · 求职工作台<br><span id="aiBadge">连接检测中…</span></div>
+    <div class="sidebar-note"><span class="local-indicator">● 本地工作空间</span><span id="aiBadge">连接检测中…</span><button id="appearanceBtn" class="sidebar-appearance" type="button">切换深色外观</button><small>V0.7.0 · 求职工作台</small></div>
   </aside>
 
   <main class="main">
+    <div class="workspace-commandbar"><button id="mobileMenuBtn" class="ghost-btn menu-toggle" type="button" aria-label="展开导航" aria-expanded="false">☰</button><span class="workspace-breadcrumb">个人工作空间 <span aria-hidden="true">/</span> <span id="currentBreadcrumb">总览</span></span><button id="openCommandBtn" class="command-trigger" type="button"><span>搜索岗位、Offer、资料…</span><kbd>⌘ K</kbd></button><button id="globalAddBtn" class="primary-btn" type="button">+ 导入岗位</button></div>
     <header class="topbar">
       <div><p class="eyebrow">JOB SEARCH WORKSPACE</p><h1 id="viewTitle">求职概览</h1><p id="viewSubtitle" class="page-subtitle">集中查看岗位进展、待办事项和简历准备情况。</p></div>
-      <button id="refreshBtn" class="ghost-btn">刷新</button>
+      <div class="topbar-tools"><span id="todayDate" class="helper"></span><button id="refreshBtn" class="ghost-btn" type="button">刷新数据</button></div>
     </header>
     <div id="globalNotice" class="notice hidden" aria-live="polite"></div>
 
-    <section id="view-dashboard" class="view active-view">
-      <section class="dashboard-stats" aria-label="求职概览">
-        <article class="dashboard-stat"><span>岗位数量</span><strong id="dashboardTotal">0</strong><small>已保存的全部岗位</small></article>
-        <article class="dashboard-stat"><span>准备投递</span><strong id="dashboardPreparing">0</strong><small>下一步可推进</small></article>
-        <article class="dashboard-stat"><span>已投递</span><strong id="dashboardApplied">0</strong><small>等待后续进展</small></article>
-        <article class="dashboard-stat"><span>面试中</span><strong id="dashboardInterview">0</strong><small>需要持续跟进</small></article>
-        <article class="dashboard-stat"><span>Offer</span><strong id="dashboardOffer">0</strong><small>已获得的岗位结果</small></article>
+    <section id="view-dashboard" class="view active-view overview-page">
+      <section class="overview-progress" aria-label="求职进展">
+        <span class="overview-progress-label">求职进展</span>
+        <button type="button" data-overview-stage="all"><span>全部岗位</span><strong id="dashboardTotal">—</strong></button>
+        <button type="button" data-overview-stage="preparing"><span>准备投递</span><strong id="dashboardPreparing">—</strong></button>
+        <button type="button" data-overview-stage="applied"><span>等待回复</span><strong id="dashboardApplied">—</strong></button>
+        <button type="button" data-overview-stage="interview"><span>面试中</span><strong id="dashboardInterview">—</strong></button>
+        <button type="button" data-overview-offers><span>Offer 记录</span><strong id="dashboardOffer">—</strong></button>
       </section>
-      <div class="dashboard-grid"><section class="panel"><div class="section-title"><div><p class="eyebrow">NEXT ACTIONS</p><h2>接下来要做</h2></div><button class="link-button" type="button" data-go-view="memo">管理岗位</button></div><div id="dashboardTasks" class="task-list"></div></section><section class="panel"><div class="section-title"><div><p class="eyebrow">RECENT JOBS</p><h2>最近关注岗位</h2></div><button class="link-button" type="button" data-go-view="memo">查看全部</button></div><div id="dashboardRecentJobs" class="dashboard-list"></div></section></div>
+      <section class="overview-modules" aria-labelledby="overviewModulesTitle">
+        <div class="overview-section-head"><h2 id="overviewModulesTitle">我的工作空间</h2><button type="button" class="link-button" data-overview-detail="calendar">日程与计划 <span aria-hidden="true">↗</span></button></div>
+        <div class="overview-module-grid">
+          <article class="overview-module">
+            <button type="button" class="overview-module-main" data-go-view="memo"><span class="overview-module-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="15" rx="3"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M3 12h18M10 12v3h4v-3"/></svg></span><span><h3>岗位与投递</h3><p>收集机会，跟进投递进展</p></span><span class="overview-module-arrow" aria-hidden="true">↗</span></button>
+            <div class="overview-module-footer"><span id="overviewJobsMeta">正在加载…</span><button type="button" class="link-button" data-overview-import>导入岗位</button></div>
+          </article>
+          <article class="overview-module overview-offer-module">
+            <button type="button" class="overview-module-main" data-go-view="offers"><span class="overview-module-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 10 3 3 5-6M8 17h8"/></svg></span><span><h3>Offer 管理</h3><p>记录待遇，比较与确认选择</p></span><span class="overview-module-arrow" aria-hidden="true">↗</span></button>
+            <div class="overview-module-footer"><span id="overviewOffersMeta">正在加载…</span><button type="button" class="link-button" data-offer-new>记录 Offer</button></div>
+          </article>
+          <article class="overview-module">
+            <button type="button" class="overview-module-main" data-go-view="vault"><span class="overview-module-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M8 12h8M8 16h5"/></svg></span><span><h3>资料库</h3><p>积累经历，管理个人资料</p></span><span class="overview-module-arrow" aria-hidden="true">↗</span></button>
+            <div class="overview-module-footer"><span id="overviewAssetsMeta">正在加载…</span><button type="button" class="link-button" data-overview-capture>记录经历</button></div>
+          </article>
+          <article class="overview-module">
+            <button type="button" class="overview-module-main" data-go-view="resume"><span class="overview-module-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg></span><span><h3>简历工作室</h3><p>匹配目标岗位，制作专属简历</p></span><span class="overview-module-arrow" aria-hidden="true">↗</span></button>
+            <div class="overview-module-footer"><span id="overviewResumesMeta">正在加载…</span><button type="button" class="link-button" data-go-view="resume">制作简历</button></div>
+          </article>
+          <article class="overview-module">
+            <button type="button" class="overview-module-main" data-go-view="interview_prep"><span class="overview-module-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M21 11a8 8 0 0 1-8 8H7l-4 3V11a9 9 0 0 1 18 0Z"/><path d="M7 10h10M7 14h6"/></svg></span><span><h3>面试准备</h3><p>按岗位准备，沉淀面试经验</p></span><span class="overview-module-arrow" aria-hidden="true">↗</span></button>
+            <div class="overview-module-footer"><span id="overviewPrepsMeta">正在加载…</span><button type="button" class="link-button" data-go-view="interview">面试经验</button></div>
+          </article>
+          <article class="overview-module">
+            <button type="button" class="overview-module-main" data-go-view="written_test"><span class="overview-module-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 8 1 1 2-2M13 8h3M8 13h8M8 17h5"/></svg></span><span><h3>笔试练习</h3><p>按试卷练习，查看答案与解析</p></span><span class="overview-module-arrow" aria-hidden="true">↗</span></button>
+            <div class="overview-module-footer"><span id="overviewWrittenMeta">正在加载…</span><button type="button" class="link-button" data-go-view="written_test">进入题库</button></div>
+          </article>
+          <article class="overview-module">
+            <button type="button" class="overview-module-main" data-go-view="email"><span class="overview-module-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3 7 9 6 9-6"/></svg></span><span><h3>邮件跟踪</h3><p>查看招聘消息，关联对应岗位</p></span><span class="overview-module-arrow" aria-hidden="true">↗</span></button>
+            <div class="overview-module-footer"><span id="overviewMailMeta">正在加载…</span><button type="button" class="link-button" data-go-view="email">查看邮件</button></div>
+          </article>
+          <article class="overview-module">
+            <button type="button" class="overview-module-main" data-go-view="settings"><span class="overview-module-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 17h16M8 4v6M16 14v6"/><circle cx="8" cy="7" r="2"/><circle cx="16" cy="17" r="2"/></svg></span><span><h3>设置与数据</h3><p>配置工作空间，管理本地数据</p></span><span class="overview-module-arrow" aria-hidden="true">↗</span></button>
+            <div class="overview-module-footer"><span>本地保存 · 按需备份</span><button type="button" class="link-button" data-go-view="settings">管理设置</button></div>
+          </article>
+        </div>
+      </section>
+      <div class="overview-focus-grid">
+        <section class="overview-focus-panel" aria-labelledby="overviewFocusTitle">
+          <div class="overview-section-head"><div><h2 id="overviewFocusTitle">近期重点</h2><span id="overviewFocusHint" class="overview-section-hint"></span></div><button class="link-button" type="button" data-overview-detail="actions">查看全部计划 <span id="overviewTaskCount"></span> →</button></div>
+          <div id="overviewFocusTasks" class="task-list" aria-live="polite"></div>
+        </section>
+        <section class="overview-schedule-panel" aria-labelledby="overviewScheduleTitle">
+          <div class="overview-section-head"><div><h2 id="overviewScheduleTitle">近三天日程 <span id="overviewScheduleCount" class="overview-schedule-count"></span></h2><span class="overview-section-hint">今天、明天、后天</span></div><button type="button" class="link-button" data-overview-detail="calendar">查看日历 →</button></div>
+          <div id="overviewScheduleList" class="overview-schedule-list" aria-live="polite"></div>
+        </section>
+      </div>
+      <footer class="overview-footer"><span>常用管理</span><button type="button" class="link-button" data-overview-profile>个人资料</button><button type="button" class="link-button" data-overview-detail="recent">最近岗位</button><button type="button" class="link-button" data-go-view="settings">设置与帮助</button><div id="dashboardAttention" class="overview-footer-attention" aria-label="待确认事项"></div></footer>
+      <dialog id="overviewDialog" class="dialog overview-detail-dialog" aria-labelledby="overviewDetailTitle">
+        <div class="dialog-head"><div><h2 id="overviewDetailTitle">日程与计划</h2><p class="helper">查看下一步行动、笔面试日程和近期关注的岗位。</p></div><button type="button" class="icon-btn" data-close-dialog="overviewDialog" aria-label="关闭日程与计划">×</button></div>
+        <div class="overview-detail-tabs" aria-label="查看内容"><button type="button" class="mode" data-overview-tab="actions" aria-pressed="true">行动计划</button><button type="button" class="mode" data-overview-tab="calendar" aria-pressed="false">求职日历</button><button type="button" class="mode" data-overview-tab="recent" aria-pressed="false">最近岗位</button></div>
+        <section data-overview-panel="actions"><div class="overview-plan-heading"><h3>行动计划</h3><div class="action-range"><button type="button" class="mode active" data-task-range="week">未来 7 天</button><button type="button" class="mode" data-task-range="all">全部计划</button></div></div><div id="dashboardTasks" class="task-list" aria-live="polite"></div></section>
+        <section data-overview-panel="calendar" hidden>
       <section class="panel calendar-panel compact-calendar">
-        <div class="section-title"><div><p class="eyebrow">APPLICATION CALENDAR</p><h2>求职日历</h2><p class="helper">记录投递、笔试、面试和截止时间，集中查看近期安排。</p></div><div class="calendar-actions"><button id="calendarToggle" class="ghost-btn" type="button" aria-expanded="false">展开月历</button><button id="calendarPrev" class="ghost-btn" type="button">‹</button><strong id="calendarMonth"></strong><button id="calendarNext" class="ghost-btn" type="button">›</button><button id="addScheduleBtn" class="primary-btn" type="button">+ 添加日程</button></div></div>
+        <div class="section-title"><div><p class="eyebrow">APPLICATION CALENDAR</p><h2>求职日历</h2><p class="helper">记录投递、笔试、面试和截止时间，集中查看近期安排。</p></div><div class="calendar-actions"><button id="calendarToggle" class="ghost-btn" type="button" aria-expanded="false">展开月历</button><button id="calendarPrev" class="ghost-btn" type="button" aria-label="上个月">‹</button><strong id="calendarMonth"></strong><button id="calendarNext" class="ghost-btn" type="button" aria-label="下个月">›</button><button id="addScheduleBtn" class="primary-btn" type="button">+ 添加日程</button></div></div>
         <div id="calendarGrid" class="calendar-grid"></div>
         <div id="calendarUpcoming" class="calendar-upcoming"></div>
       </section>
+        </section>
+        <section data-overview-panel="recent" hidden><h3>最近关注岗位</h3><div id="dashboardRecentJobs" class="dashboard-list"></div><button type="button" class="link-button" data-go-view="memo">查看全部岗位 →</button></section>
+      </dialog>
     </section>
 
     <section id="view-interview-prep" class="view">
@@ -77,51 +138,64 @@
       <dialog id="prepCreateDialog" class="dialog"><form id="prepCreateForm" class="stack-form"><div class="dialog-head"><div><p class="eyebrow">NEW PREPARATION</p><h2>新增面试准备</h2></div><button id="prepCreateClose" class="icon-btn" type="button" aria-label="关闭新增面试准备">×</button></div><div class="form-grid-2"><label>公司<input name="company" maxlength="120" required placeholder="公司名称" /></label><label>岗位<input name="role" maxlength="160" required placeholder="岗位名称" /></label><label>部门 / 团队<input name="team" maxlength="200" /></label><label>面试日期<input name="interview_date" type="date" /></label></div><label>准备重点<textarea name="summary" rows="2" maxlength="1000" placeholder="这次面试重点准备什么？"></textarea></label><label>岗位 JD<textarea name="jd" rows="7" maxlength="60000" placeholder="粘贴岗位职责和任职要求，可稍后补充。"></textarea></label><p id="prepCreateError" class="helper" role="alert" hidden></p><div class="dialog-actions"><button id="prepCreateCancel" class="ghost-btn" type="button">取消</button><button id="prepCreateSubmit" class="primary-btn" type="submit">创建准备</button></div></form></dialog>
     </section>
 
+    <section id="view-offers" class="view offers-page">
+      <div class="offers-toolbar"><div class="offers-tabs" role="group" aria-label="Offer 视图"><button type="button" class="mode active" data-offer-view="active">全部记录</button><button type="button" class="mode" data-offer-view="pending">待决定</button><button type="button" class="mode" data-offer-view="accepted">已接受</button><button type="button" class="mode" data-offer-view="archived">已归档</button></div><div class="offers-toolbar-actions"><button type="button" id="offersReferenceBtn" class="ghost-btn">国内核实参考</button><button type="button" class="primary-btn" data-offer-new>+ 记录 Offer</button></div></div>
+      <div class="offers-search-row"><input id="offersSearch" type="search" placeholder="搜索公司、岗位或城市" aria-label="搜索 Offer"><span id="offersCount" class="helper" role="status"></span></div>
+      <div id="offerCandidates" class="offer-candidates" hidden></div>
+      <div id="offersDecisionHint" class="offers-decision-hint" hidden></div>
+      <div id="offersCompareBar" class="offers-compare-bar"><span id="offersSelectionCount">勾选 2–4 份 Offer，横向比较</span><div><button id="offersClearSelection" type="button" class="link-button">清空选择</button><button id="offersStartCompare" type="button" class="primary-btn" disabled>开始对比</button></div></div>
+      <div id="offersList" class="offers-grid" aria-label="Offer 记录"></div>
+      <section id="offersComparison" hidden><div class="offers-comparison-heading"><div><h2>并排看清差异</h2><p class="helper">金额按原币种与完整计薪年度比较；空白代表未补充，0 代表确认没有。不同币种不做直接排名。</p></div><button id="offersExport" type="button" class="ghost-btn">导出对比 CSV</button></div><div id="offersCompareTabs" class="offers-compare-tabs" role="group" aria-label="对比维度"></div><div class="offers-comparison-scroll" tabindex="0" aria-label="Offer 横向对比表"><table id="offersComparisonTable" class="offers-comparison-table"></table></div><p class="offers-calculation-note">固定现金是已知项目的小计；浮动奖金、一次性补贴、股权、公积金分别展示。入职当年、试用期及奖金资格需按实际条款核对。税后月到手和生活成本采用你的个人估算。</p></section>
+      <dialog id="offerEditorDialog" class="dialog offer-editor-dialog" aria-labelledby="offerEditorTitle"><div class="dialog-head"><div><h2 id="offerEditorTitle">记录 Offer</h2><p id="offerEditorHint" class="helper">先记录基本信息，其余细节可以逐步补充。</p></div><button type="button" class="icon-btn" id="offerEditorClose" aria-label="关闭 Offer 编辑">×</button></div><form id="offerEditorForm"><div id="offerQuickFields" class="offer-form-grid"></div><details class="offer-form-section offer-phase-section"><summary>实习、见习、试用与转正待遇<span>固定金额、按比例发放或尚未明确，分段记录；首年工资按你选定的 12 个月计算。</span></summary><div id="offerPhaseRows"></div><button type="button" id="offerAddPhase" class="ghost-btn">+ 增加待遇阶段</button><p class="helper">阶段月数未知可留空。只有平均年收入时，不会据此折算月薪或试用工资。见习期可能包含试用期，首年选择的阶段请勿重叠。分段小计不包含奖金、补贴。</p></details><div id="offerEditorSections"></div><details class="offer-form-section"><summary>自定义比较维度 <span>补充你特别在意的条件</span></summary><div id="offerCustomRows" class="offer-custom-rows"></div><button type="button" id="offerAddCustom" class="ghost-btn">+ 添加维度</button><p class="helper">不同 Offer 使用相同维度名称，比较表就会放在同一行。</p></details><p id="offerEditorError" class="import-error" role="alert" hidden></p><div class="offer-editor-actions"><button type="button" id="offerEditorCancel" class="ghost-btn">取消</button><button type="submit" class="primary-btn">保存 Offer</button></div></form></dialog>
+      <dialog id="offerDetailDialog" class="dialog offer-detail-dialog" aria-labelledby="offerDetailTitle"><div class="dialog-head"><div><h2 id="offerDetailTitle">Offer 详情</h2><p id="offerDetailHint" class="helper"></p></div><button type="button" class="icon-btn" data-close-dialog="offerDetailDialog" aria-label="关闭 Offer 详情">×</button></div><div id="offerDetailContent"></div></dialog>
+      <dialog id="offerReferenceDialog" class="dialog offer-reference-dialog" aria-labelledby="offerReferenceTitle"><div class="dialog-head"><h2 id="offerReferenceTitle">国内 Offer：值得确认的细节</h2><button type="button" class="icon-btn" data-close-dialog="offerReferenceDialog" aria-label="关闭维度参考">×</button></div><div id="offerReferenceContent"></div></dialog>
+    </section>
+
     <section id="view-memo" class="view">
       <div class="compact-page-toolbar"><div><p class="eyebrow">POSITIONS</p><p class="helper">岗位、JD、内推码和投递进展集中管理。</p></div><button id="openJobImportBtn" class="primary-btn" type="button">+ 导入职位</button></div>
       <dialog id="jobImportDialog" class="dialog">
         <div class="dialog-head"><div><p class="eyebrow">ADD JOB</p><h2>导入职位</h2></div><button id="jobImportClose" class="icon-btn" type="button">×</button></div>
         <div class="mode-tabs"><button class="mode active" data-mode="url" type="button">招聘链接</button><button class="mode" data-mode="text" type="button">招聘文字</button></div>
+        <p id="jobImportError" class="import-error" role="alert" hidden></p>
         <form id="urlForm" class="stack-form"><label>招聘页面链接<input id="urlInput" type="url" placeholder="https://careers.example.com/..." required /></label><button class="primary-btn" type="submit">解析并核对</button><p class="helper">部分招聘网站需要登录；抓取失败时可复制岗位文字导入。</p></form>
         <form id="textForm" class="stack-form hidden"><label>招聘文字<textarea id="textInput" rows="9" placeholder="公司、岗位、链接、要求……"></textarea></label><button class="primary-btn" type="submit">解析并核对</button></form>
         <form id="importReviewForm" class="stack-form hidden"><div class="dialog-head"><h3>核对岗位信息</h3><button id="importReviewBack" class="ghost-btn" type="button">返回修改来源</button></div><p id="importReviewWarning" class="helper"></p><div class="form-grid-2"><label>公司<input id="importReviewCompany" maxlength="120" required /></label><label>岗位<input id="importReviewRole" maxlength="160" required /></label><label>地点<input id="importReviewLocation" maxlength="120" /></label><label>截止时间<input id="importReviewDeadline" maxlength="80" placeholder="如 2026-10-31" /></label></div><label>岗位 JD<textarea id="importReviewJd" rows="8" maxlength="60000"></textarea></label><button id="confirmJobImport" class="primary-btn" type="submit">确认导入岗位</button></form>
       </dialog>
 
-      <section class="list-section">
-        <div class="list-toolbar">
-          <div><p class="eyebrow">POSITIONS</p><h2>职位列表 <span id="memoCount" class="helper"></span></h2></div>
-          <input id="memoSearch" type="search" placeholder="搜索公司 / 岗位 / 备注" />
-        </div>
-        <div class="summary-grid" aria-label="职位概览">
-          <div class="summary-card"><span>全部职位</span><strong id="summaryTotal">0</strong></div>
-          <div class="summary-card"><span>待处理</span><strong id="summaryPending">0</strong></div>
-          <div class="summary-card"><span>准备投递</span><strong id="summaryPreparing">0</strong></div>
-          <div class="summary-card"><span>已投递</span><strong id="summarySubmitted">0</strong></div>
-        </div>
-        <div class="mode-tabs" id="memoScopeTabs">
-          <button class="mode memo-tab active" data-memo-scope="all">全部</button>
-          <button class="mode memo-tab" data-memo-scope="unsubmitted">未投递</button>
-          <button class="mode memo-tab" data-memo-scope="submitted">已投递</button>
-        </div>
-        <div class="toolbar-actions" style="margin:12px 0 18px;flex-wrap:wrap">
-          <select id="memoCategoryFilter">
+      <section class="list-section jobs-list-surface" aria-label="岗位列表">
+        <div class="jobs-list-tools">
+          <input id="memoSearch" type="search" aria-label="搜索岗位" placeholder="搜索公司、岗位、地点或 JD 关键词" />
+          <details class="jobs-more-filters"><summary>筛选 <span id="jobsFilterCount"></span></summary><div class="jobs-filter-popover"><label>岗位类别<select id="memoCategoryFilter" aria-label="岗位类别">
             <option value="">全部岗位类别</option>
             <option value="unclassified">未分类</option>
             <option value="ai">AI</option><option value="algorithm">算法</option><option value="software">软件开发</option>
             <option value="test">测试 / 测开</option><option value="embedded">嵌入式</option><option value="semiconductor">半导体</option>
             <option value="hardware">硬件</option><option value="product">产品</option><option value="other">其他</option>
-          </select>
-          <select id="memoStatusFilter">
+          </select></label><label>投递阶段<select id="memoStatusFilter" aria-label="投递阶段">
             <option value="">全部状态</option><option value="inbox">待处理</option>
             <option value="preparing">准备投递</option><option value="applied">已投递</option><option value="interview">面试中</option>
-            <option value="offer">Offer</option><option value="rejected">已结束</option>
-          </select>
-          <select id="memoSort" aria-label="职位排序"><option value="priority">需要处理的优先</option><option value="deadline">截止时间最近</option><option value="newest">最近导入</option></select>
-          <button id="clearMemoFilters" class="ghost-btn" type="button">清除筛选</button>
+            <option value="offer">Offer</option><option value="rejected">已结束</option><option value="interested">已关注</option><option value="ignored">已忽略</option>
+          </select></label><label>投递范围<select id="memoScopeFilter"><option value="all">全部岗位</option><option value="unsubmitted">未投递</option><option value="submitted">已投递及后续</option></select></label><button id="clearMemoFilters" class="ghost-btn" type="button">清除筛选</button></div></details>
+          <select id="memoSort" aria-label="职位排序"><option value="priority">需要处理的优先</option><option value="deadline">截止时间最近</option><option value="newest">最近导入</option><option value="oldest">最早收集</option></select>
+          <button id="organizeJobsBtn" type="button" class="ghost-btn" aria-pressed="false">整理岗位</button>
+          <div class="view-switch" role="group" aria-label="岗位显示方式"><button type="button" class="mode active" data-job-layout="list" aria-pressed="true">列表</button><button type="button" class="mode" data-job-layout="board" aria-pressed="false">看板</button><button id="compactJobsBtn" class="ghost-btn" type="button" aria-pressed="false">紧凑</button></div>
         </div>
-        <div id="memoList" class="memo-list"></div>
+        <div class="jobs-workspace-bar"><div id="savedJobViews" class="saved-job-views">
+          <button type="button" class="saved-view active" data-job-view="all">正在推进 <span data-job-count="all"></span></button>
+          <button type="button" class="saved-view" data-job-view="preparing">准备投递 <span data-job-count="preparing"></span></button>
+          <button type="button" class="saved-view" data-job-view="applied">等待回复 <span data-job-count="applied"></span></button>
+          <button type="button" class="saved-view" data-job-view="interview">面试中 <span data-job-count="interview"></span></button>
+          <button type="button" class="saved-view" data-job-view="offer">Offer <span data-job-count="offer"></span></button>
+          <select id="jobsSpecialView" aria-label="更多岗位视图"><option value="">更多视图</option><option value="later">稍后再投</option><option value="skipped">暂不考虑</option><option value="ended">已结束</option><option value="records">全部记录</option><option value="review">待核对</option><option value="starred">重点关注</option></select>
+          <span hidden><button type="button" data-job-view="review">待核对</button><button type="button" data-job-view="starred">重点关注</button><button type="button" data-job-view="ended">已结束</button></span>
+        </div><span id="memoCount" class="jobs-result-count"></span></div>
+        <div id="jobOrganizationBar" class="job-organization-bar" hidden><label><input id="selectVisibleJobs" type="checkbox" /> 全选当前结果</label><span id="jobSelectionCount" role="status">已选 0 项</span><button type="button" class="ghost-btn" data-organize-target="later">稍后再投</button><button type="button" class="ghost-btn" data-organize-target="skipped">暂不考虑</button><button type="button" class="ghost-btn" data-organize-target="closed">已结束</button><button type="button" class="ghost-btn" data-organize-target="active">恢复推进</button><button id="clearJobSelection" type="button" class="link-button">清空选择</button></div>
+        <div hidden><span id="summaryTotal"></span><span id="summaryPending"></span><span id="summaryPreparing"></span><span id="summarySubmitted"></span><div id="memoScopeTabs"><button data-memo-scope="all">全部</button><button data-memo-scope="unsubmitted">未投递</button><button data-memo-scope="submitted">已投递及后续</button></div></div>
+        <div id="memoList" class="memo-list" aria-label="岗位记录"></div>
         <div id="memoEmpty" class="empty-state hidden"><h3>没有符合条件的岗位</h3><p>可以调整筛选条件，或导入一个新的招聘链接。</p></div>
       </section>
+      <dialog id="jobPlanDialog" class="dialog job-plan-dialog" aria-labelledby="jobPlanTitle"><form id="jobPlanForm" class="stack-form"><div class="dialog-head"><div><h2 id="jobPlanTitle">安排下一步</h2><p id="jobPlanContext" class="helper"></p></div><button type="button" class="icon-btn" data-close-dialog="jobPlanDialog" aria-label="关闭行动安排">×</button></div><label>下一步行动<input id="jobPlanAction" maxlength="200" placeholder="如：完善项目经历后投递" /></label><label>计划日期（可稍后确定）<input id="jobPlanDate" type="date" /></label><p id="jobPlanError" class="helper" role="alert" hidden></p><div class="dialog-actions"><button type="button" class="ghost-btn" data-close-dialog="jobPlanDialog">取消</button><button type="submit" class="primary-btn">保存行动</button></div></form></dialog>
+      <dialog id="jobOrganizationDialog" class="dialog job-plan-dialog" aria-labelledby="jobOrganizationTitle"><form id="jobOrganizationForm" class="stack-form"><div class="dialog-head"><h2 id="jobOrganizationTitle">整理岗位</h2><button type="button" class="icon-btn" data-close-dialog="jobOrganizationDialog" aria-label="关闭岗位整理">×</button></div><label>整理去向<select id="jobOrganizationTarget"><option value="later">稍后再投</option><option value="skipped">暂不考虑</option><option value="closed">已结束</option><option value="active">恢复推进</option></select></label><p id="jobOrganizationContext" class="helper"></p><ul id="jobOrganizationNames" class="job-organization-names"></ul><p class="helper">保留 JD、投递进展、简历和关联日程，之后可随时恢复推进。</p><label id="jobRevisitLabel">回看日期（可选）<input id="jobRevisitDate" type="date" /><span class="helper">到期会在总览的行动计划中提醒你回看。</span></label><label>整理备注（可选）<input id="jobOrganizationNote" maxlength="500" placeholder="如：先准备其他岗位，月底再看" /></label><p id="jobOrganizationError" class="helper" role="alert" hidden></p><div class="dialog-actions"><button type="button" class="ghost-btn" data-close-dialog="jobOrganizationDialog">取消</button><button type="submit" class="primary-btn">保存整理</button></div></form></dialog>
     </section>
 
     <section id="view-email" class="view">
@@ -158,9 +232,11 @@
     </section>
 
     <section id="view-vault" class="view">
-      <div class="vault-frame-tabs" role="tablist" aria-label="经历和项目导航"><button class="mode active" type="button" data-vault-view="experiences">经历项目</button><button class="mode" type="button" data-vault-view="evaluations">自我评价</button><button class="mode" type="button" data-vault-view="inbox">草稿箱</button><button id="vaultManageCategories" class="ghost-btn vault-manage-categories" type="button">管理分类</button><button id="vaultQuickAdd" class="primary-btn vault-quick-add" type="button">+ 新增记录</button></div>
-      <iframe id="careerVaultFrame" class="career-vault-frame" src="http://127.0.0.1:8776/?embedded=1&amp;v=20260827-4" title="经历和项目" loading="lazy"></iframe>
+      <div class="vault-workspace">
+      <div class="vault-frame-tabs" role="group" aria-label="资料库导航"><button class="mode active" type="button" data-vault-view="experiences">我的经历</button><button class="mode" type="button" data-vault-view="profile">个人资料</button><details class="vault-library-tools"><summary>更多</summary><div class="vault-library-tools-menu"><button class="mode" type="button" data-vault-view="evaluations">自我介绍</button><button class="mode" type="button" data-vault-view="inbox">临时草稿</button><button id="vaultManageCategories" class="ghost-btn" type="button">管理分类</button><button class="mode" type="button" data-vault-view="settings">文件与工具</button><button class="mode" type="button" data-go-view="profile">旧版资料工具</button></div></details><button id="vaultQuickAdd" class="primary-btn vault-quick-add" type="button">+ 记录经历</button></div>
+      <iframe id="careerVaultFrame" class="career-vault-frame" src="http://127.0.0.1:8776/?embedded=1&amp;v=20261009-capture-5" title="经历和项目" loading="lazy"></iframe>
       <section id="selfEvaluationsPanel" class="panel common-fields-panel hidden"><div class="section-title"><div><p class="eyebrow">SELF EVALUATIONS</p><h2>自我评价</h2><p class="helper">按岗位类别保存多条自我评价，生成简历或准备面试时可以分别使用。</p></div><button id="addRoleFieldSetBtn" class="primary-btn" type="button">+ 新增自我评价</button></div><div id="roleFieldSetList" class="role-field-set-list"></div></section>
+      </div>
     </section>
 
     <section id="view-interview" class="view">
@@ -309,7 +385,7 @@
     <input id="scheduleId" type="hidden" />
     <div class="dialog-head"><div><p class="eyebrow">SCHEDULE</p><h2 id="scheduleDialogTitle">添加日程</h2></div><button id="scheduleClose" class="icon-btn" type="button">×</button></div>
     <div class="form-grid-2">
-      <label>类型<select id="scheduleType"><option value="application">投递</option><option value="written_test">笔试</option><option value="interview">面试</option><option value="deadline">截止时间</option><option value="follow_up">跟进</option><option value="other">其他</option></select></label>
+      <label>类型<select id="scheduleType"><option value="application">投递</option><option value="written_test">笔试</option><option value="interview">面试</option><option value="signing">签约</option><option value="deadline">截止时间</option><option value="follow_up">跟进</option><option value="other">其他</option></select></label>
       <label>标题<input id="scheduleTitle" required placeholder="例如：一面 / 秋招网申" /></label>
       <label>日期<input id="scheduleDate" type="date" required /></label><label>时间<input id="scheduleTime" type="time" /></label>
       <label>地点 / 会议链接<input id="scheduleLocation" /></label>
@@ -329,8 +405,21 @@
   </form>
 </dialog>
 
-  <script src="/static/ui-text.js?v=20261009-prep-sync"></script>
-<script src="/static/app.js?v=20261009-prep-sync"></script>
-<script src="/static/prep-library.js?v=20261009-prep-sync"></script>
+  <dialog id="commandDialog" class="dialog command-dialog" aria-labelledby="commandTitle"><div class="dialog-head"><h2 id="commandTitle">搜索与快捷操作</h2><button type="button" class="icon-btn" data-close-dialog="commandDialog" aria-label="关闭搜索">×</button></div><input id="commandSearch" type="search" aria-label="搜索岗位、简历、面试题和经历" placeholder="搜索公司、岗位、项目或题目…" autocomplete="off"><div id="commandResults" class="command-results" aria-live="polite"></div><p class="helper command-hint">仅在本机搜索 · ↑ ↓ 选择 · Enter 打开 · Esc 关闭</p></dialog>
+  <dialog id="jobDetailDialog" class="dialog job-detail-dialog" aria-labelledby="jobDetailTitle"><div class="dialog-head"><div><p class="eyebrow">OPPORTUNITY WORKSPACE</p><h2 id="jobDetailTitle">岗位详情</h2></div><button type="button" class="icon-btn" data-close-dialog="jobDetailDialog" aria-label="关闭岗位详情">×</button></div><div id="jobDetailContent"></div></dialog>
+  <dialog id="actionDateDialog" class="dialog" aria-labelledby="actionDateTitle"><form id="actionDateForm" class="stack-form"><div class="dialog-head"><h2 id="actionDateTitle">调整行动日期</h2><button type="button" class="icon-btn" data-close-dialog="actionDateDialog" aria-label="关闭调整日期">×</button></div><p id="actionDateDescription" class="helper"></p><label>计划日期<input id="actionNewDate" type="date" required></label><div class="dialog-actions"><button class="ghost-btn" type="button" data-close-dialog="actionDateDialog">取消</button><button class="primary-btn" type="submit">保存新日期</button></div></form></dialog>
+  <div id="workspaceToast" class="workspace-toast hidden" role="status" aria-live="polite"><span id="workspaceToastText"></span><button id="workspaceUndo" class="link-button" type="button" hidden>撤销</button><button id="dismissToast" class="icon-btn" type="button" aria-label="关闭提示">×</button></div>
+  <script src="/static/ui-text.js?v=20261009-capture-5"></script>
+<script src="/static/job-organization.js?v=20261010-organize-1"></script>
+<script src="/static/api-errors.js?v=20261011-import-1"></script>
+<script src="/static/offer-math.js?v=20261011-offers-cn-2"></script>
+<script src="/static/app.js?v=20261011-offers-cn-2"></script>
+<script src="/static/prep-library.js?v=20261009-capture-5"></script>
+<script src="/static/job-display.js?v=20261010-organize-1"></script>
+<script src="/static/workspace.js?v=20261011-offers-cn-2"></script>
+<script src="/static/product.js?v=20261009-capture-5"></script>
+<script src="/static/schedule-summary.js?v=20261010-schedule-1"></script>
+<script src="/static/overview.js?v=20261010-organize-1"></script>
+<script src="/static/offers.js?v=20261011-offers-cn-2"></script>
 </body>
 </html>

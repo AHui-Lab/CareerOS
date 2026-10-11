@@ -1,0 +1,18 @@
+const assert=require('node:assert/strict');
+const m=require('../jobpilot/static/offer-math.js');
+const offer={status:'pending',reply_deadline:'2026-10-15',details:{monthly_base:18000,guaranteed_months:13,fixed_bonus:0,monthly_allowance:500,bonus_target:20000,signing_bonus:10000,relocation_bonus:0,equity:'100000 estimated RSU',net_monthly:15000,monthly_living_cost:6000}};
+const copy=structuredClone(offer),values=m.calculate(offer);
+assert.equal(values.annual,240000);assert.equal(values.target,260000);assert.equal(values.oneTime,10000);assert.equal(values.balance,9000);
+assert.equal(m.calculate({details:{monthly_base:18000}}).annual,null);
+assert.equal(m.calculate({details:{monthly_base:0,guaranteed_months:12,fixed_bonus:0,monthly_allowance:0}}).annual,0);
+assert.equal(m.calculate({details:{monthly_base:18000,guaranteed_months:12}}).missing.length,2);
+assert.equal(m.calculate({details:{net_monthly:5000,monthly_living_cost:6000}}).balance,-1000);
+assert.equal(m.calculate({details:{monthly_base:18000,guaranteed_months:12,bonus_target:0}}).target,216000);
+assert.equal(m.calculate({details:{signing_bonus:0}}).oneTime,0);
+assert.equal(m.calculate({details:{fund_base:20000,fund_employer_pct:12}}).fundEmployerMonthly,2400);
+assert.equal(m.calculate({details:{fund_base:20000}}).fundEmployerMonthly,null);
+assert.equal(m.daysUntil('2026-10-15','2026-10-11'),4);
+assert.deepEqual(m.deadlines([offer,{...offer,id:2,status:'declined'},{...offer,id:3,archived:true}], '2026-10-11'),[offer]);
+assert(m.unanswered({details:{}}).includes('薪酬条件是否已取得书面确认？'));
+assert.deepEqual(offer,copy);
+console.log('Offer calculations: unknown vs zero, fixed vs variable vs one-time, no equity mixing, estimates and no mutation passed');

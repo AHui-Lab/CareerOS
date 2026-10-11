@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');
+const {message}=require('../jobpilot/static/api-errors.js');
+assert.equal(message('网页抓取失败'),'网页抓取失败');
+assert.equal(message([{loc:['body','text'],type:'string_too_short',ctx:{min_length:10},input:'私人输入'}]),'招聘文字至少需要 10 个字符。');
+assert.equal(message({loc:['body','title'],type:'string_too_long',ctx:{max_length:500}}),'页面标题不能超过 500 个字符，请精简后重试。');
+assert.equal(message([{type:'value_error',msg:'Value error, 请补充岗位 JD',ctx:{error:{}}}]),'请补充岗位 JD');
+for(const detail of [null,{},[{unknown:'x'}],42])assert.equal(message(detail,'请求失败'),'请求失败');
+assert.equal(message([{msg:'错误一'},{msg:'错误二'}]),'错误一；错误二');
+assert(!message([{input:'敏感正文',type:'unknown'}]).includes('敏感正文'));
+console.log('API string, validation array, object, fallback and private input handling: passed');

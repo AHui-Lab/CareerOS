@@ -27,6 +27,7 @@
       const data = await request('/api/interview-prep');
       if (token !== requestId) return;
       items = data.items || []; render();
+      window.dispatchEvent(new CustomEvent('careeros-prep-list-loaded', {detail:items}));
     } catch (error) {
       if (token !== requestId) return;
       $('prepEmpty').classList.add('hidden');
@@ -60,6 +61,8 @@
     load(); $('prepSearch').focus();
   });
   $('addPrepBtn').addEventListener('click', () => {
+    $('prepCreateForm').reset();
+    $('prepLinkedOpportunity').value = '';
     $('prepCreateError').hidden = true;
     $('prepCreateDialog').showModal();
   });
@@ -67,6 +70,7 @@
   $('prepCreateForm').addEventListener('submit', async event => {
     event.preventDefault();
     const payload = Object.fromEntries(new FormData(event.currentTarget));
+    payload.opportunity_id = Number(payload.opportunity_id) || null;
     payload.company = payload.company.trim(); payload.role = payload.role.trim();
     if (!payload.company || !payload.role) {
       $('prepCreateError').textContent = '请填写公司和岗位。'; $('prepCreateError').hidden = false; return;
@@ -93,5 +97,23 @@
   window.addEventListener('message', event => {
     if (event.origin === location.origin && event.source === $('interviewPrepFrame').contentWindow && event.data?.type === 'interview-prep-saved') load();
   });
+  const linkedField = document.createElement('input');
+  linkedField.type = 'hidden'; linkedField.name = 'opportunity_id'; linkedField.id = 'prepLinkedOpportunity';
+  $('prepCreateForm').append(linkedField);
+  window.PrepLibrary = {
+    async openById(id) {
+      await load();
+      const item = items.find(item => String(item.id) === String(id));
+      if (item) openWorkspace(item);
+      else { $('prepSearch').focus(); }
+    },
+    createForJob(job) {
+      $('prepCreateForm').reset();
+      $('prepLinkedOpportunity').value = job.id;
+      for (const [name, value] of Object.entries({company:job.company,role:job.role,jd:job.jd_text||job.description||job.raw_text||''}))
+        $('prepCreateForm').elements[name].value = value || '';
+      $('prepCreateError').hidden = true; $('prepCreateDialog').showModal();
+    }
+  };
   load();
 })();

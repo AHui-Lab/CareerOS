@@ -4,6 +4,7 @@ import io
 import json
 import os
 import re
+from html import escape as html_escape
 from pathlib import Path
 from typing import Any
 
@@ -563,12 +564,32 @@ def generate_pdf_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byte
     except ImportError as exc:
         raise RuntimeError("生成 PDF 需要安装 reportlab，请先运行 install.bat 更新依赖") from exc
 
-    font_path = Path(r"C:\Windows\Fonts\simhei.ttf")
-    if not font_path.is_file():
-        font_path = Path(r"C:\Windows\Fonts\msyh.ttc")
-    if not font_path.is_file():
-        raise RuntimeError("系统中未找到中文字体，无法生成中文 PDF")
-    pdfmetrics.registerFont(TTFont("CareerOS-CJK", str(font_path)))
+    if "CareerOS-CJK" not in pdfmetrics.getRegisteredFontNames():
+        candidates = [
+            Path(os.getenv("CAREEROS_PDF_FONT", "")),
+            Path(r"C:\Windows\Fonts\simhei.ttf"),
+            Path(r"C:\Windows\Fonts\msyh.ttc"),
+            Path("/System/Library/Fonts/Supplemental/Arial Unicode.ttf"),
+            Path("/Library/Fonts/Arial Unicode.ttf"),
+            Path("/System/Library/Fonts/STHeiti Light.ttc"),
+            Path("/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"),
+            Path("/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf"),
+        ]
+        for font_path in candidates:
+            if not font_path.is_file():
+                continue
+            try:
+                pdfmetrics.registerFont(TTFont("CareerOS-CJK", str(font_path)))
+                break
+            except Exception:
+                continue
+        else:
+            # ReportLab's bundled Unicode CJK font keeps export usable on hosts
+            # without an installable TrueType Chinese font.
+            from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+            font = UnicodeCIDFont("STSong-Light")
+            font.name = "CareerOS-CJK"
+            pdfmetrics.registerFont(font)
 
     resume = version.get("resume") or {}
     headline = str(version.get("target_role") or resume.get("headline") or "").strip()
@@ -584,38 +605,38 @@ def generate_pdf_bytes(profile: dict[str, Any], version: dict[str, Any]) -> byte
     story: list[Any] = []
     contact = "  |  ".join(str(x) for x in [profile.get("phone"), profile.get("email"), profile.get("current_city"), profile.get("portfolio_url") or profile.get("website")] if x)
     photo = _private_photo_bytes(profile.get("photo_path"))
-    middle = [Paragraph(str(profile.get("name") or "个人简历"), name_style), Paragraph(contact, contact_style) if contact else Spacer(1, 1)]
+    middle = [Paragraph(html_escape(str(profile.get("name") or "个人简历")), name_style), Paragraph(html_escape(contact), contact_style) if contact else Spacer(1, 1)]
     if photo:
         picture = Image(str(photo), width=28 * mm, height=37 * mm)
         header = Table([[Spacer(1, 1), middle, picture]], colWidths=[32.5 * mm, doc.width - 65 * mm, 32.5 * mm])
         header.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("ALIGN", (0, 0), (0, 0), "CENTER"), ("ALIGN", (1, 0), (1, 0), "CENTER"), ("ALIGN", (2, 0), (2, 0), "LEFT"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 0), ("BOTTOMPADDING", (0, 0), (-1, -1), 0)]))
         story.append(header)
     else:
-        story.extend(left)
+        story.extend(middle)
     if headline:
-        story.append(Paragraph(headline, ParagraphStyle("CareerOSHeadline", parent=normal, alignment=TA_CENTER, fontSize=11, leading=15, textColor=colors.HexColor("#222222"))))
+        story.append(Paragraph(html_escape(headline), ParagraphStyle("CareerOSHeadline", parent=normal, alignment=TA_CENTER, fontSize=11, leading=15, textColor=colors.HexColor("#222222"))))
     if resume.get("summary"):
-        story.append(Paragraph(str(resume["summary"]), normal))
+        story.append(Paragraph(html_escape(str(resume["summary"])), normal))
     for section_data in resume.get("sections", []) if isinstance(resume.get("sections"), list) else []:
         title = str(section_data.get("title") or "").strip()
         if not title:
             continue
-        story.append(Paragraph(title, section_style))
+        story.append(Paragraph(html_escape(title), section_style))
         for item in section_data.get("items", []) if isinstance(section_data.get("items"), list) else []:
             left_text = " · ".join(str(x) for x in [item.get("organization", ""), item.get("title", "")] if x)
             right_text = " · ".join(str(x) for x in [item.get("date", ""), item.get("location", "")] if x)
             heading_style = ParagraphStyle("CareerOSItemHeading", parent=item_style, leftIndent=0, firstLineIndent=0)
             date_style = ParagraphStyle("CareerOSItemDate", parent=item_style, leftIndent=0, firstLineIndent=0, alignment=2)
-            line = Table([[Paragraph(f"<b>{left_text}</b>", heading_style), Paragraph(right_text, date_style)]], colWidths=[doc.width * 0.72, doc.width * 0.28])
+            line = Table([[Paragraph(f"<b>{html_escape(left_text)}</b>", heading_style), Paragraph(html_escape(right_text), date_style)]], colWidths=[doc.width * 0.72, doc.width * 0.28])
             line.hAlign = "LEFT"
             line.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("ALIGN", (1, 0), (1, 0), "RIGHT"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0), ("TOPPADDING", (0, 0), (-1, -1), 1), ("BOTTOMPADDING", (0, 0), (-1, -1), 1)]))
             story.append(line)
             for bullet in item.get("bullets", []) if isinstance(item.get("bullets"), list) else []:
-                story.append(Paragraph(str(bullet), ParagraphStyle("CareerOSBullet", parent=normal, leftIndent=10, firstLineIndent=-8, bulletIndent=0, bulletText="•")))
+                story.append(Paragraph(html_escape(str(bullet)), ParagraphStyle("CareerOSBullet", parent=normal, leftIndent=10, firstLineIndent=-8, bulletIndent=0, bulletText="•")))
     skills = resume.get("skills") if isinstance(resume.get("skills"), list) else []
     if skills:
         story.append(Paragraph("技能", section_style))
-        story.append(Paragraph("、".join(str(x) for x in skills if str(x).strip()), normal))
+        story.append(Paragraph(html_escape("、".join(str(x) for x in skills if str(x).strip())), normal))
     # The PDF is the one-page A4 delivery version. Keep all content, but
     # proportionally shrink the composed story when a candidate has many
     # sections instead of silently spilling onto a second page.

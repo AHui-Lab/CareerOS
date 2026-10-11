@@ -1,0 +1,98 @@
+/* Offer facts use the workspace foundations, with details revealed on demand. */
+body[data-current-view="offers"] .workspace-commandbar{height:58px;margin-bottom:0}
+body[data-current-view="offers"] .topbar{margin:14px 0 22px}
+body[data-current-view="offers"] .topbar .eyebrow{display:none}
+body[data-current-view="offers"] .topbar h1{font-size:27px}
+body[data-current-view="offers"] #globalAddBtn{display:none}
+.offers-page{max-width:1320px;margin:0 auto;color:var(--ws-ink)}
+.offers-toolbar,.offers-toolbar-actions,.offers-search-row,.offers-compare-bar,.offers-comparison-heading,.offers-section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.offers-toolbar{margin-bottom:16px}.offers-tabs{display:flex;flex-wrap:wrap;gap:5px}.offers-tabs .mode{font-size:12px;min-height:36px;padding:7px 12px}
+.offers-toolbar-actions{justify-content:flex-end;gap:8px}.offers-toolbar-actions button{font-size:12px;min-height:36px;padding:7px 13px}
+.offers-search-row{margin-bottom:14px}.offers-search-row input{width:min(360px,100%);height:38px;min-height:38px;font-size:12px;background:var(--ws-surface)}
+.offer-candidates,.offers-decision-hint{display:flex;flex-wrap:wrap;gap:6px 16px;padding:12px 15px;background:var(--ws-surface);border:1px solid var(--ws-line);border-radius:9px;margin-bottom:12px;font-size:11px;color:var(--ws-muted);align-items:center}
+.offer-candidates .link-button,.offers-decision-hint .link-button{font-size:11px;text-align:left;min-height:28px;padding:2px 0;overflow-wrap:anywhere}.offers-decision-hint{background:var(--ws-accent-soft);border-color:transparent;color:var(--ws-accent)}
+.offer-candidates[hidden],.offers-decision-hint[hidden],.offers-grid[hidden],#offersComparison[hidden]{display:none}
+.offers-compare-bar{padding:11px 14px;border:1px solid var(--ws-line);background:var(--ws-surface);border-radius:10px;margin-bottom:18px;font-size:12px;color:var(--ws-muted)}
+.offers-compare-bar>div{display:flex;align-items:center;gap:13px}.offers-compare-bar button{font-size:12px;min-height:34px;padding:6px 12px}
+.offers-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}
+.offer-card{padding:16px 17px 12px;background:var(--ws-surface);border:1px solid var(--ws-line);border-radius:12px;min-width:0;display:flex;flex-direction:column}
+.offer-card:hover{border-color:var(--ws-accent)}
+.offer-card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:16px}
+.offer-compare-choice{display:flex;align-items:center;gap:6px;font-size:10px;color:var(--ws-muted);font-weight:400;white-space:nowrap}
+.offer-compare-choice input{width:15px!important;height:15px;min-height:15px;padding:0;accent-color:var(--ws-accent)}
+.offer-status{font-size:10px;border-radius:5px;padding:4px 6px;line-height:1.4;white-space:nowrap;background:var(--ws-subtle);color:var(--ws-muted)}
+.offer-status-pending,.offer-status-negotiating{background:#fff2de;color:#80591a}.offer-status-accepted{background:var(--ws-accent-soft);color:var(--ws-accent)}
+[data-theme="dark"] .offer-status-pending,[data-theme="dark"] .offer-status-negotiating{background:#3b3020;color:#e2bd7d}
+.offer-card-open{border:0;background:transparent;border-radius:0;text-align:left;padding:0;color:var(--ws-ink);width:100%;min-height:88px}
+.offer-card-open h3{font-size:17px;margin:0 0 7px;line-height:1.4;overflow-wrap:anywhere}.offer-card-open p{font-size:12px;margin:0 0 6px;line-height:1.5}.offer-card-open small{color:var(--ws-muted);font-size:11px;line-height:1.5}
+.offer-card-pay{margin-top:16px;border-top:1px solid var(--ws-line);padding-top:14px;display:grid;gap:7px}.offer-card-pay>span{font-size:10px;color:var(--ws-muted)}
+.offer-card-pay strong{font-size:22px;letter-spacing:-.5px;font-weight:600;color:var(--ws-ink);font-variant-numeric:tabular-nums}.offer-card-pay small{font-size:10px;color:var(--ws-muted);line-height:1.6;min-height:31px}
+.offer-card-facts{display:flex;gap:7px;flex-wrap:wrap;font-size:10px;color:var(--ws-muted);padding:12px 0;align-items:center}.offer-evidence{background:var(--ws-subtle);padding:3px 5px;border-radius:4px}
+.offer-card-bottom{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--ws-line);padding-top:10px}.offer-card-bottom small{font-size:10px;line-height:1.5;color:var(--ws-muted)}.offer-card-bottom button{font-size:11px;min-height:28px;padding:0}
+.offer-empty{grid-column:1/-1;min-height:230px;padding:30px;text-align:center;border:1px dashed var(--ws-line);border-radius:12px;background:var(--ws-surface);display:grid;justify-items:center;align-content:center;gap:11px}.offer-empty-icon{font-size:30px;color:var(--ws-accent)}.offer-empty h3{font-size:17px;margin:0}.offer-empty p{color:var(--ws-muted);font-size:12px;line-height:1.7;margin:0 0 5px}
+.offers-comparison-heading{margin-bottom:16px;align-items:flex-start}.offers-comparison-heading h2{font-size:18px;margin:0 0 7px}.offers-comparison-heading .helper{max-width:660px;font-size:11px;line-height:1.6;margin:0}.offers-comparison-heading button{font-size:11px;min-height:34px}
+.offers-compare-tabs{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px}.offers-compare-tabs .mode{font-size:11px;min-height:33px;padding:6px 10px}
+.offers-comparison-scroll{max-width:100%;overflow:auto;border:1px solid var(--ws-line);border-radius:10px;max-height:calc(100dvh - 310px);min-height:180px;background:var(--ws-surface)}
+.offers-comparison-table{border-collapse:separate;border-spacing:0;width:100%;min-width:650px;table-layout:fixed;font-size:12px}
+.offers-comparison-table caption{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+.offers-comparison-table th,.offers-comparison-table td{border-bottom:1px solid var(--ws-line);border-right:1px solid var(--ws-line);padding:13px 14px;vertical-align:top;text-align:left;line-height:1.65;white-space:pre-wrap;overflow-wrap:anywhere}
+.offers-comparison-table th:first-child{width:180px;background:var(--ws-subtle);position:sticky;left:0;z-index:1;font-size:11px;font-weight:500}
+.offers-comparison-table thead th{background:var(--ws-surface);position:sticky;top:0;z-index:2;font-size:14px;padding:15px 14px}
+.offers-comparison-table thead th:first-child{z-index:3;background:var(--ws-subtle)}
+.offers-comparison-table thead button{color:var(--ws-accent);background:transparent;border:0;padding:0;text-align:left;font-size:14px;font-weight:600}.offers-comparison-table thead small{display:block;color:var(--ws-muted);font-size:10px;font-weight:400;margin-top:5px}
+.offers-comparison-table .offer-different td{background:color-mix(in srgb,var(--ws-accent-soft) 40%,var(--ws-surface))}
+.offer-unknown{color:var(--ws-muted);font-size:11px}.offers-calculation-note{font-size:11px;line-height:1.8;color:var(--ws-muted);margin:13px 0}
+.offer-editor-dialog,.offer-detail-dialog{width:min(880px,calc(100% - 32px));max-height:calc(100dvh - 40px);padding:25px 28px}
+.offer-reference-dialog{width:min(700px,calc(100% - 32px));max-height:calc(100dvh - 40px)}
+.offer-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:19px 0}
+.offer-form-grid label,.offer-custom-row label{display:grid;gap:7px;font-size:12px;font-weight:500;color:var(--ws-ink);min-width:0}
+.offer-form-grid input,.offer-form-grid select,.offer-form-grid textarea,.offer-custom-row input{font-size:13px;width:100%;min-height:39px;padding:9px 11px;min-width:0;background:var(--ws-surface)}
+.offer-form-grid label small,.offer-custom-row label small{font-size:10px;font-weight:400;color:var(--ws-muted);line-height:1.6}
+.offer-full-field{grid-column:1/-1}
+.offer-form-section{border-top:1px solid var(--ws-line);padding:0;margin:0}
+.offer-form-section summary{list-style:none;cursor:pointer;padding:16px 22px 16px 0;position:relative;font-size:13px;font-weight:600;line-height:1.5;color:var(--ws-ink)}
+.offer-form-section summary::-webkit-details-marker{display:none}.offer-form-section summary:after{content:'＋';position:absolute;right:0;top:17px;font-size:14px;color:var(--ws-muted)}.offer-form-section[open] summary:after{content:'−'}
+.offer-form-section summary span{display:block;color:var(--ws-muted);font-size:10px;line-height:1.6;font-weight:400;margin-top:4px}
+.offer-form-section .offer-form-grid{margin:0 0 20px}
+.offer-evidence-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;background:var(--ws-subtle);border-radius:8px}
+.offer-custom-rows{display:grid;gap:12px}.offer-custom-row{padding:13px;background:var(--ws-subtle);border-radius:8px;display:grid;grid-template-columns:1fr 1.4fr;gap:12px}.offer-custom-row label:nth-child(3){grid-column:1/3}.offer-custom-row button{font-size:11px;justify-self:start;padding:3px 0}
+#offerAddCustom{margin-top:12px;font-size:12px}
+.offer-editor-actions{position:sticky;bottom:-25px;background:var(--ws-surface);border-top:1px solid var(--ws-line);padding:15px 0 0;display:flex;gap:10px;justify-content:flex-end;box-shadow:0 -8px 15px var(--ws-surface);z-index:4;margin-top:16px}
+.offer-editor-actions button{font-size:12px;min-height:38px}.offer-editor-dialog .dialog-head{align-items:flex-start}.offer-editor-dialog .dialog-head .helper{font-size:11px;line-height:1.6;margin:7px 0 0}
+.offer-detail-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:17px 0}.offer-detail-actions button{font-size:12px;min-height:36px;padding:6px 12px}
+.offer-detail-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:15px;background:var(--ws-accent-soft);border-radius:9px}.offer-detail-metrics>div{display:grid;gap:7px}.offer-detail-metrics small{font-size:10px;color:var(--ws-muted);line-height:1.5}.offer-detail-metrics strong{font-size:17px;font-weight:600;color:var(--ws-ink);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.offer-detail-basics{display:flex;gap:12px 24px;flex-wrap:wrap;font-size:11px;margin:18px 0;color:var(--ws-muted);align-items:center}.offer-detail-basics .link-button{font-size:11px;padding:0;min-height:28px}
+.offer-detail-fields{display:grid;grid-template-columns:1fr 1fr;gap:18px 24px;margin:0 0 19px}.offer-detail-fields>div{min-width:0}.offer-detail-fields dt{font-size:11px;color:var(--ws-muted);margin-bottom:6px}.offer-detail-fields dd{font-size:12px;margin:0;white-space:pre-wrap;line-height:1.7;overflow-wrap:anywhere}.offer-detail-fields dd small{display:block;font-size:10px;color:var(--ws-muted);margin-top:5px}
+.offer-evidence-source{font-size:11px;white-space:pre-wrap;line-height:1.7;color:var(--ws-muted);padding:11px 13px;background:var(--ws-subtle);border-radius:8px;margin:0 0 17px}
+.offer-questions{padding:0 0 0 18px;font-size:12px;line-height:1.9;margin:0 0 15px}.offer-detail-text{white-space:pre-wrap;font-size:12px;line-height:1.8;padding:12px 14px;background:var(--ws-subtle);border-radius:8px}.offer-detail-text strong{font-size:11px;color:var(--ws-muted)}
+.offer-detail-attachments{border-top:1px solid var(--ws-line);padding-top:17px;margin-top:9px}.offers-section-title h3{font-size:14px;margin:0}.offer-upload-label{font-size:11px;min-height:32px;padding:6px 10px;cursor:pointer}.offer-attachment-link{display:flex;justify-content:space-between;gap:15px;padding:10px 0;border-bottom:1px solid var(--ws-line);color:var(--ws-accent);font-size:12px;overflow-wrap:anywhere}.offer-attachment-link small{font-size:10px;color:var(--ws-muted);white-space:nowrap}
+.offer-reference-dialog section{margin-top:20px}.offer-reference-dialog h3{font-size:14px;margin:12px 0 7px}.offer-reference-dialog p{font-size:12px;line-height:1.9;color:var(--ws-muted)}.offer-reference-dialog a{color:var(--ws-accent)}.offer-reference-dialog p small{display:block;font-size:11px}
+@media(max-width:1100px){.offers-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.offer-card-pay strong{font-size:21px}.offer-card-open{min-height:76px}}
+@media(max-width:680px){body[data-current-view="offers"] .workspace-commandbar{height:56px}body[data-current-view="offers"] .topbar h1{font-size:24px}body[data-current-view="offers"] .page-subtitle{font-size:12px}.offers-toolbar{gap:12px}.offers-toolbar-actions{width:100%;justify-content:space-between}.offers-tabs .mode{font-size:11px;padding:7px 10px}.offers-search-row input{flex:1;min-width:0}.offers-search-row .helper{font-size:10px}.offers-grid{grid-template-columns:1fr;gap:12px}.offer-card{padding:16px}.offer-card-open{min-height:0}.offer-card-top{margin-bottom:12px}.offer-card-pay small{min-height:0}.offers-compare-bar{gap:10px;font-size:11px}.offers-compare-bar>div{margin-left:auto}.offers-comparison-scroll{max-height:calc(100dvh - 280px)}.offers-comparison-table{min-width:600px}.offers-comparison-table th:first-child{width:135px}.offers-comparison-table th,.offers-comparison-table td{padding:10px}.offer-editor-dialog,.offer-detail-dialog{width:calc(100% - 20px);max-height:calc(100dvh - 20px);padding:19px 16px}.offer-form-grid{gap:13px 11px}.offer-form-grid label{font-size:11px}.offer-form-grid input,.offer-form-grid select,.offer-form-grid textarea{font-size:12px;min-height:38px;padding:8px}.offer-evidence-fields{padding:11px;gap:10px}.offer-custom-row{grid-template-columns:1fr}.offer-custom-row label:nth-child(3){grid-column:1}.offer-editor-actions{bottom:-19px}.offer-detail-metrics{grid-template-columns:1fr 1fr;gap:14px;padding:13px}.offer-detail-metrics strong{font-size:16px}.offer-detail-fields{grid-template-columns:1fr;gap:13px}.offer-detail-fields dt{margin-bottom:4px}.offer-detail-actions button{font-size:11px;padding:6px 9px}.offer-candidates,.offers-decision-hint{padding:10px 12px;gap:4px 10px}.offer-candidates>span,.offers-decision-hint>span{width:100%}}
+body[data-current-view="offers"].offers-comparing .offers-toolbar,body[data-current-view="offers"].offers-comparing .offers-search-row{display:none}
+body[data-current-view="offers"].offers-comparing .topbar{margin-bottom:16px}
+body[data-current-view="offers"].offers-comparing .offers-comparison-scroll{max-height:calc(100dvh - 260px)}
+@media(max-width:680px){body[data-current-view="offers"].offers-comparing .offers-comparison-scroll{max-height:calc(100dvh - 250px)}}
+/* Domestic salary quotations and employment phases stay explicit and progressive. */
+.offer-quote-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.offer-quote-fields label:first-child,.offer-quote-fields label:has(textarea){grid-column:1/-1}
+.offer-form-grid label[hidden]{display:none!important}
+.offer-known-monthly{border:1px solid var(--ws-line);padding:0 13px;border-radius:8px}
+.offer-known-monthly summary{cursor:pointer;font-size:12px;line-height:1.6;padding:11px 0;color:var(--ws-ink)}
+.offer-known-monthly summary small{display:block;font-size:10px;color:var(--ws-muted)}
+.offer-known-monthly .offer-form-grid{margin:3px 0 13px}
+.offer-phase-row{background:var(--ws-subtle);border:1px solid var(--ws-line);border-radius:9px;padding:13px;margin:0 0 13px}
+.offer-phase-heading{display:flex;justify-content:space-between;align-items:center;font-size:12px;gap:12px}.offer-phase-heading button{font-size:11px}
+.offer-phase-row .offer-form-grid{margin:12px 0;gap:13px}.offer-phase-row label{font-size:11px}
+.offer-phase-check{display:flex!important;align-items:center;gap:8px!important;font-weight:400!important;line-height:1.6}
+.offer-phase-check input{width:16px!important;min-height:16px!important;height:16px;padding:0;accent-color:var(--ws-accent);flex:none}
+.offer-phase-more{border-top:1px solid var(--ws-line)}.offer-phase-more summary{font-size:11px;padding:10px 0;cursor:pointer}
+#offerAddPhase{font-size:12px;margin:0 0 8px;min-height:35px}
+.offer-detail-phases{border-top:1px solid var(--ws-line);padding:15px 0}.offer-detail-phases h3{font-size:14px;margin:0 0 8px}
+.offer-detail-phases article{background:var(--ws-subtle);padding:12px 14px;border-radius:8px;margin:10px 0;line-height:1.7;font-size:12px}
+.offer-detail-phases strong{display:block;font-size:12px;font-weight:500}.offer-detail-phases small{display:block;font-size:10px;color:var(--ws-muted);margin:4px 0}.offer-detail-phases p{font-size:11px;white-space:pre-wrap;margin:5px 0}
+.offer-reference-scope{background:var(--ws-accent-soft);color:var(--ws-accent)!important;padding:9px 12px;border-radius:7px;font-size:12px}
+.offer-reference-dialog ul{font-size:12px;line-height:1.8;padding-left:19px;color:var(--ws-ink)}
+.offer-reference-links{display:flex;gap:6px 13px;flex-wrap:wrap;font-size:11px;line-height:1.7}
+@media(max-width:680px){.offer-quote-fields{gap:12px}.offer-phase-row{padding:11px}.offer-phase-row .offer-form-grid{gap:12px 9px}.offer-reference-dialog ul{font-size:11px}}
+.offer-reference-example{background:var(--ws-subtle);border:1px solid var(--ws-line);border-radius:9px;padding:13px 15px}.offer-reference-example h3{margin-top:0}.offer-reference-example p{font-size:11px}.offer-reference-example a{font-size:11px}

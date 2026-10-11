@@ -74,6 +74,7 @@
   }
 
   function collectCurrentForm() {
+    if (document.querySelector('#captureEditor') && typeof payload === 'function') return payload();
     const csv = value => String(value || '').split(',').map(x => x.trim()).filter(Boolean);
     return {
       type: document.querySelector('#f-type')?.value || 'project',
@@ -107,6 +108,7 @@
     if (saveState) saveState.textContent = '正在保存并完成迁移审核…';
 
     try {
+      if (document.querySelector('#captureEditor') && (saveTimer || experienceSavePromise)) await saveExperience(false);
       const current = collectCurrentForm();
       await requestJson(`/api/experiences/${encodeURIComponent(id)}`, {
         method: 'PATCH',
@@ -118,6 +120,13 @@
       });
 
       migrationItems.delete(String(id));
+      if (document.querySelector('#captureEditor') && currentExperience === id) {
+        editingExperience = {...editingExperience, ...reviewed};
+        experiences = experiences.map(item => String(item.id) === id ? reviewed : item);
+        const ready = document.querySelector('#f-resume-ready');
+        if (ready) ready.checked = !!reviewed.resume_ready;
+        state(`✓ 已保存 · 已完成事实核对`);
+      }
       pendingCount = migrationItems.size;
       if (document.querySelector('#f-status')) document.querySelector('#f-status').value = reviewed.status || 'verified';
       if (document.querySelector('#f-ready')) document.querySelector('#f-ready').checked = !!reviewed.resume_ready;

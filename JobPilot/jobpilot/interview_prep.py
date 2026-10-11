@@ -106,17 +106,40 @@ class WorkspaceCreate(BaseModel):
     interview_date: date | Literal[""] = ""
     summary: str = Field(default="", max_length=1000)
     jd: str = Field(default="", max_length=60000)
+    opportunity_id: int | None = Field(default=None, gt=0)
+
+
+class WorkspaceLink(BaseModel):
+    opportunity_id: int | None = Field(default=None, gt=0)
+
+
+def _read_links() -> dict:
+    path = db.DATA_DIR / "private" / "interview-prep" / "opportunity-links.json"
+    if not path.exists():
+        return {}
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else {}
+    except (OSError, ValueError):
+        raise HTTPException(500, "准备空间关联记录读取失败，请检查本机数据")
+
+
+def _validate_opportunity(opportunity_id: int | None) -> None:
+    if opportunity_id is not None and db.get_opportunity(opportunity_id) is None:
+        raise HTTPException(404, "关联岗位不存在")
 
 
 @router.get("")
 def list_workspaces():
     with _lock:
+        links = _read_links()
         items = []
         for key in _workspace_ids():
             workspace = _workspace(key)
             notes = _read_notes(workspace)
             items.append({**{k: workspace[k] for k in ("id", "title", "team", "date_window", "summary")},
                           "interview_date": notes.get("interview_date", ""),
+                          "opportunity_id": links.get(key, workspace.get("opportunity_id")),
                           "document_count": len(workspace["documents"]),
                           "task_count": len(workspace["tasks"]),
                           "completed_count": len(set(notes.get("completed", [])) & {t["id"] for t in workspace["tasks"]}),
@@ -129,15 +152,28 @@ def create_workspace(payload: WorkspaceCreate):
     company, role = payload.company.strip(), payload.role.strip()
     if not company or not role:
         raise HTTPException(422, "请填写公司和岗位")
+    _validate_opportunity(payload.opportunity_id)
     workspace_id = f"prep-{uuid4().hex}"
     defaults = {"interview_date": str(payload.interview_date), "location": "", "jd": payload.jd,
                 "questions": "", "notes": "", "completed": [], "sources": []}
     workspace = {"id": workspace_id, "title": f"{company} · {role}", "team": payload.team.strip(),
                  "date_window": str(payload.interview_date) or "时间待确认", "summary": payload.summary.strip(),
-                 "documents": [], "tasks": [], "defaults": defaults}
+                 "documents": [], "tasks": [], "defaults": defaults,
+                 "opportunity_id": payload.opportunity_id}
     with _lock:
         _write_json(_custom_root() / f"{workspace_id}.json", workspace)
     return {"workspace": {k: v for k, v in workspace.items() if k != "defaults"}, "notes": _read_notes(workspace)}
+
+
+@router.patch("/{workspace_id}/opportunity")
+def link_workspace(workspace_id: str, payload: WorkspaceLink):
+    _workspace(workspace_id)
+    _validate_opportunity(payload.opportunity_id)
+    with _lock:
+        links = _read_links()
+        links[workspace_id] = payload.opportunity_id
+        _write_json(db.DATA_DIR / "private" / "interview-prep" / "opportunity-links.json", links)
+    return {"id": workspace_id, "opportunity_id": payload.opportunity_id}
 
 
 @router.get("/{workspace_id}")

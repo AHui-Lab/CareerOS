@@ -12,3 +12,7 @@ __pycache__/
 
 # Preserve nested module Git metadata locally; CareerOS is managed as one repo.
 **/.git-local-history/
+
+# macOS launcher state and local JobPilot data
+.runtime/
+.local-data/

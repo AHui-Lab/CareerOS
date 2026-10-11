@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict');
+const org=require('../jobpilot/static/job-organization.js');
+const old={id:1,status:'ignored',jd_text:'原始 JD'};
+const copy=structuredClone(old);
+assert.equal(org.disposition(old),'skipped');
+assert.equal(org.disposition({status:'rejected'}),'closed');
+assert.equal(org.disposition({status:'offer'}),'active');
+assert.equal(org.disposition({status:'rejected',disposition:'active'}),'active');
+for(const view of ['all','preparing','applied','interview','review','starred'])assert.equal(org.matches(old,view),false);
+assert.equal(org.matches(old,'records'),true);
+assert.equal(org.matches(old,'skipped'),true);
+assert.equal(org.matches({status:'applied',disposition:'later'},'all'),false);
+assert.equal(org.matches({status:'applied',disposition:'later'},'later'),true);
+assert.deepEqual(org.snapshot(old),{disposition:'',revisit_at:'',disposition_note:''});
+assert.deepEqual(old,copy);
+console.log('Job organization views preserve application history: passed');

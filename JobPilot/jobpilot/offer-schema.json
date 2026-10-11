@@ -1,0 +1,859 @@
+{
+  "groups": [
+    {
+      "key": "pay",
+      "label": "薪酬结构",
+      "hint": "支持月薪、固定年现金、平均年收入或区间。平均数保留原口径；实习、见习、试用与转正待遇单独记录。",
+      "fields": [
+        {
+          "key": "pay_quote_type",
+          "label": "公司提供的薪资口径",
+          "kind": "select",
+          "options": [
+            {
+              "value": "",
+              "label": "尚未说清"
+            },
+            {
+              "value": "monthly",
+              "label": "固定月薪＋保证薪数"
+            },
+            {
+              "value": "fixed_annual",
+              "label": "已确认固定年现金总额"
+            },
+            {
+              "value": "annual_average",
+              "label": "平均 / 参考年收入"
+            },
+            {
+              "value": "annual_range",
+              "label": "年收入区间"
+            }
+          ],
+          "help": ""
+        },
+        {
+          "key": "quote_income_basis",
+          "label": "公司年收入的税前 / 税后口径",
+          "kind": "select",
+          "options": [
+            {
+              "value": "",
+              "label": "尚未明确"
+            },
+            {
+              "value": "pre_tax",
+              "label": "明确为税前"
+            },
+            {
+              "value": "after_tax",
+              "label": "明确为税后"
+            }
+          ],
+          "help": "保留 HR 的原口径；不明确时不自动按税前或税后处理。"
+        },
+        {
+          "key": "annual_reference",
+          "label": "公司口径年收入 / 平均数（参考）",
+          "kind": "money"
+        },
+        {
+          "key": "annual_reference_low",
+          "label": "公司口径年收入下限（参考）",
+          "kind": "money"
+        },
+        {
+          "key": "annual_reference_high",
+          "label": "公司口径年收入上限（参考）",
+          "kind": "money"
+        },
+        {
+          "key": "annual_reference_scope",
+          "label": "年收入对应人群与包含项目",
+          "kind": "textarea",
+          "help": "如：转正后同岗平均、部门人均、校招首年；是否包含绩效、年终奖、加班、补贴、公积金。"
+        },
+        {
+          "key": "guaranteed_annual_cash",
+          "label": "已确认固定年现金总额（税前）",
+          "kind": "money",
+          "help": "只填明确保证的固定年现金合计，不含签字费、安家费、股权或单位五险一金。优先于月薪推算，已包含的固定奖金补贴不重复相加。平均年收入不要填在这里。"
+        },
+        {
+          "key": "monthly_base",
+          "label": "已确认的转正固定月薪（税前）",
+          "kind": "money",
+          "help": "只填写每月保证发放的固定合计。月度绩效另记；只有平均年收入时，这里可以留空。"
+        },
+        {
+          "key": "guaranteed_months",
+          "label": "保证计薪月数 / 年",
+          "kind": "number",
+          "min": 1,
+          "max": 24,
+          "step": 0.5,
+          "help": "记录正式 Offer 或合同中保证的固定薪数；另外核实额外薪资的发放条件、在职要求及入职首年折算。"
+        },
+        {
+          "key": "fixed_bonus",
+          "label": "另计固定奖金 / 年",
+          "kind": "money",
+          "help": "不包含上面的保证计薪月数，避免重复计算。"
+        },
+        {
+          "key": "monthly_allowance",
+          "label": "固定现金补贴 / 月",
+          "kind": "money",
+          "help": "已计入月薪的补贴不要重复填写。"
+        },
+        {
+          "key": "bonus_min",
+          "label": "浮动奖金低情景 / 年",
+          "kind": "money"
+        },
+        {
+          "key": "bonus_target",
+          "label": "浮动奖金目标 / 年",
+          "kind": "money"
+        },
+        {
+          "key": "bonus_max",
+          "label": "浮动奖金高情景 / 年",
+          "kind": "money"
+        },
+        {
+          "key": "bonus_rules",
+          "label": "奖金发放与达成条件",
+          "kind": "textarea"
+        },
+        {
+          "key": "signing_bonus",
+          "label": "一次性签字费",
+          "kind": "money"
+        },
+        {
+          "key": "relocation_bonus",
+          "label": "一次性安家 / 搬迁补贴",
+          "kind": "money"
+        },
+        {
+          "key": "repayment_terms",
+          "label": "签字费 / 安家费返还与待遇服务期",
+          "kind": "textarea",
+          "help": "记录服务期限、分期到账、离职返还及损失处理原文，具体效力需结合适用规则与事实。"
+        },
+        {
+          "key": "equity",
+          "label": "股权 / 期权 / RSU 及归属安排",
+          "kind": "textarea",
+          "help": "记录数量、估值口径、归属年限和离职处理，单独比较。"
+        },
+        {
+          "key": "salary_review",
+          "label": "调薪时间、条件及晋升周期",
+          "kind": "text"
+        },
+        {
+          "key": "payday",
+          "label": "发薪日与发放主体",
+          "kind": "text"
+        },
+        {
+          "key": "salary_structure",
+          "label": "基本 / 岗位 / 职级工资、绩效与津贴构成",
+          "kind": "textarea"
+        },
+        {
+          "key": "monthly_variable",
+          "label": "月度绩效 / 浮动部分（参考）",
+          "kind": "money",
+          "help": "只作结构记录。全年目标奖金如已包含这项，请避免重复记录或相加。"
+        },
+        {
+          "key": "first_year_bonus_rules",
+          "label": "入职首年、试用期与离职时的奖金折算",
+          "kind": "textarea"
+        },
+        {
+          "key": "tax_notes",
+          "label": "年收入扣缴口径与税后估算依据",
+          "kind": "textarea",
+          "help": "记录适用纳税年度、奖金扣缴方式及 HR 说明，系统不自动选择计税方案。"
+        }
+      ]
+    },
+    {
+      "key": "benefits",
+      "label": "社保、公积金与福利",
+      "hint": "记录基数、比例及适用城市；实物或报销福利单独描述。",
+      "fields": [
+        {
+          "key": "social_base",
+          "label": "社保缴费基数 / 月",
+          "kind": "money"
+        },
+        {
+          "key": "social_notes",
+          "label": "社保城市、险种及个人比例",
+          "kind": "textarea"
+        },
+        {
+          "key": "fund_base",
+          "label": "公积金缴费基数 / 月",
+          "kind": "money"
+        },
+        {
+          "key": "fund_employee_pct",
+          "label": "公积金个人比例（%）",
+          "kind": "number",
+          "max": 100
+        },
+        {
+          "key": "fund_employer_pct",
+          "label": "公积金单位比例（%）",
+          "kind": "number",
+          "max": 100
+        },
+        {
+          "key": "fund_notes",
+          "label": "补充公积金、封顶与起缴时间",
+          "kind": "text",
+          "help": "注明缴存城市、区县、政策年度、封顶和起缴规则，核对入职当年政策。"
+        },
+        {
+          "key": "health_insurance",
+          "label": "补充医疗、商业保险、体检",
+          "kind": "text"
+        },
+        {
+          "key": "annual_leave",
+          "label": "带薪年假（天 / 年）",
+          "kind": "number",
+          "max": 365
+        },
+        {
+          "key": "leave_policy",
+          "label": "病假、调休与其他休假政策",
+          "kind": "text"
+        },
+        {
+          "key": "housing",
+          "label": "企业宿舍、企业房补及使用条件",
+          "kind": "textarea",
+          "help": "只记录公司提供的待遇。政府人才补贴在单独字段记录。"
+        },
+        {
+          "key": "meal_transport",
+          "label": "餐饮、交通、通讯及其他福利",
+          "kind": "textarea"
+        },
+        {
+          "key": "training_benefits",
+          "label": "培训、学历提升与服务期要求",
+          "kind": "text"
+        },
+        {
+          "key": "social_city",
+          "label": "社保缴纳城市 / 区县",
+          "kind": "text"
+        },
+        {
+          "key": "benefit_policy_period",
+          "label": "社保公积金适用政策年度 / 起缴时间",
+          "kind": "text"
+        },
+        {
+          "key": "fund_employer_actual",
+          "label": "已核实的单位月公积金缴存额",
+          "kind": "money",
+          "help": "优先使用核实后的实际月缴额；否则仅按录入的基数和比例估算。"
+        },
+        {
+          "key": "annuities",
+          "label": "企业年金 / 补充养老：比例、个人承担与归属",
+          "kind": "textarea"
+        },
+        {
+          "key": "government_subsidy",
+          "label": "政府人才 / 住房补贴名称与申请条件",
+          "kind": "textarea"
+        },
+        {
+          "key": "subsidy_claim_status",
+          "label": "政府补贴核实 / 申请状态",
+          "kind": "select",
+          "options": [
+            {
+              "value": "",
+              "label": "待核实"
+            },
+            {
+              "value": "eligible",
+              "label": "已核实可申请"
+            },
+            {
+              "value": "applying",
+              "label": "申请中"
+            },
+            {
+              "value": "received",
+              "label": "已到账"
+            },
+            {
+              "value": "ineligible",
+              "label": "已核实不符合"
+            }
+          ],
+          "help": ""
+        },
+        {
+          "key": "subsidy_policy",
+          "label": "政府补贴政策年度、申领窗口与官方链接",
+          "kind": "textarea"
+        }
+      ]
+    },
+    {
+      "key": "work",
+      "label": "工作安排与生活成本",
+      "hint": "记录实际团队安排和个人估算，避免只看招聘宣传。",
+      "fields": [
+        {
+          "key": "work_address",
+          "label": "实际办公地点",
+          "kind": "text"
+        },
+        {
+          "key": "work_mode",
+          "label": "坐班 / 混合 / 远程与弹性安排",
+          "kind": "text"
+        },
+        {
+          "key": "weekly_hours",
+          "label": "预计每周工作时长（小时）",
+          "kind": "number",
+          "max": 168
+        },
+        {
+          "key": "work_schedule",
+          "label": "作息、双休、加班、值班与调休",
+          "kind": "textarea"
+        },
+        {
+          "key": "travel",
+          "label": "出差频率、外派与地点调动",
+          "kind": "text"
+        },
+        {
+          "key": "commute_minutes",
+          "label": "单程通勤（分钟）",
+          "kind": "number",
+          "max": 1440
+        },
+        {
+          "key": "monthly_rent",
+          "label": "预计月房租",
+          "kind": "money"
+        },
+        {
+          "key": "monthly_living_cost",
+          "label": "预计月生活总支出",
+          "kind": "money",
+          "help": "合计房租、餐饮、通勤及其他日常支出，月房租不要再重复相加。"
+        },
+        {
+          "key": "net_monthly",
+          "label": "个人估算税后月到手",
+          "kind": "money",
+          "help": "按你核实的社保、公积金、个税等口径填写，系统不自动算税。"
+        },
+        {
+          "key": "cost_notes",
+          "label": "生活成本与到手估算说明",
+          "kind": "textarea"
+        },
+        {
+          "key": "work_hours_system",
+          "label": "约定的工时制度",
+          "kind": "select",
+          "options": [
+            {
+              "value": "",
+              "label": "待核实"
+            },
+            {
+              "value": "standard",
+              "label": "标准工时"
+            },
+            {
+              "value": "comprehensive",
+              "label": "综合计算工时"
+            },
+            {
+              "value": "irregular",
+              "label": "不定时工时"
+            }
+          ],
+          "help": ""
+        },
+        {
+          "key": "work_hours_approval",
+          "label": "特殊工时审批：覆盖岗位、周期与有效期",
+          "kind": "textarea"
+        },
+        {
+          "key": "overtime_wage_basis",
+          "label": "已确认加班工资计算基数 / 月",
+          "kind": "money"
+        }
+      ]
+    },
+    {
+      "key": "growth",
+      "label": "岗位内容、团队与发展",
+      "hint": "主观感受与事实分开记录；自评由你填写，用于并排看差异。",
+      "fields": [
+        {
+          "key": "team",
+          "label": "部门 / 团队",
+          "kind": "text"
+        },
+        {
+          "key": "level",
+          "label": "职级 / 序列",
+          "kind": "text"
+        },
+        {
+          "key": "manager",
+          "label": "直属主管、导师与管理方式",
+          "kind": "text"
+        },
+        {
+          "key": "responsibilities",
+          "label": "实际工作内容、产品与技术栈",
+          "kind": "textarea"
+        },
+        {
+          "key": "development",
+          "label": "培养计划、晋升路径与可积累技能",
+          "kind": "textarea"
+        },
+        {
+          "key": "company_outlook",
+          "label": "业务前景、稳定性与团队情况",
+          "kind": "textarea"
+        },
+        {
+          "key": "role_fit",
+          "label": "岗位兴趣 / 匹配自评（1–5）",
+          "kind": "number",
+          "min": 1,
+          "max": 5
+        },
+        {
+          "key": "team_fit",
+          "label": "团队感受自评（1–5）",
+          "kind": "number",
+          "min": 1,
+          "max": 5
+        },
+        {
+          "key": "growth_fit",
+          "label": "成长空间自评（1–5）",
+          "kind": "number",
+          "min": 1,
+          "max": 5
+        },
+        {
+          "key": "life_fit",
+          "label": "城市 / 生活适配自评（1–5）",
+          "kind": "number",
+          "min": 1,
+          "max": 5
+        }
+      ]
+    },
+    {
+      "key": "contract",
+      "label": "试用期、合同与签约",
+      "hint": "按原文记录具体条件及证据，不把口头承诺当成书面确认。",
+      "fields": [
+        {
+          "key": "employment_entity",
+          "label": "劳动合同签约主体",
+          "kind": "text"
+        },
+        {
+          "key": "employment_type",
+          "label": "直签 / 派遣 / 外包与用工类型",
+          "kind": "text"
+        },
+        {
+          "key": "contract_term",
+          "label": "合同期限与续签安排",
+          "kind": "text"
+        },
+        {
+          "key": "probation_months",
+          "label": "试用期（月）",
+          "kind": "number",
+          "max": 24
+        },
+        {
+          "key": "probation_pay",
+          "label": "试用期固定月薪",
+          "kind": "money"
+        },
+        {
+          "key": "probation_conditions",
+          "label": "试用期考核、转正标准与福利差异",
+          "kind": "textarea"
+        },
+        {
+          "key": "tripartite",
+          "label": "三方 / 两方原文与签约条件",
+          "kind": "textarea",
+          "help": "与入职后的劳动合同条款分开记录，保留具体协议及学校办理依据。"
+        },
+        {
+          "key": "restrictions",
+          "label": "竞业限制、保密、培训服务期及其他约定",
+          "kind": "textarea"
+        },
+        {
+          "key": "conditions",
+          "label": "背调、体检、毕业与其他生效条件",
+          "kind": "textarea"
+        },
+        {
+          "key": "signing_date",
+          "label": "签约安排日期",
+          "kind": "date"
+        },
+        {
+          "key": "signing_time",
+          "label": "签约时间",
+          "kind": "time"
+        },
+        {
+          "key": "signing_notes",
+          "label": "签约方式、地点与需要的材料",
+          "kind": "text"
+        },
+        {
+          "key": "joining_notes",
+          "label": "报到、入职材料与户档安排",
+          "kind": "text"
+        },
+        {
+          "key": "tripartite_status",
+          "label": "三方 / 两方签约进度",
+          "kind": "select",
+          "options": [
+            {
+              "value": "",
+              "label": "待核实"
+            },
+            {
+              "value": "unsigned",
+              "label": "未签"
+            },
+            {
+              "value": "pending",
+              "label": "待签"
+            },
+            {
+              "value": "signed",
+              "label": "已签"
+            },
+            {
+              "value": "releasing",
+              "label": "解约办理中"
+            },
+            {
+              "value": "released",
+              "label": "已解约"
+            }
+          ],
+          "help": ""
+        },
+        {
+          "key": "tripartite_penalty",
+          "label": "三方 / 两方约定违约金",
+          "kind": "money",
+          "help": "按实际协议记录。未知留空，明确无此条款填 0。"
+        },
+        {
+          "key": "tripartite_release_process",
+          "label": "原单位解约函、学校审核与再签约流程",
+          "kind": "textarea"
+        },
+        {
+          "key": "contract_wage",
+          "label": "劳动合同约定月工资金额",
+          "kind": "money"
+        },
+        {
+          "key": "noncompete_terms",
+          "label": "竞业范围、地区、期限、启动与解除条件",
+          "kind": "textarea"
+        },
+        {
+          "key": "noncompete_compensation",
+          "label": "约定离职后竞业补偿 / 月",
+          "kind": "money"
+        },
+        {
+          "key": "training_service_terms",
+          "label": "专项培训服务期与费用承担原文",
+          "kind": "textarea"
+        }
+      ]
+    },
+    {
+      "key": "decision",
+      "label": "沟通记录与个人判断",
+      "hint": "记录联系人、确认进展和你自己的取舍理由。",
+      "fields": [
+        {
+          "key": "hr_contact",
+          "label": "HR 联系方式",
+          "kind": "text"
+        },
+        {
+          "key": "offer_source",
+          "label": "Offer 来源 / 邮件主题 / 文件名称",
+          "kind": "text"
+        },
+        {
+          "key": "questions",
+          "label": "待核实问题清单",
+          "kind": "textarea",
+          "help": "每行一个问题，如：13 薪是否保证？公积金按什么基数缴纳？"
+        },
+        {
+          "key": "communication",
+          "label": "HR 沟通与谈薪记录",
+          "kind": "textarea"
+        },
+        {
+          "key": "advantages",
+          "label": "吸引你的条件",
+          "kind": "textarea"
+        },
+        {
+          "key": "concerns",
+          "label": "顾虑与需要谈的条件",
+          "kind": "textarea"
+        },
+        {
+          "key": "decision_notes",
+          "label": "最终选择、理由与下一步",
+          "kind": "textarea"
+        }
+      ]
+    }
+  ],
+  "references": [
+    {
+      "id": "soe_example",
+      "title": "国内招聘简章示例：中建三局深圳公司 2026 届",
+      "url": "https://cnsba.scut.edu.cn/_upload/article/files/ec/01/feb2109a4addabb9c64d04bd6031/c98ba269-4f8e-4038-8fa1-6c7a21430d14.pdf",
+      "publisher": "招聘企业简章；华南理工大学网站载",
+      "date": "",
+      "scope": "该企业、该届招聘的待遇口径示例",
+      "note": "分别列出见习期与转正后年收入，薪酬中包含岗位工资、奖金和福利津贴。用于理解阶段与构成，不代表其他公司的待遇。"
+    },
+    {
+      "id": "soe_benefits",
+      "title": "国内招聘简章示例：中国重汽 2026 届（济南）",
+      "url": "https://jobs.tiangong.edu.cn/recruitment/content/type/2/id/2542.html",
+      "publisher": "招聘企业简章；天津工业大学就业网载",
+      "date": "",
+      "scope": "该企业济南地区、该届招聘的待遇口径示例",
+      "note": "见习薪酬明确不含各类补贴及项目奖；企业福利与政府福利单列，六险二金列明实际项目。"
+    },
+    {
+      "id": "salary_cn",
+      "title": "武汉市政府：13 薪与年终奖释疑",
+      "url": "https://www.wuhan.gov.cn/hdjl/rdhy/202601/t20260109_2708659.shtml",
+      "publisher": "武汉市人民政府",
+      "date": "2026-01-09",
+      "scope": "工资奖金主题释疑",
+      "note": "核实约定、发放节点、适用条件和新入职折算，具体保证部分以文件为准。"
+    },
+    {
+      "id": "labor_cn",
+      "title": "人社部：劳动合同法",
+      "url": "https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394622.html",
+      "publisher": "人力资源和社会保障部",
+      "date": "",
+      "scope": "全国劳动合同规则",
+      "note": "核对合同主体、期限、工作地点、工资、试用期及服务期等条款。"
+    },
+    {
+      "id": "labor_2025",
+      "title": "最高法：劳动争议解释（二）相关说明",
+      "url": "https://www.court.gov.cn/zixun/xiangqing/478871.html",
+      "publisher": "最高人民法院",
+      "date": "2025-10-16",
+      "scope": "全国司法规则说明",
+      "note": "2025-09-01 起施行的解释涉及竞业限制、特殊待遇服务期等；记录具体条件及原文。"
+    },
+    {
+      "id": "social_cn",
+      "title": "市场监管总局：社会保险法",
+      "url": "https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_e81d115419b4463ebb59ec46467fb136.html",
+      "publisher": "国家市场监督管理总局",
+      "date": "",
+      "scope": "全国社保规则",
+      "note": "核实缴纳主体、参保地区、险种与基数，个人扣除按实际记录。"
+    },
+    {
+      "id": "hours_cn",
+      "title": "人社部：特殊工时审批服务指南",
+      "url": "https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/xzxk/bbjxzxk/202201/t20220106_432292.html",
+      "publisher": "人力资源和社会保障部",
+      "date": "2022-01-06",
+      "scope": "中央直属企业审批指南",
+      "note": "该指南有特定适用对象；核实自己岗位是否被批复覆盖及计算周期。"
+    },
+    {
+      "id": "tripartite_cn",
+      "title": "合工大：2026 届毕业生解约办理通知",
+      "url": "https://xcjy.hfut.edu.cn/detail/news?id=1694334&type_id=20660",
+      "publisher": "合肥工业大学宣城校区",
+      "date": "2025-12-01",
+      "scope": "该校 2026 届办理流程示例",
+      "note": "用于说明解约函、学校审核和再签约的流程维度，自己的流程须向所在学校核实。"
+    },
+    {
+      "id": "tax_cn",
+      "title": "上海税务：全年一次性奖金热点问答",
+      "url": "https://shanghai.chinatax.gov.cn/zcfw/rdwd/202501/t474844.html",
+      "publisher": "国家税务总局上海市税务局",
+      "date": "2025-01-14",
+      "scope": "奖金计税政策问答",
+      "note": "记录适用纳税年度与扣缴方式。该页面提及现行政策执行至 2027-12-31，未来年度需重新核实。"
+    },
+    {
+      "id": "fund_qingdao",
+      "title": "青岛：2026 年度公积金缴存调整通知",
+      "url": "https://www.qingdao.gov.cn/zwgk/zdgk/fgwj/zcwj/szbmgw/202607/t20260706_10652620.shtml",
+      "publisher": "青岛市住房公积金管理中心",
+      "date": "2026-07-06",
+      "scope": "青岛；2026-07 至 2027-06",
+      "note": "需结合所在区县、入职年度、新职工规则和单位实际月缴额核实。"
+    },
+    {
+      "id": "talent_qingdao",
+      "title": "青岛：青年人才就业创业措施",
+      "url": "https://www.qingdao.gov.cn/zwgk/xxgk/rlshbz/gkml/gwfg/202506/t20250625_9734429.shtml",
+      "publisher": "青岛市人力资源和社会保障局等",
+      "date": "2025-06-25",
+      "scope": "青岛；各项目有独立条件与期限",
+      "note": "住房补贴、安家费及住宿保障分别核对就业、落户、学历、年龄、申请窗口等条件。"
+    },
+    {
+      "id": "fund_zhuzhou",
+      "title": "湖南政务服务：株洲公积金办理目录",
+      "url": "https://zwfw-new.hunan.gov.cn/onething/service/hnservicepowerinfo.jsp?areacode=430201000000&business_activity_classificati=&charName=&dghy=&life_event=&main=1&make_transaction=&minSeq=&orgId=dac911dba39348e99379ec4a7f3848f3&pager.desc=true&pager.offset=10&themesType=&transact_level=&type=xndtbm&typeIds=&typeid=&word=",
+      "publisher": "湖南政务服务网",
+      "date": "",
+      "scope": "株洲市公积金办事入口",
+      "note": "提供缴存基数调整等办事入口。株洲年度数值未预置，需取得本地当年正式通知或 HR 月缴额。"
+    },
+    {
+      "id": "talent_hunan",
+      "title": "湖南人社：2026 年引才政策介绍",
+      "url": "https://rst.hunan.gov.cn/rst/xxgk/gzdt/zwdt/202605/t20260521_33982656.html",
+      "publisher": "湖南省人力资源和社会保障厅",
+      "date": "2026-05-21",
+      "scope": "湖南；不同城市和项目另有细则",
+      "note": "用于查找政策入口。株洲与省直、长沙的条件不能直接互用。"
+    }
+  ],
+  "reference_context": {
+    "region": "中国大陆校招 / 社招",
+    "checked_date": "2026-10-11",
+    "note": "全国规则、地方年度政策与学校办理流程分别标明范围。来源中的金额与比例不会自动写入你的 Offer。"
+  },
+  "domestic_guides": [
+    {
+      "title": "年包口径与阶段待遇",
+      "questions": [
+        "平均年收入对应什么岗位、职级和人群，含哪些奖金、补贴或福利？",
+        "哪些部分保证发放；实习、见习、试用与转正各有多少个月，工资固定还是按什么基数打折？",
+        "13 薪 / 年终奖何时发，入职首年及离职时如何折算？"
+      ],
+      "references": [
+        "soe_example",
+        "salary_cn",
+        "tax_cn"
+      ]
+    },
+    {
+      "title": "五险一金与国企补充福利",
+      "questions": [
+        "社保、公积金在哪个城市和区县缴，采用哪个政策年度与基数？",
+        "单位和个人比例、实际月缴额各是多少，试用期与转正是否一致？",
+        "是否有企业年金、补充养老、商业医疗；个人承担、归属及离职转移怎么约定？"
+      ],
+      "references": [
+        "soe_benefits",
+        "social_cn",
+        "fund_qingdao",
+        "fund_zhuzhou"
+      ]
+    },
+    {
+      "title": "三方、两方与劳动合同",
+      "questions": [
+        "目前签的是哪一种文件，签约、发薪与社保主体分别是谁？",
+        "就业协议的违约金额、解约函、学校审核及再签约办理时间如何约定？",
+        "劳动合同工资、试用期和录用条件写在哪里，是否与 HR 口径一致？"
+      ],
+      "references": [
+        "labor_cn",
+        "tripartite_cn"
+      ]
+    },
+    {
+      "title": "工时、出差与长期服务约定",
+      "questions": [
+        "实际岗位执行标准、综合还是不定时工时，特殊工时审批覆盖哪些岗位和周期？",
+        "周末值班、夜班、加班、调休及工资基数如何处理？",
+        "竞业的范围、期限和补偿，培训或特殊待遇的服务期限与退出条款是什么？"
+      ],
+      "references": [
+        "hours_cn",
+        "labor_2025"
+      ]
+    },
+    {
+      "title": "企业待遇与政府人才政策",
+      "questions": [
+        "企业宿舍和房补，与政府住房/人才补贴各由谁发放？",
+        "自己满足哪个年度、城市、学历、年龄、落户和社保条件，何时申请，能否叠加？",
+        "补贴是待核实、可申请、申请中还是已到账，有无服务或返还条件？"
+      ],
+      "references": [
+        "talent_qingdao",
+        "talent_hunan"
+      ]
+    }
+  ],
+  "domestic_examples": [
+    {
+      "title": "央企招聘会按阶段给年收入范围",
+      "description": "中建三局深圳公司 2026 届简章分别列出见习期与转正后年收入，并说明岗位工资、奖金和福利津贴构成。记录时保留各阶段范围，再向 HR 核实固定月金额、折算与兑现条件。",
+      "reference": "soe_example"
+    },
+    {
+      "title": "六险二金、企业房补和政府补贴分别确认",
+      "description": "中国重汽 2026 届济南地区简章把见习薪酬、企业福利、政府福利分开列示。记录时逐项核实“二金”的具体组成、个人承担、归属条件及政府政策的申请资格。",
+      "reference": "soe_benefits"
+    }
+  ]
+}

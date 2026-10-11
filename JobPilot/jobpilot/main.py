@@ -17,7 +17,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from . import __version__, db
 from .ai import enrich_with_ai, enabled as opportunity_ai_enabled
@@ -41,6 +41,7 @@ from .resume import (
 from .security import UnsafeUrlError
 from . import sync
 from .interview_prep import register_routes as register_interview_prep
+from .offers import register_routes as register_offers
 
 ROOT = Path(__file__).resolve().parents[1]
 STATIC = Path(__file__).resolve().parent / "static"
@@ -50,6 +51,7 @@ init_opportunity_meta()
 
 app = FastAPI(title="JobPilot", version=__version__)
 register_interview_prep(app)
+register_offers(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://127.0.0.1:8765", "http://localhost:8765"],
@@ -68,7 +70,7 @@ async def startup_sync_check() -> None:
 
 ALLOWED_STATUSES = {"inbox", "interested", "preparing", "applied", "interview", "offer", "rejected", "ignored"}
 ALLOWED_CATEGORIES = {"education", "work", "internship", "project", "campus", "research", "award", "certificate", "skill", "other"}
-ALLOWED_EVENT_TYPES = {"application", "written_test", "interview", "deadline", "follow_up", "other"}
+ALLOWED_EVENT_TYPES = {"application", "written_test", "interview", "signing", "deadline", "follow_up", "other"}
 
 
 class UrlImport(BaseModel):
@@ -86,10 +88,16 @@ class OpportunityReview(BaseModel):
 class PageImport(BaseModel):
     url: str = Field(default="", max_length=4096)
     title: str = Field(default="", max_length=500)
-    text: str = Field(min_length=10, max_length=200_000)
+    text: str = Field(default="", max_length=200_000)
     context: dict[str, Any] = Field(default_factory=dict)
     review: OpportunityReview | None = None
     refresh_existing: bool = True
+
+    @model_validator(mode="after")
+    def require_job_content(self):
+        if len(self.text.strip()) < 10 and (not self.review or len(self.review.jd_text.strip()) < 10):
+            raise ValueError("网页未抓取到完整岗位内容，请在岗位 JD 中粘贴至少 10 个字符的岗位要求，或改用招聘文字导入。")
+        return self
 
 
 class TextImport(BaseModel):
@@ -109,6 +117,21 @@ class SyncConfigPayload(BaseModel):
 
 class StatusPatch(BaseModel):
     status: str
+
+
+class OrganizationState(BaseModel):
+    disposition: str = ""
+    revisit_at: str = Field(default="", max_length=10)
+    disposition_note: str = Field(default="", max_length=500)
+
+
+class OrganizationChange(OrganizationState):
+    id: int = Field(gt=0)
+    expected: OrganizationState | None = None
+
+
+class OrganizationBatch(BaseModel):
+    changes: list[OrganizationChange] = Field(min_length=1, max_length=500)
 
 
 class OpportunityCategoryPatch(BaseModel):
@@ -384,7 +407,7 @@ async def parse_and_store(*, url: str, title: str, text: str, source_type: str, 
 
 @app.get("/")
 async def home():
-    return FileResponse(STATIC / "index.html")
+    return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-cache, must-revalidate"})
 
 
 @app.get("/api/health")
@@ -428,7 +451,9 @@ async def preview_url(payload: UrlImport):
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"网页抓取失败：{exc}") from exc
     result = _opportunity_preview(url=payload.url.strip(), title=title, text=text, source_type="url", context=context)
-    result["source"] = {"url": payload.url.strip(), "title": title, "text": text[:200_000], "context": context}
+    result["source"] = {"url": payload.url.strip(), "title": normalize_text(title)[:500], "text": text[:200_000], "context": context}
+    if len(text.strip()) < 10:
+        result["warning"] = "网页未抓取到完整岗位内容，请补充岗位 JD 后保存。也可复制岗位内容，使用招聘文字导入。"
     return result
 
 
@@ -472,6 +497,25 @@ async def import_page(payload: PageImport):
 @app.post("/api/opportunities/import-text")
 async def import_text(payload: TextImport):
     return await parse_and_store(url=_job_url_from_text(payload.text), title=normalize_text(payload.title), text=normalize_text(payload.text), source_type="text", review=payload.review, refresh_existing=payload.refresh_existing)
+
+
+@app.post("/api/opportunities/organize")
+async def organize_opportunities(payload: OrganizationBatch):
+    changes = payload.model_dump()["changes"]
+    if len({change["id"] for change in changes}) != len(changes):
+        raise HTTPException(status_code=400, detail="请勿重复选择同一岗位。")
+    for change in changes:
+        if change["disposition"] not in {"", "active", "later", "skipped", "closed"}:
+            raise HTTPException(status_code=400, detail="未知整理去向")
+        if change["revisit_at"]:
+            if change["disposition"] != "later" or db._calendar_date(change["revisit_at"]) != change["revisit_at"]:
+                raise HTTPException(status_code=400, detail="仅稍后再投可以设置有效的回看日期。")
+    try:
+        return db.organize_opportunities(changes)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @app.patch("/api/opportunities/{opportunity_id}/status")
@@ -534,6 +578,7 @@ async def delete_opportunity(opportunity_id: int):
 @app.get("/api/schedule-events")
 async def schedule_events(start: str = "", end: str = ""):
     db.sync_opportunity_calendar()
+    db.sync_offer_calendar()
     return {"items": db.list_schedule_events(start=start, end=end)}
 
 
@@ -550,6 +595,9 @@ async def create_schedule_event(payload: ScheduleEventPayload):
 
 @app.patch("/api/schedule-events/{event_id}")
 async def patch_schedule_event(event_id: int, payload: ScheduleEventPatch):
+    existing = db.get_schedule_event(event_id)
+    if existing and existing.get("source") == "offer":
+        raise HTTPException(status_code=409, detail="这条安排来自 Offer，请在 Offer 管理中修改回复或签约日期。")
     fields = payload.model_dump(exclude_unset=True)
     if "event_type" in fields and fields["event_type"] not in ALLOWED_EVENT_TYPES:
         raise HTTPException(status_code=400, detail="未知日程类型")
@@ -563,6 +611,9 @@ async def patch_schedule_event(event_id: int, payload: ScheduleEventPatch):
 
 @app.delete("/api/schedule-events/{event_id}")
 async def remove_schedule_event(event_id: int):
+    existing = db.get_schedule_event(event_id)
+    if existing and existing.get("source") == "offer":
+        raise HTTPException(status_code=409, detail="这条安排来自 Offer，请修改 Offer 日期或归档 Offer。")
     if not db.delete_schedule_event(event_id):
         raise HTTPException(status_code=404, detail="日程不存在")
     return {"ok": True}

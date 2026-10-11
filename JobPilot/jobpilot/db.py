@@ -51,6 +51,9 @@ CREATE TABLE IF NOT EXISTS opportunities (
     note TEXT NOT NULL DEFAULT '',
     next_action TEXT NOT NULL DEFAULT '',
     next_action_at TEXT NOT NULL DEFAULT '',
+    disposition TEXT NOT NULL DEFAULT '',
+    revisit_at TEXT NOT NULL DEFAULT '',
+    disposition_note TEXT NOT NULL DEFAULT '',
     match_score INTEGER NOT NULL DEFAULT 0,
     match_reasons TEXT NOT NULL DEFAULT '[]',
     risks TEXT NOT NULL DEFAULT '[]',
@@ -64,6 +67,32 @@ CREATE TABLE IF NOT EXISTS opportunities (
 CREATE INDEX IF NOT EXISTS idx_opportunities_status ON opportunities(status);
 CREATE INDEX IF NOT EXISTS idx_opportunities_created_at ON opportunities(created_at DESC);
 
+CREATE TABLE IF NOT EXISTS offers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    opportunity_id INTEGER REFERENCES opportunities(id) ON DELETE SET NULL,
+    company TEXT NOT NULL,
+    role TEXT NOT NULL,
+    city TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'pending',
+    currency TEXT NOT NULL DEFAULT 'CNY',
+    received_date TEXT NOT NULL DEFAULT '',
+    reply_deadline TEXT NOT NULL DEFAULT '',
+    start_date TEXT NOT NULL DEFAULT '',
+    details TEXT NOT NULL DEFAULT '{}',
+    archived INTEGER NOT NULL DEFAULT 0,
+    revision INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+CREATE TABLE IF NOT EXISTS offer_attachments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    offer_id INTEGER NOT NULL REFERENCES offers(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    mime_type TEXT NOT NULL,
+    content BLOB NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+
 CREATE TABLE IF NOT EXISTS schedule_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     event_type TEXT NOT NULL DEFAULT 'other',
@@ -73,6 +102,7 @@ CREATE TABLE IF NOT EXISTS schedule_events (
     location TEXT NOT NULL DEFAULT '',
     notes TEXT NOT NULL DEFAULT '',
     opportunity_id INTEGER,
+    offer_id INTEGER REFERENCES offers(id) ON DELETE SET NULL,
     source TEXT NOT NULL DEFAULT 'manual',
     source_key TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
@@ -300,9 +330,13 @@ def init_db() -> None:
             "applied_at": "ALTER TABLE opportunities ADD COLUMN applied_at TEXT NOT NULL DEFAULT ''",
             "next_action": "ALTER TABLE opportunities ADD COLUMN next_action TEXT NOT NULL DEFAULT ''",
             "next_action_at": "ALTER TABLE opportunities ADD COLUMN next_action_at TEXT NOT NULL DEFAULT ''",
+            "disposition": "ALTER TABLE opportunities ADD COLUMN disposition TEXT NOT NULL DEFAULT ''",
+            "revisit_at": "ALTER TABLE opportunities ADD COLUMN revisit_at TEXT NOT NULL DEFAULT ''",
+            "disposition_note": "ALTER TABLE opportunities ADD COLUMN disposition_note TEXT NOT NULL DEFAULT ''",
         }
         schedule_columns = {row[1] for row in conn.execute("PRAGMA table_info(schedule_events)").fetchall()}
         schedule_migrations = {
+            "offer_id": "ALTER TABLE schedule_events ADD COLUMN offer_id INTEGER REFERENCES offers(id) ON DELETE SET NULL",
             "source": "ALTER TABLE schedule_events ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'",
             "source_key": "ALTER TABLE schedule_events ADD COLUMN source_key TEXT NOT NULL DEFAULT ''",
         }
@@ -614,6 +648,9 @@ def seed_interview_question_bank(conn: sqlite3.Connection) -> None:
                 # interview rows once the parser learns their sections, while leaving
                 # manually-created and written-test rows untouched.
                 if item["question_type"] == "interview":
+                    existing = conn.execute(f"SELECT {','.join(fields[1:])} FROM interview_questions WHERE source_key = ?", (values[0],)).fetchone()
+                    if tuple(existing) == tuple(values[1:]):
+                        continue
                     sets = ", ".join(f"{field} = ?" for field in fields[1:])
                     conn.execute(f"UPDATE interview_questions SET {sets}, updated_at = datetime('now', 'localtime') WHERE source_key = ?", [*values[1:], values[0]])
                 continue
@@ -809,6 +846,27 @@ def update_status(opportunity_id: int, status: str) -> dict[str, Any] | None:
     return get_opportunity(opportunity_id)
 
 
+ORGANIZATION_FIELDS = ("disposition", "revisit_at", "disposition_note")
+
+
+def organize_opportunities(changes: list[dict[str, Any]]) -> dict[str, Any]:
+    """Atomic organization, with field-level conflict checks and reversible snapshots."""
+    before = []
+    with connect() as conn:
+        for change in changes:
+            row = conn.execute("SELECT * FROM opportunities WHERE id = ?", (change["id"],)).fetchone()
+            if row is None:
+                raise LookupError("部分岗位已不存在，请刷新后重新选择。")
+            snapshot = {key: row[key] for key in ORGANIZATION_FIELDS}
+            if change.get("expected") is not None and snapshot != change["expected"]:
+                raise ValueError("部分岗位的整理状态已改变，请刷新后重新选择。")
+            before.append({"id": change["id"], **snapshot})
+        for change in changes:
+            conn.execute("UPDATE opportunities SET disposition = ?, revisit_at = ?, disposition_note = ?, updated_at = datetime('now', 'localtime') WHERE id = ?",
+                         [*(change[key] for key in ORGANIZATION_FIELDS), change["id"]])
+    return {"before": before, "items": [get_opportunity(change["id"]) for change in changes]}
+
+
 def delete_opportunity(opportunity_id: int) -> bool:
     with connect() as conn:
         cursor = conn.execute("DELETE FROM opportunities WHERE id = ?", (opportunity_id,))
@@ -824,7 +882,7 @@ def _schedule_event_row(row: sqlite3.Row) -> dict[str, Any]:
 
 
 def list_schedule_events(*, start: str = "", end: str = "") -> list[dict[str, Any]]:
-    query = "SELECT e.*, o.company, o.role FROM schedule_events e LEFT JOIN opportunities o ON o.id = e.opportunity_id"
+    query = "SELECT e.*, COALESCE(f.company,o.company) AS company, COALESCE(f.role,o.role) AS role FROM schedule_events e LEFT JOIN opportunities o ON o.id = e.opportunity_id LEFT JOIN offers f ON f.id = e.offer_id"
     params: list[Any] = []
     filters = []
     if start:
@@ -868,6 +926,9 @@ def sync_opportunity_calendar() -> None:
         existing = {str(row["source_key"]): row for row in conn.execute("SELECT * FROM schedule_events WHERE source = 'opportunity'").fetchall()}
         for key, item in desired.items():
             if key in existing:
+                columns = ("event_type", "title", "event_date", "event_time", "location", "notes", "opportunity_id")
+                if all(existing[key][column] == item[column] for column in columns):
+                    continue
                 conn.execute("UPDATE schedule_events SET event_type=?, title=?, event_date=?, event_time=?, location=?, notes=?, opportunity_id=?, updated_at=datetime('now','localtime') WHERE id=?", (*[item[x] for x in ("event_type", "title", "event_date", "event_time", "location", "notes", "opportunity_id")], existing[key]["id"]))
             else:
                 conn.execute("INSERT INTO schedule_events(event_type,title,event_date,event_time,location,notes,opportunity_id,source,source_key) VALUES(?,?,?,?,?,?,?,?,?)", (*[item[x] for x in ("event_type", "title", "event_date", "event_time", "location", "notes", "opportunity_id")], "opportunity", key))
@@ -915,6 +976,33 @@ def delete_schedule_event(event_id: int) -> bool:
     with connect() as conn:
         cursor = conn.execute("DELETE FROM schedule_events WHERE id = ?", (event_id,))
     return cursor.rowcount > 0
+
+
+def sync_offer_calendar() -> None:
+    """Maintain derived reply and signing plans; manual appointments are never touched."""
+    today = datetime.now().strftime('%Y-%m-%d')
+    with connect() as conn:
+        desired = {}
+        for row in conn.execute('SELECT * FROM offers'):
+            details = _loads(row['details'], {})
+            open_offer = not row['archived'] and row['status'] not in {'declined', 'withdrawn'}
+            reply = _calendar_date(row['reply_deadline'])
+            signing = _calendar_date(details.get('signing_date'))
+            label = row['company']
+            if open_offer and row['status'] in {'pending', 'negotiating'} and reply:
+                desired[f'offer-reply:{row["id"]}'] = ('follow_up', f'回复 Offer · {label}', reply, '', '', '由 Offer 回复日期生成，请在 Offer 管理中修改。', row['opportunity_id'], row['id'])
+            if signing and (open_offer or (row['status'] == 'accepted' and signing <= today)):
+                desired[f'offer-signing:{row["id"]}'] = ('signing', f'Offer 签约安排 · {label}', signing, details.get('signing_time', ''), '', details.get('signing_notes', '') or '由 Offer 签约安排生成，请在 Offer 管理中修改。', row['opportunity_id'], row['id'])
+        columns = ('event_type', 'title', 'event_date', 'event_time', 'location', 'notes', 'opportunity_id', 'offer_id')
+        existing = {row['source_key']: row for row in conn.execute("SELECT * FROM schedule_events WHERE source='offer'")}
+        for key, item in desired.items():
+            if key in existing:
+                if all(existing[key][column] == value for column, value in zip(columns, item)):continue
+                conn.execute(f"UPDATE schedule_events SET {','.join(column+'=?' for column in columns)},updated_at=datetime('now','localtime') WHERE id=?", [*item, existing[key]['id']])
+            else:
+                conn.execute(f"INSERT INTO schedule_events ({','.join(columns)},source,source_key) VALUES ({','.join('?' for _ in columns)},?,?)", [*item, 'offer', key])
+        for key, row in existing.items():
+            if key not in desired:conn.execute('DELETE FROM schedule_events WHERE id=?', (row['id'],))
 
 
 # --- profile ---

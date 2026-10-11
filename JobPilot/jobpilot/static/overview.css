@@ -1,0 +1,150 @@
+/* Scoped overview layout. Detail pages keep their natural content height. */
+body[data-current-view="dashboard"] .workspace-commandbar{height:68px;margin-bottom:0}
+body[data-current-view="dashboard"] .topbar{margin:18px 0 22px}
+body[data-current-view="dashboard"] .topbar .eyebrow{display:none}
+body[data-current-view="dashboard"] .topbar h1{font-size:28px;line-height:1.2}
+body[data-current-view="dashboard"] .page-subtitle{margin-top:7px;font-size:13px}
+body[data-current-view="dashboard"] #globalAddBtn{display:none}
+.overview-page{max-width:1320px;margin:0 auto}
+.overview-progress{display:flex;align-items:center;gap:0;border:1px solid var(--ws-line);border-radius:12px;background:var(--ws-surface);min-height:52px;padding:0 16px;margin-bottom:20px}
+.overview-progress-label{font-size:12px;color:var(--ws-muted);margin-right:20px;white-space:nowrap}
+.overview-progress>button{display:flex;align-items:center;justify-content:center;gap:10px;border:0;background:transparent;padding:8px 12px;border-radius:7px;color:var(--ws-muted);font-size:12px;flex:1;min-height:36px}
+.overview-progress>button:hover{background:var(--ws-accent-soft);color:var(--ws-accent)}
+.overview-progress strong{color:var(--ws-ink);font-weight:600;font-size:18px;font-variant-numeric:tabular-nums}
+.overview-section-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.overview-section-head h2{font-size:16px;font-weight:600;line-height:1.4;margin:0}
+.overview-section-head .link-button,.overview-footer .link-button{font-size:12px;white-space:nowrap;min-height:30px;padding:3px 0}
+.overview-section-hint{font-size:11px;color:var(--ws-muted);display:block;margin-top:3px}
+.overview-section-hint:empty{display:none}
+.overview-module-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.overview-module{background:var(--ws-surface);border:1px solid var(--ws-line);border-radius:12px;overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.overview-module:has(.overview-module-main:hover),.overview-module:focus-within{border-color:var(--ws-accent);box-shadow:0 3px 12px #20342908}
+.overview-module-main{display:flex;align-items:center;gap:12px;padding:17px 17px 13px;width:100%;background:transparent;border:0;text-align:left;color:var(--ws-ink);border-radius:0}
+.overview-module-main>span:nth-child(2){min-width:0;flex:1}
+.overview-module-main h3{font-size:15px;font-weight:600;line-height:1.35;margin:0 0 5px}
+.overview-module-main p{font-size:12px;line-height:1.5;color:var(--ws-muted);margin:0}
+.overview-module-icon{width:36px;height:36px;flex-shrink:0;display:grid;place-items:center;background:var(--ws-accent-soft);color:var(--ws-accent);border-radius:10px}
+.overview-module-icon svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.overview-module-arrow{color:var(--ws-muted);font-size:16px;align-self:flex-start}
+.overview-module-footer{display:flex;gap:8px;justify-content:space-between;align-items:center;border-top:1px solid var(--ws-line);margin:0 17px;padding:7px 0;font-size:11px;color:var(--ws-muted);min-height:35px}
+.overview-module-footer>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.overview-module-footer .link-button{font-size:11px;min-height:26px;padding:2px 0;white-space:nowrap}
+.overview-focus-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:16px;margin-top:22px}
+.overview-focus-panel,.overview-attention-panel{border:1px solid var(--ws-line);border-radius:12px;background:var(--ws-surface);padding:15px 18px 8px;min-width:0}
+.overview-focus-grid .overview-section-head{margin-bottom:5px;min-height:30px}
+.overview-focus-grid .workspace-task{padding:10px 0;gap:10px;grid-template-columns:28px minmax(0,1fr) auto;min-height:53px}
+.overview-focus-grid .task-glyph{width:28px;height:28px;border-radius:8px;font-size:13px}
+.overview-focus-grid .task-open strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.overview-focus-grid .task-open small{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+.overview-focus-grid .task-operations{max-width:none;flex-wrap:nowrap}
+.overview-focus-grid .task-operations button{min-height:28px;font-size:11px;padding:4px 6px}
+.overview-attention-panel .attention-row{padding:10px 0;min-height:47px;font-size:12px}
+.overview-attention-panel .attention-row strong{font-size:18px}
+.overview-empty{padding:20px 0;font-size:12px}
+.overview-empty strong{font-weight:500}.overview-empty p{color:var(--ws-muted);margin:6px 0 10px;line-height:1.6}
+.overview-footer{display:flex;align-items:center;gap:20px;padding:12px 2px 0;color:var(--ws-muted);font-size:11px}
+.overview-detail-dialog{width:min(900px,calc(100% - 40px));max-height:calc(100dvh - 48px)}
+.overview-detail-dialog [hidden]{display:none!important}
+.overview-detail-tabs{display:flex;gap:5px;border-bottom:1px solid var(--ws-line);padding-bottom:12px;margin-bottom:20px}
+.overview-plan-heading{display:flex;gap:12px;align-items:center;justify-content:space-between;margin-bottom:8px}
+.overview-detail-dialog h3{font-size:16px}
+.overview-detail-dialog .calendar-panel{padding:0;margin:0;border:0;background:transparent;box-shadow:none}
+.overview-detail-dialog .calendar-panel .eyebrow,.overview-detail-dialog .calendar-panel h2{display:none}
+.overview-detail-dialog .calendar-panel .section-title{flex-wrap:wrap}
+.overview-detail-dialog .calendar-actions{flex-wrap:wrap}
+@media(min-width:1000px) and (max-height:850px){
+ body[data-current-view="dashboard"] .main{padding-bottom:8px}
+ body[data-current-view="dashboard"] .workspace-commandbar{height:58px}
+ body[data-current-view="dashboard"] .topbar{margin:14px 0 16px}
+ .overview-progress{margin-bottom:14px;min-height:46px}
+ .overview-module-main{padding:14px 15px 10px}.overview-module-footer{margin:0 15px;padding:5px 0;min-height:31px}
+ .overview-focus-grid{margin-top:16px}.overview-section-head{margin-bottom:9px}
+ .overview-focus-panel,.overview-attention-panel{padding:12px 15px 6px}
+ .overview-footer{padding-top:8px}
+}
+@media(max-width:1050px){
+ .overview-module-main{gap:9px;padding:14px 12px 11px}.overview-module-main h3{font-size:14px}.overview-module-main p{font-size:11px}
+ .overview-module-footer{margin:0 12px;font-size:10px}.overview-module-icon{width:31px;height:31px}.overview-module-arrow{display:none}
+ .overview-progress-label{display:none}.overview-progress{padding:0 7px}.overview-progress>button{font-size:11px;padding:7px;gap:7px}
+}
+@media(max-width:800px){
+ .overview-module-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .overview-focus-grid{grid-template-columns:1fr}.overview-attention-panel #dashboardAttention{display:flex;gap:15px;flex-wrap:wrap}
+ .overview-attention-panel .attention-row{flex:1;gap:8px;white-space:nowrap;border:0}
+}
+@media(max-width:680px){
+ body[data-current-view="dashboard"] .workspace-commandbar{height:56px;margin-bottom:0}
+ body[data-current-view="dashboard"] .topbar{margin:14px 0 17px}
+ body[data-current-view="dashboard"] .topbar h1{font-size:25px}
+ body[data-current-view="dashboard"] .page-subtitle{font-size:12px}
+ .overview-progress{min-height:56px;margin-bottom:17px;padding:4px}
+ .overview-progress>button{flex-direction:column;gap:4px;font-size:10px;padding:5px 3px;min-width:0}
+ .overview-progress strong{font-size:17px}
+ .overview-section-head h2{font-size:15px}.overview-section-head .link-button{font-size:11px}
+ .overview-module-grid{gap:9px}.overview-module-main{align-items:flex-start;padding:13px 11px 10px;gap:8px}
+ .overview-module-main h3{font-size:13px}.overview-module-main p{font-size:11px;min-height:32px;line-height:1.5}
+ .overview-module-icon{width:27px;height:27px;border-radius:8px}.overview-module-icon svg{width:18px;height:18px}
+ .overview-module-footer{margin:0 11px;gap:4px;flex-wrap:wrap;padding:5px 0;min-height:35px;font-size:10px}
+ .overview-module-footer .link-button{font-size:10px;min-height:28px}
+ .overview-focus-grid{margin-top:17px;gap:12px}.overview-focus-panel,.overview-attention-panel{padding:12px 13px 7px}
+ .overview-focus-grid .workspace-task{grid-template-columns:24px minmax(0,1fr) auto;gap:7px}
+ .overview-focus-grid .task-glyph{width:24px;height:24px}.overview-focus-grid .task-operations{grid-column:auto;max-width:none}
+ .overview-focus-grid .task-operations button{min-height:36px;font-size:10px;padding:3px 5px}
+ .overview-section-hint{font-size:10px;max-width:205px;line-height:1.5}
+ .overview-attention-panel #dashboardAttention{gap:8px}.overview-attention-panel .attention-row{font-size:11px}
+ .overview-footer{gap:16px;flex-wrap:wrap}.overview-footer>span{display:none}
+ .overview-detail-dialog{width:calc(100% - 20px);max-height:calc(100dvh - 24px)}
+ .overview-detail-dialog .calendar-actions strong{font-size:12px}.overview-detail-dialog .calendar-actions .ghost-btn{font-size:12px;min-height:36px}
+}
+@media(prefers-reduced-motion:reduce){.overview-module{transition:none}}
+@media(min-width:1000px) and (max-height:850px){
+ body[data-current-view="dashboard"] .topbar{margin:10px 0 12px}
+ body[data-current-view="dashboard"] .topbar h1{font-size:26px}
+ .overview-progress{min-height:42px;margin-bottom:10px}
+ .overview-section-head{margin-bottom:7px}
+ .overview-module-main{padding:12px 15px 9px}
+ .overview-module-main h3{line-height:1.3;margin-bottom:3px}.overview-module-main p{line-height:1.4}
+ .overview-module-footer{min-height:0;padding:4px 0}
+ .overview-module-footer .link-button{min-height:22px;line-height:1.4}
+ .overview-focus-grid{margin-top:14px}
+ .overview-focus-grid .workspace-task{padding:8px 0;min-height:49px}
+ .overview-focus-grid .task-open strong,.overview-focus-grid .task-open small{line-height:1.4}
+ .overview-section-hint{line-height:1.4}
+ body[data-current-view="dashboard"] .sidebar{padding-top:22px;gap:16px}
+ body[data-current-view="dashboard"] .sidebar nav{gap:3px}
+ body[data-current-view="dashboard"] .nav{min-height:36px;padding-top:7px;padding-bottom:7px}
+ body[data-current-view="dashboard"] .nav-group-label{margin-top:10px;margin-bottom:4px}
+ body[data-current-view="dashboard"] .sidebar-note{gap:8px;padding-top:12px}
+}
+/* A compact three-day appointment preview sits beside the next actions. */
+.overview-schedule-panel{border:1px solid var(--ws-line);border-radius:12px;background:var(--ws-surface);padding:15px 18px 8px;min-width:0}
+.overview-schedule-count{font-size:10px;background:var(--ws-accent-soft);color:var(--ws-accent);border-radius:5px;padding:2px 5px;font-weight:500;vertical-align:middle}
+.overview-schedule-count:empty{display:none}
+.overview-schedule-list{display:grid;gap:0}
+.overview-schedule-row{display:grid;grid-template-columns:45px minmax(0,1fr) auto;gap:10px;align-items:center;width:100%;border:0;border-top:1px solid var(--ws-line);border-radius:0;background:transparent;text-align:left;color:var(--ws-ink);padding:9px 0;min-height:53px}
+.overview-schedule-row:first-child{border-top:0}
+.overview-schedule-row:hover{background:var(--ws-subtle)}
+.overview-schedule-time,.overview-schedule-company{display:grid;gap:3px;min-width:0}
+.overview-schedule-time strong{font-size:11px;color:var(--ws-accent);font-weight:500;line-height:1.4}
+.overview-schedule-time small{font-size:11px;color:var(--ws-muted);line-height:1.4;white-space:nowrap}
+.overview-schedule-company strong{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+.overview-schedule-company small{font-size:11px;color:var(--ws-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+.overview-schedule-type{font-size:10px;padding:3px 6px;border-radius:5px;white-space:nowrap;line-height:1.4}
+.event-signing{background:#e4f1e9;color:#286144}
+.overview-schedule-empty{padding:17px 0 12px;font-size:12px}
+.overview-schedule-empty strong{font-weight:500}.overview-schedule-empty p{font-size:11px;line-height:1.6;margin:6px 0 9px;color:var(--ws-muted)}
+.overview-schedule-empty .link-button{font-size:11px;min-height:28px;padding:2px 0}
+.overview-footer-attention{display:flex;gap:12px;align-items:center;margin-left:auto;flex-wrap:wrap}
+.overview-footer-attention .attention-row{width:auto;border:0;padding:3px 0;gap:5px;min-height:28px;white-space:nowrap;font-size:11px;color:var(--ws-muted)}
+.overview-footer-attention .attention-row strong{font-size:12px;font-weight:600}
+.overview-footer-attention .overview-empty{display:none}
+@media(min-width:1000px) and (max-height:850px){.overview-schedule-panel{padding:12px 15px 6px}.overview-schedule-row{padding:8px 0;min-height:49px}.overview-footer{gap:14px}}
+@media(max-width:1050px){.overview-focus-grid{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}.overview-schedule-row{gap:7px;grid-template-columns:40px minmax(0,1fr) auto}.overview-footer{gap:14px;flex-wrap:wrap}}
+@media(max-width:800px){.overview-focus-grid{grid-template-columns:1fr}.overview-schedule-panel{grid-row:1}}
+@media(max-width:680px){.overview-schedule-panel{padding:12px 13px 7px}.overview-schedule-row{min-height:55px;grid-template-columns:45px minmax(0,1fr) auto;gap:10px}.overview-footer-attention{width:100%;margin-left:0;gap:16px}}
+
+/* Seven independent workspaces remain visible in two rows on desktop. */
+@media(min-width:1000px){.overview-module-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.overview-module-main{gap:9px;padding-left:12px;padding-right:12px}.overview-module-main h3{font-size:14px}.overview-module-main p{font-size:11px;min-height:31px}.overview-module-footer{margin-left:12px;margin-right:12px}.overview-module-icon{width:30px;height:30px;flex-shrink:0}.overview-module-arrow{display:none}}
+.overview-offer-module{border-color:color-mix(in srgb,var(--ws-accent) 28%,var(--ws-line))}
+@media(min-width:1000px) and (max-height:850px){body[data-current-view="dashboard"] .sidebar nav{gap:2px}body[data-current-view="dashboard"] .nav{min-height:33px;padding-top:6px;padding-bottom:6px}body[data-current-view="dashboard"] .sidebar{gap:12px}.overview-module-main p{min-height:29px}}
+@media(min-width:1000px) and (max-height:850px){.overview-module-main{padding-top:9px;padding-bottom:6px}.overview-module-main p{min-height:25px}.overview-module-footer{padding-top:3px;padding-bottom:3px}.overview-focus-grid .workspace-task{padding-top:6px;padding-bottom:6px;min-height:45px}}
